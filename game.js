@@ -831,17 +831,24 @@ function executeSiege(attacker, landInfo, attackingIds) {
     let injuryHtml = ""; // Phase 21: 受傷紀錄
 
     winningTeamIds.forEach(id => {
-        if (Math.random() < 0.5) {
-            const o = getOfficer(id);
-            if (o) {
+        const o = getOfficer(id);
+        if (o) {
+            // 勝方：50% 機率獲得能力提升
+            if (Math.random() < 0.5) {
                 o.stats[statRoll] += 1;
                 growthHtml += `<div style="font-size: 14px; margin-top: 5px;">⬆️ <strong>${o.name}</strong> 的【${statName}】提升了 1 點！</div>`;
                 log(`✨ ${o.name} 在戰鬥中得到了成長，【${statName}】提升了 1 點！`);
             }
+            // Phase 21 擴充：勝方也有 10% 機率受傷 (殺敵一千，自損八百)
+            if (Math.random() < 0.1) {
+                o.injuryRate = 50;
+                injuryHtml += `<div style="font-size: 14px; margin-top: 5px;">⚠️ <strong>${o.name}</strong> 雖然得勝，但在激戰中掛彩，能力下降 50%！</div>`;
+                log(`⚠️ ${o.name} 凱旋而歸，但也在激戰中受了重傷，能力下降 50%！`);
+            }
         }
     });
 
-    // Phase 21: 戰敗受傷機制
+    // Phase 21: 戰敗受傷機制 (敗方 50% 機率受傷)
     losingTeamIds.forEach(id => {
         if (Math.random() < 0.5) {
             const o = getOfficer(id);
