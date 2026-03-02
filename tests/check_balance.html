@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Check Officer Balance</title>
+</head>
+
+<body>
+    <div id="result" style="font-family: monospace; font-size: 16px; padding: 20px;"></div>
+    <script>
+        const script = document.createElement('script');
+        script.src = '../game.js?v=' + new Date().getTime();
+        document.body.appendChild(script);
+    </script>
+    <script>
+        const res = document.getElementById('result');
+        function out(msg) {
+            res.innerHTML += msg + '<br>';
+        }
+
+        setTimeout(() => {
+            const sums = { 1: 0, 2: 0, 3: 0, 4: 0 };
+            const names = { 1: '蜀國 (Shu)', 2: '魏國 (Wei)', 3: '吳國 (Wu)', 4: '群雄 (Qun)' };
+
+            OFFICERS_DATA.forEach(o => {
+                let total = 0;
+                for (let i = 1; i <= 6; i++) total += o.stats[i];
+                sums[o.faction] += total;
+            });
+
+            const max = Math.max(sums[1], sums[2], sums[3], sums[4]);
+            const min = Math.min(sums[1], sums[2], sums[3], sums[4]);
+            const diffRatio = ((max - min) / max) * 100;
+
+            out(`總和能力值：`);
+            out(`蜀國: ${sums[1]}`);
+            out(`魏國: ${sums[2]}`);
+            out(`吳國: ${sums[3]}`);
+            out(`群雄: ${sums[4]}`);
+            out(`<br>`);
+            out(`最高: ${max} / 最低: ${min}`);
+            out(`最大落差百分比: ${diffRatio.toFixed(2)} %`);
+
+            if (diffRatio <= 1) {
+                out(`<br><strong style="color:green;" id="balance-result">✅ 檢查通過：四軍之間的差距 (${diffRatio.toFixed(2)}%) 在 1% 以內！</strong>`);
+            } else {
+                out(`<br><strong style="color:red;" id="balance-result">❌ 檢查失敗：四軍之間的落差過大，需要調整數值。</strong>`);
+            }
+        }, 500);
+    </script>
+</body>
+
+</html>

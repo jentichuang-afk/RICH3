@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Bug Hunter</title>
+</head>
+
+<body>
+    <h1>Running Bug Hunter...</h1>
+    <div id="output"></div>
+    <script>
+        window.onerror = function (message, source, lineno, colno, error) {
+            document.getElementById('output').innerHTML += `<p style="color:red">Error: ${message} at ${source}:${lineno}:${colno}</p>`;
+        };
+        const originalConsoleError = console.error;
+        console.error = function (...args) {
+            document.getElementById('output').innerHTML += `<p style="color:red">Console Error: ${args.join(' ')}</p>`;
+            originalConsoleError.apply(console, args);
+        };
+
+        // redirect to game and inject error capturing (not easily possible from a static file without an extension, but we can instruct the browser subagent to just look at devtools)
+    </script>
+</body>
+
+</html>

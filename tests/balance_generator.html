@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+</head>
+
+<body>
+    <div id="output"></div>
+    <script src="../game.js"></script>
+    <script>
+        setTimeout(() => {
+            let sums = { 1: 0, 2: 0, 3: 0, 4: 0 };
+            OFFICERS_DATA.forEach(o => {
+                let total = 0;
+                for (let i = 1; i <= 6; i++) total += o.stats[i];
+                sums[o.faction] += total;
+            });
+
+            let avg = 8800; // 強制將四陣營都配到精準 8800
+
+            for (let f = 1; f <= 4; f++) {
+                let fOfficers = OFFICERS_DATA.filter(o => o.faction === f);
+                let diff = avg - sums[f];
+
+                let safety = 0;
+                while (diff !== 0 && safety < 10000) {
+                    safety++;
+                    for (let j = 0; j < fOfficers.length && diff !== 0; j++) {
+                        let o = fOfficers[j];
+                        for (let s = 1; s <= 6 && diff !== 0; s++) {
+                            if (diff > 0 && o.stats[s] < 96) {
+                                o.stats[s]++;
+                                diff--;
+                            } else if (diff < 0 && o.stats[s] > 25) {
+                                o.stats[s]--;
+                                diff++;
+                            }
+                        }
+                    }
+                }
+            }
+
+            let result = "const OFFICERS_DATA = [\n";
+            for (let f = 1; f <= 4; f++) {
+                let fName = f === 1 ? "蜀國" : f === 2 ? "魏國" : f === 3 ? "吳國" : "群雄";
+                result += `    // ${fName} (${f})\n`;
+                let off = OFFICERS_DATA.filter(o => o.faction === f);
+                off.forEach(o => {
+                    result += `    { id: ${o.id}, name: "${o.name}", faction: ${o.faction}, stats: { 1: ${o.stats[1]}, 2: ${o.stats[2]}, 3: ${o.stats[3]}, 4: ${o.stats[4]}, 5: ${o.stats[5]}, 6: ${o.stats[6]} } },\n`;
+                });
+            }
+            result += "];";
+            document.getElementById('output').innerText = result;
+            console.log("DONE");
+        }, 500);
+    </script>
+</body>
+
+</html>

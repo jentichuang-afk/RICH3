@@ -1,0 +1,741 @@
+:root {
+    --bg-color: #f4f1ea;
+    /* 宣紙/米黃底色 */
+    --ink-dark: #2c2c2c;
+    /* 濃墨黑 */
+    --ink-light: #525252;
+    /* 淡墨灰 */
+    --border-color: #8c8c8c;
+
+    --faction-1: #4caf50;
+    /* 蜀綠 */
+    --faction-2: #2196f3;
+    /* 魏藍 */
+    --faction-3: #f44336;
+    /* 吳紅 */
+    --faction-4: #9c27b0;
+    /* 群紫 */
+
+    --p1-color: var(--faction-1);
+    /* 蜀漢綠 */
+    --p1-light: rgba(39, 174, 96, 0.1);
+
+    --p2-color: var(--faction-2);
+    /* 曹魏藍 */
+    --p2-light: rgba(41, 128, 185, 0.1);
+
+    --p3-color: var(--faction-3);
+    /* 東吳紅 */
+    --p3-light: rgba(192, 57, 43, 0.1);
+
+    --p4-color: var(--faction-4);
+    /* 群雄紫 */
+    --p4-light: rgba(156, 39, 176, 0.1);
+
+    --gold: #b89849;
+    /* 古典金 */
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Noto Serif TC', serif;
+    /* 襯線字體增添古典感 */
+    background-color: var(--bg-color);
+    color: var(--ink-dark);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-image:
+        radial-gradient(var(--bg-color) 40%, rgba(200, 190, 170, 0.5) 100%),
+        url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" opacity="0.03"><circle cx="100" cy="100" r="80" fill="%23000"/></svg>');
+    /* 簡單宣紙質感 */
+}
+
+.container {
+    width: 1000px;
+    max-width: 95vw;
+    background: rgba(255, 255, 255, 0.7);
+    border: 2px solid var(--ink-dark);
+    box-shadow: 10px 10px 20px rgba(0, 0, 0, 0.1),
+        inset 0 0 20px rgba(0, 0, 0, 0.05);
+    padding: 20px;
+    border-radius: 4px;
+    position: relative;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--ink-dark);
+    padding-bottom: 10px;
+}
+
+h1 {
+    font-size: 2.5rem;
+    font-weight: 900;
+    letter-spacing: 5px;
+    color: var(--ink-dark);
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.subtitle {
+    font-size: 1.1rem;
+    color: var(--ink-light);
+    letter-spacing: 2px;
+}
+
+/* Start Screen */
+.start-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(5px);
+}
+
+.start-screen.hidden {
+    display: none;
+}
+
+.start-content {
+    background: var(--bg-color);
+    padding: 40px;
+    border: 3px solid var(--gold);
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+}
+
+.start-content h1 {
+    margin-bottom: 20px;
+}
+
+.start-content p {
+    margin-bottom: 30px;
+    font-size: 1.2rem;
+    color: var(--ink-light);
+}
+
+.start-actions {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+}
+
+.game-area {
+    display: flex;
+    gap: 30px;
+}
+
+/* Sidebar & Stats */
+.sidebar {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.player-card {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: #fff;
+    transition: all 0.3s ease;
+    opacity: 0.6;
+}
+
+.player-card.active {
+    opacity: 1;
+    border-width: 2px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    transform: scale(1.02);
+}
+
+.p1-card.active {
+    border-color: var(--p1-color);
+    background-color: var(--p1-light);
+}
+
+.p2-card.active {
+    border-color: var(--p2-color);
+    background-color: var(--p2-light);
+}
+
+.p3-card.active {
+    border-color: var(--p3-color);
+    background-color: var(--p3-light);
+}
+
+.p4-card.active {
+    border-color: var(--p4-color);
+    background-color: var(--p4-light);
+}
+
+.avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: white;
+    margin-right: 15px;
+    border: 2px solid var(--ink-dark);
+    font-family: "KaiTi", "楷體", serif;
+}
+
+.p1-avatar {
+    background: var(--p1-color);
+}
+
+.p2-avatar {
+    background: var(--p2-color);
+}
+
+.p3-avatar {
+    background: var(--p3-color);
+}
+
+.p4-avatar {
+    background: var(--p4-color);
+}
+
+.info h2 {
+    font-size: 1.2rem;
+    margin-bottom: 5px;
+}
+
+.money {
+    font-weight: bold;
+    font-family: monospace;
+    font-size: 1.1rem;
+}
+
+.officer-count {
+    font-size: 0.9rem;
+    color: var(--ink-light);
+    margin-top: 5px;
+    font-weight: bold;
+}
+
+/* Control Panel */
+.control-panel {
+    border: 1px solid var(--border-color);
+    padding: 20px;
+    background: #fff;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.turn-indicator {
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+.p1-text {
+    color: var(--p1-color);
+}
+
+.p2-text {
+    color: var(--p2-color);
+}
+
+.p3-text {
+    color: var(--p3-color);
+}
+
+.p4-text {
+    color: var(--p4-color);
+}
+
+.p2-text {
+    color: var(--p2-color);
+}
+
+.p3-text {
+    color: var(--p3-color);
+}
+
+.p4-text {
+    color: var(--p4-color);
+}
+
+.dice-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.dice {
+    font-size: 4rem;
+    line-height: 1;
+    color: var(--ink-dark);
+    text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.1);
+    transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.dice.rolling {
+    animation: rollAnim 0.5s ease-in-out infinite;
+}
+
+@keyframes rollAnim {
+    0% {
+        transform: rotate(0deg) scale(1);
+    }
+
+    50% {
+        transform: rotate(180deg) scale(1.2);
+    }
+
+    100% {
+        transform: rotate(360deg) scale(1);
+    }
+}
+
+.btn {
+    padding: 10px 20px;
+    font-size: 1.1rem;
+    font-family: inherit;
+    font-weight: bold;
+    cursor: pointer;
+    border: 2px solid var(--ink-dark);
+    background: var(--bg-color);
+    color: var(--ink-dark);
+    transition: all 0.2s;
+    outline: none;
+}
+
+.btn:hover:not(:disabled) {
+    background: var(--ink-dark);
+    color: var(--bg-color);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: var(--border-color);
+    color: var(--border-color);
+}
+
+.primary-btn {
+    border-color: var(--gold);
+    color: #8e733b;
+}
+
+.primary-btn:hover:not(:disabled) {
+    background: var(--gold);
+    color: white;
+    border-color: var(--gold);
+}
+
+.p1 {
+    background: var(--faction-1);
+    color: white;
+}
+
+.p2 {
+    background: var(--faction-2);
+    color: white;
+}
+
+.p3 {
+    background: var(--faction-3);
+    color: white;
+}
+
+.p4 {
+    background: var(--faction-4);
+    color: white;
+}
+
+.btn-faction-1 {
+    background-color: var(--faction-1);
+    color: white;
+    border-color: #2e663a;
+}
+
+.btn-faction-2 {
+    background-color: var(--faction-2);
+    color: white;
+    border-color: #1e4a66;
+}
+
+.btn-faction-3 {
+    background-color: var(--faction-3);
+    color: white;
+    border-color: #832720;
+}
+
+.btn-faction-4 {
+    background-color: var(--faction-4);
+    color: white;
+    border-color: #3b1e66;
+}
+
+/* Log Panel */
+.log-panel {
+    height: 120px;
+    overflow-y: auto;
+    text-align: left;
+    border-top: 1px dashed var(--border-color);
+    padding-top: 10px;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--ink-light);
+}
+
+.log-panel p {
+    border-bottom: 1px solid #eee;
+    padding-bottom: 4px;
+    margin-bottom: 4px;
+}
+
+.log-panel p:first-child {
+    font-weight: bold;
+    color: var(--ink-dark);
+}
+
+/* Board */
+.board-container {
+    flex: 2;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.board {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    gap: 4px;
+    background: #bdbdbd;
+    padding: 8px;
+    border: 3px solid #666;
+    height: 100%;
+    position: relative;
+    box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.1);
+}
+
+.cell {
+    border: 1px solid var(--ink-dark);
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 10px;
+    position: relative;
+}
+
+#cell-0 {
+    background: rgba(230, 220, 200, 0.9);
+    font-weight: bold;
+}
+
+.city-name {
+    font-size: 1.2rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.city-name small {
+    font-size: 0.8rem;
+    font-weight: normal;
+    color: var(--ink-light);
+}
+
+/* 土地所有權標示 */
+.owner-marker {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+}
+
+.owner-p1 {
+    background-color: var(--p1-color);
+}
+
+.owner-p2 {
+    background-color: var(--p2-color);
+}
+
+.owner-p3 {
+    background-color: var(--p3-color);
+}
+
+.owner-p4 {
+    background-color: var(--p4-color);
+}
+
+.board-center {
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 8px;
+    z-index: 10;
+    grid-area: 2 / 2 / 3 / 4;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: none;
+}
+
+.center-art {
+    font-family: "KaiTi", "楷體", serif;
+    font-size: 4rem;
+    color: rgba(0, 0, 0, 0.1);
+    font-weight: bold;
+    text-align: center;
+    line-height: 1.1;
+    transform: rotate(-10deg);
+}
+
+/* Pieces */
+.piece {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    color: white;
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.2rem;
+    z-index: 10;
+    border: 2px solid white;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+    transition: all 0.5s ease-in-out;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.piece-p1 {
+    background: var(--p1-color);
+    margin-top: -15px;
+    margin-left: -15px;
+}
+
+.piece-p2 {
+    background: var(--p2-color);
+    margin-top: 5px;
+    margin-left: 5px;
+}
+
+.piece-p3 {
+    background: var(--p3-color);
+    margin-top: -15px;
+    margin-left: 15px;
+    z-index: 11;
+}
+
+.piece-p4 {
+    background: var(--p4-color);
+    margin-top: 15px;
+    margin-left: -15px;
+    z-index: 11;
+}
+
+/* Modal */
+.modal {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    backdrop-filter: blur(2px);
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background: var(--bg-color);
+    padding: 30px;
+    border: 3px solid var(--ink-dark);
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    border-radius: 8px;
+    text-align: center;
+    max-width: 400px;
+}
+
+.modal-content h3 {
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+    color: var(--ink-dark);
+    border-bottom: 2px solid var(--gold);
+    padding-bottom: 5px;
+}
+
+.modal-content p {
+    margin-bottom: 20px;
+    font-size: 1.1rem;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+/* Officer Modal */
+.officer-modal-content {
+    max-width: 600px;
+}
+
+.officer-list {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    padding: 10px;
+    border: 1px inset var(--border-color);
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.officer-item {
+    border: 1px solid var(--border-color);
+    padding: 8px;
+    cursor: pointer;
+    background: #fff;
+    border-radius: 4px;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+    text-align: left;
+    user-select: none;
+}
+
+.officer-item:hover {
+    border-color: var(--ink-dark);
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.officer-item.selected {
+    background: var(--gold);
+    color: white;
+    border-color: var(--ink-dark);
+    font-weight: bold;
+}
+
+.officer-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    font-size: 0.75rem;
+    color: var(--ink-light);
+    margin-top: 5px;
+}
+
+.officer-item.selected .officer-stats {
+    color: #eee;
+}
+
+/* 🌟 武將圖鑑 Modal 與表格樣式 🌟 */
+.encyclopedia-modal-content {
+    max-width: 90%;
+    width: 900px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.encyclopedia-table-container {
+    overflow-y: auto;
+    flex-grow: 1;
+    margin: 15px 0;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+.encyclopedia-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.encyclopedia-table th,
+.encyclopedia-table td {
+    border: 1px solid #ddd;
+    padding: 8px 12px;
+    text-align: center;
+}
+
+.encyclopedia-table th {
+    background-color: var(--primary-color);
+    color: white;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.encyclopedia-table th.sortable {
+    cursor: pointer;
+}
+
+.encyclopedia-table th.sortable:hover {
+    background-color: #555;
+}
+
+.encyclopedia-table tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.encyclopedia-table tbody tr:hover {
+    background-color: #e0f2f1;
+}
+
+/* 長文字的技能敘述可以齊左 */
+.encyclopedia-table td.desc-col {
+    text-align: left;
+    font-size: 13px;
+    color: #444;
+}
+
+/* Owner Indicators */
+.owner-p1 {
+    background-color: var(--p1-color);
+    box-shadow: 0 0 5px var(--p1-color);
+}
+
+.owner-p2 {
+    background-color: var(--p2-color);
+    box-shadow: 0 0 5px var(--p2-color);
+}
+
+.owner-p3 {
+    background-color: var(--p3-color);
+    box-shadow: 0 0 5px var(--p3-color);
+}
+
+.owner-p4 {
+    background-color: var(--p4-color);
+    box-shadow: 0 0 5px var(--p4-color);
+}

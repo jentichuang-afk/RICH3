@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Logic Tests</title>
+</head>
+
+<body>
+    <div id="test-results" style="font-family: sans-serif; font-size: 18px; line-height: 1.5; padding: 20px;"></div>
+
+    <!-- Dummy UI elements required by game.js -->
+    <div style="display:none;">
+        <div id="start-screen"></div>
+        <button id="btn-roll"></button>
+        <div id="dice"></div>
+        <div id="p1-card"></div>
+        <div id="p2-card"></div>
+        <div id="p3-card"></div>
+        <div id="p1-money"></div>
+        <div id="p2-money"></div>
+        <div id="p3-money"></div>
+        <div id="p1-officers"></div>
+        <div id="p2-officers"></div>
+        <div id="p3-officers"></div>
+        <div id="current-turn-name"></div>
+        <div id="log-panel"></div>
+        <div id="piece-p1"></div>
+        <div id="piece-p2"></div>
+        <div id="piece-p3"></div>
+        <div id="modal"></div>
+        <div id="modal-title"></div>
+        <div id="modal-message"></div>
+        <button id="btn-modal-yes"></button><button id="btn-modal-no"></button>
+        <div id="officer-modal"></div>
+        <div id="officer-modal-title"></div>
+        <div id="officer-modal-message"></div>
+        <div id="officer-list"></div><button id="btn-officer-confirm"></button><button id="btn-officer-cancel"></button>
+        <div id="officer-win-rate"></div>
+        <div id="start-step-1"></div>
+        <div id="start-step-2"></div>
+        <div id="faction-select-text"></div>
+        <div id="info-modal"></div>
+        <div id="info-modal-title"></div>
+        <div id="info-modal-message"></div><button id="btn-info-close"></button>
+        <div id="board">
+            <div id="cell-0" class="cell" data-index="0">
+                <div class="owner-marker"></div>
+            </div>
+            <div id="cell-1" class="cell" data-index="1">
+                <div class="owner-marker"></div>
+            </div>
+            <div id="cell-2" class="cell" data-index="2">
+                <div class="owner-marker"></div>
+            </div>
+            <div id="cell-3" class="cell" data-index="3">
+                <div class="owner-marker"></div>
+            </div>
+            <div id="cell-4" class="cell" data-index="4">
+                <div class="owner-marker"></div>
+            </div>
+            <div id="cell-5" class="cell" data-index="5">
+                <div class="owner-marker"></div>
+            </div>
+            <div id="cell-6" class="cell" data-index="6">
+                <div class="owner-marker"></div>
+            </div>
+            <div id="cell-7" class="cell" data-index="7">
+                <div class="owner-marker"></div>
+            </div>
+            <div id="cell-8" class="cell" data-index="8">
+                <div class="owner-marker"></div>
+            </div>
+            <div id="cell-9" class="cell" data-index="9">
+                <div class="owner-marker"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../game.js"></script>
+    <script src="logic.test.js"></script>
+</body>
+
+</html>
