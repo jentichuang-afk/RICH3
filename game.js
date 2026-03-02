@@ -845,9 +845,11 @@ function executeSiege(attacker, landInfo, attackingIds) {
             }
             // Phase 21 擴充：勝方也有 10% 機率受傷 (殺敵一千，自損八百)
             if (Math.random() < 0.1) {
-                o.injuryRate = 50;
-                injuryHtml += `<div style="font-size: 14px; margin-top: 5px;">⚠️ <strong>${o.name}</strong> 雖然得勝，但在激戰中掛彩，能力下降 50%！</div>`;
-                log(`⚠️ ${o.name} 凱旋而歸，但也在激戰中受了重傷，能力下降 50%！`);
+                let dmg = Math.floor(Math.random() * 81) + 10; // 10% ~ 90%
+                if (o.baseStats[1] >= 95) dmg = Math.floor(dmg / 2); // 猛將減傷
+                o.injuryRate = Math.min(100, o.injuryRate + dmg);
+                injuryHtml += `<div style="font-size: 14px; margin-top: 5px;">⚠️ <strong>${o.name}</strong> 在激戰中掛彩，能力下降 ${dmg}%！</div>`;
+                log(`⚠️ ${o.name} 戰勝後掛彩，能力下降 ${dmg}%！`);
             }
         }
     });
@@ -857,9 +859,11 @@ function executeSiege(attacker, landInfo, attackingIds) {
         if (Math.random() < 0.5) {
             const o = getOfficer(id);
             if (o) {
-                o.injuryRate = 50;
-                injuryHtml += `<div style="font-size: 14px; margin-top: 5px;">💥 <strong>${o.name}</strong> 受到重創，全能力下降 50%！</div>`;
-                log(`💥 ${o.name} 在戰敗中身受重傷，全能力下降 50%！`);
+                let dmg = Math.floor(Math.random() * 81) + 10; // 10% ~ 90%
+                if (o.baseStats[1] >= 95) dmg = Math.floor(dmg / 2); // 猛將減傷
+                o.injuryRate = Math.min(100, o.injuryRate + dmg);
+                injuryHtml += `<div style="font-size: 14px; margin-top: 5px;">💥 <strong>${o.name}</strong> 受到重創，全能力下降 ${dmg}%！</div>`;
+                log(`💥 ${o.name} 在戰敗中身受重傷，全能力下降 ${dmg}%！`);
             }
         }
     });
@@ -1585,26 +1589,56 @@ function openEncyclopedia() {
 function renderEncyclopedia() {
     UI.encyclopediaTbody.innerHTML = '';
 
+    const factionMap = { 1: "蜀國", 2: "魏國", 3: "吳國", 4: "群雄" };
+
+    // 計算動態總和與即時陣營 (Phase 23)
+    let displayData = OFFICERS_DATA.map(o => {
+        let total = 0;
+        for (let i = 1; i <= 6; i++) total += o.stats[i]; // 使用原始成長後數值計算基底總合
+
+        // 尋找當前所屬活體玩家
+        let currentOwnerId = null;
+        for (let pid in GAME_STATE.players) {
+            if (GAME_STATE.players[pid] && !GAME_STATE.players[pid].isBankrupt && GAME_STATE.players[pid].officers.includes(o.id)) {
+                currentOwnerId = parseInt(pid);
+                break;
+            }
+        }
+
+        let fname = currentOwnerId ? factionMap[currentOwnerId] : "在野";
+        let fcolor = currentOwnerId ? `var(--faction-${currentOwnerId})` : "#999";
+
+        return {
+            ...o,
+            dynTotal: total,
+            dynFaction: fname,
+            dynFactionColor: fcolor
+        };
+    });
+
     // 複製一份陣列用來排序
-    let sortedOfficers = [...OFFICERS_DATA].sort((a, b) => {
+    let sortedOfficers = displayData.sort((a, b) => {
         let valA, valB;
         if (['1', '2', '3', '4', '5', '6'].includes(currentSortKey)) {
             valA = a.stats[currentSortKey];
             valB = b.stats[currentSortKey];
+        } else if (currentSortKey === 'total') {
+            valA = a.dynTotal;
+            valB = b.dynTotal;
+        } else if (currentSortKey === 'faction') {
+            valA = a.dynFaction;
+            valB = b.dynFaction;
         } else {
             valA = a[currentSortKey];
             valB = b[currentSortKey];
         }
 
-        // 字串比較 (姓名)
+        // 字串比較 (姓名、陣營)
         if (typeof valA === 'string' && typeof valB === 'string') {
             return valA.localeCompare(valB) * currentSortOrder;
         }
         return (valA - valB) * currentSortOrder;
     });
-
-    const factionNames = { 1: "蜀國", 2: "魏國", 3: "吳國", 4: "群雄" };
-    const factionColors = { 1: "var(--faction-1)", 2: "var(--faction-2)", 3: "var(--faction-3)", 4: "var(--faction-4)" };
 
     sortedOfficers.forEach(o => {
         const tr = document.createElement('tr');
@@ -1617,13 +1651,14 @@ function renderEncyclopedia() {
         tr.innerHTML = `
             <td>${o.id}</td>
             <td style="font-weight:bold;">${o.name}</td>
-            <td style="color: ${factionColors[o.faction]}; font-weight:bold;">${factionNames[o.faction]}</td>
+            <td style="color: ${o.dynFactionColor}; font-weight:bold;">${o.dynFaction}</td>
             <td>${formatStatDisplay(o.baseStats[1], o.stats[1], o.injuryRate)}</td>
             <td>${formatStatDisplay(o.baseStats[2], o.stats[2], o.injuryRate)}</td>
             <td>${formatStatDisplay(o.baseStats[3], o.stats[3], o.injuryRate)}</td>
             <td>${formatStatDisplay(o.baseStats[4], o.stats[4], o.injuryRate)}</td>
             <td>${formatStatDisplay(o.baseStats[5], o.stats[5], o.injuryRate)}</td>
             <td>${formatStatDisplay(o.baseStats[6], o.stats[6], o.injuryRate)}</td>
+            <td style="font-weight:bold; color:var(--ink-dark);">${o.dynTotal}</td>
             <td class="desc-col">${skillText}</td>
         `;
         UI.encyclopediaTbody.appendChild(tr);

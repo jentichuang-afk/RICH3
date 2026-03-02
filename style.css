@@ -689,11 +689,12 @@ h1 {
 }
 
 .encyclopedia-table th {
-    background-color: var(--primary-color);
-    color: white;
+    background-color: var(--primary-color, rgba(0, 0, 0, 0.05));
+    color: var(--ink-dark);
     position: sticky;
     top: 0;
     z-index: 2;
+    border-bottom: 2px solid var(--border-color);
 }
 
 .encyclopedia-table th.sortable {
