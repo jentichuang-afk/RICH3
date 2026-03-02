@@ -174,17 +174,17 @@ function formatStatDisplay(base, current, injuryRate = 0) {
 // 地圖資料 (10格)
 const MAP_DATA = [
     { id: 0, name: "長安", type: "START", price: 0, owner: null },
-    { id: 1, name: "洛陽", type: "LAND", price: 1000, toll: 500, owner: null, defenders: [] },
-    { id: 2, name: "許昌", type: "LAND", price: 1200, toll: 600, owner: null, defenders: [] },
-    { id: 3, name: "鄴城", type: "LAND", price: 1500, toll: 750, owner: null, defenders: [] },
-    { id: 4, name: "下邳", type: "LAND", price: 1800, toll: 900, owner: null, defenders: [] },
-    { id: 5, name: "臨淄", type: "LAND", price: 1600, toll: 800, owner: null, defenders: [] },
-    { id: 6, name: "建業", type: "LAND", price: 2000, toll: 1000, owner: null, defenders: [] },
-    { id: 7, name: "宛城", type: "LAND", price: 1200, toll: 600, owner: null, defenders: [] },
-    { id: 8, name: "襄陽", type: "LAND", price: 1500, toll: 750, owner: null, defenders: [] },
-    { id: 9, name: "成都", type: "LAND", price: 1800, toll: 900, owner: null, defenders: [] },
-    { id: 10, name: "江州", type: "LAND", price: 1200, toll: 600, owner: null, defenders: [] },
-    { id: 11, name: "漢中", type: "LAND", price: 1500, toll: 750, owner: null, defenders: [] },
+    { id: 1, name: "洛陽", type: "LAND", price: 2000, toll: 1000, owner: null, defenders: [] }, // 漢家舊都，極度富庶
+    { id: 2, name: "許昌", type: "LAND", price: 1800, toll: 900, owner: null, defenders: [] },  // 曹魏首都，屯田重鎮
+    { id: 3, name: "鄴城", type: "LAND", price: 1600, toll: 800, owner: null, defenders: [] },  // 北方重鎮，袁本初與曹氏根基
+    { id: 4, name: "下邳", type: "LAND", price: 1500, toll: 750, owner: null, defenders: [] },  // 徐州核心，陶謙與呂布根據地
+    { id: 5, name: "臨淄", type: "LAND", price: 1500, toll: 750, owner: null, defenders: [] },  // 青州大城，齊國故都
+    { id: 6, name: "建業", type: "LAND", price: 2200, toll: 1100, owner: null, defenders: [] }, // 孫吳首都，江南經濟中心
+    { id: 7, name: "宛城", type: "LAND", price: 1300, toll: 650, owner: null, defenders: [] },  // 南陽樞紐，人口曾經鼎盛但交戰頻繁
+    { id: 8, name: "襄陽", type: "LAND", price: 1800, toll: 900, owner: null, defenders: [] },  // 荊州中心，劉表苦心經營之富裕地
+    { id: 9, name: "成都", type: "LAND", price: 2000, toll: 1000, owner: null, defenders: [] }, // 蜀漢首都，天府之國
+    { id: 10, name: "江州", type: "LAND", price: 1200, toll: 600, owner: null, defenders: [] }, // 巴蜀門戶，略低於成都
+    { id: 11, name: "漢中", type: "LAND", price: 1100, toll: 550, owner: null, defenders: [] }, // 戰略要衝，人口較少但極具防禦價值
 ];
 
 const DICE_FACES = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
