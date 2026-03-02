@@ -1281,23 +1281,28 @@ function toggleOfficerSelection(element, officerId) {
 
 function updateWinRateDisplay() {
     const el = document.getElementById('officer-win-rate');
-    const atkTotalEl = document.getElementById('officer-atk-total');
-    const defTotalEl = document.getElementById('officer-def-total');
     if (!el) return;
 
+    // 清零顯示
+    const resetDisplay = () => {
+        for (let i = 1; i <= 6; i++) {
+            const aEl = document.getElementById(`atk-stat-${i}`);
+            const dEl = document.getElementById(`def-stat-${i}`);
+            if (aEl) { aEl.textContent = '-'; aEl.style.color = ''; }
+            if (dEl) { dEl.textContent = '-'; dEl.style.color = ''; }
+        }
+    };
+
     if (!window.currentDefIds || window.currentDefIds.length === 0) {
-        if (atkTotalEl) atkTotalEl.textContent = "0";
-        if (defTotalEl) defTotalEl.textContent = "0";
+        resetDisplay();
         return;
     }
 
     const defStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
-    let defTotal = 0;
     window.currentDefIds.forEach(id => {
         const o = getOfficer(id);
         if (o) for (let i = 1; i <= 6; i++) {
-            let eff = getEffectiveStat(o, i);
-            defStats[i] += eff;
+            defStats[i] += getEffectiveStat(o, i);
         }
     });
 
@@ -1305,40 +1310,55 @@ function updateWinRateDisplay() {
 
     for (let i = 1; i <= 6; i++) {
         defStats[i] = Math.ceil(defStats[i] * 1.03);
-        defTotal += defStats[i];
     }
 
     const atkStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
-    let atkTotal = 0;
     selectedOfficers.forEach(id => {
         const o = getOfficer(id);
         if (o) for (let i = 1; i <= 6; i++) {
-            let eff = getEffectiveStat(o, i);
-            atkStats[i] += eff;
+            atkStats[i] += getEffectiveStat(o, i);
         }
     });
 
     applyTeamSkills(selectedOfficers, atkStats);
 
-    for (let i = 1; i <= 6; i++) {
-        atkTotal += atkStats[i];
-    }
-
-    if (atkTotalEl) atkTotalEl.textContent = atkTotal;
-    if (defTotalEl) defTotalEl.textContent = defTotal;
-
     if (selectedOfficers.length === 0) {
+        resetDisplay();
         el.textContent = '預估勝率：請先選擇作戰武將...';
         return;
     }
 
     let wins = 0;
+    // 更新個別數字與顏色
     for (let i = 1; i <= 6; i++) {
-        if (atkStats[i] > defStats[i]) wins++;
+        const aEl = document.getElementById(`atk-stat-${i}`);
+        const dEl = document.getElementById(`def-stat-${i}`);
+        if (aEl && dEl) {
+            aEl.textContent = atkStats[i];
+            dEl.textContent = defStats[i];
+
+            if (atkStats[i] > defStats[i]) {
+                wins++;
+                aEl.style.color = '#27ae60'; // 勝: 綠色
+                aEl.style.fontWeight = 'bold';
+                dEl.style.color = '#c0392b'; // 敗: 紅色
+                dEl.style.fontWeight = 'normal';
+            } else if (atkStats[i] < defStats[i]) {
+                aEl.style.color = '#c0392b';
+                aEl.style.fontWeight = 'normal';
+                dEl.style.color = '#27ae60';
+                dEl.style.fontWeight = 'bold';
+            } else {
+                aEl.style.color = '#555';
+                aEl.style.fontWeight = 'normal';
+                dEl.style.color = '#555';
+                dEl.style.fontWeight = 'normal';
+            }
+        }
     }
 
     const rate = Math.round((wins / 6) * 100);
-    el.textContent = `預估勝率：${rate}% (${wins} / 6 屬性佔優)`;
+    el.textContent = `預估勝率：${rate}% (${wins} / 6 項屬性佔優)`;
 }
 
 // 事件綁定只須執行一次

@@ -191,17 +191,44 @@
                 <h3 id="officer-modal-title">指派武將 (請選擇 1~3 名)</h3>
                 <p id="officer-modal-message">訊息</p>
 
-                <!-- 攻城總和對比區塊 (Phase 22) -->
+                <!-- 攻防能力個別對比區塊 (Phase 22 Update) -->
                 <div id="officer-compare-panel"
-                    style="display: none; background: rgba(0,0,0,0.05); border: 2px solid var(--border-color); padding: 10px; margin-bottom: 10px; border-radius: 5px; text-align: center;">
-                    <div style="display: flex; justify-content: space-around; font-weight: bold; font-size: 1.1rem;">
-                        <div style="color: var(--primary-color);"><span id="officer-atk-label">我方出戰總和</span> <br><span
-                                id="officer-atk-total" style="font-size: 1.3rem;">0</span></div>
-                        <div id="officer-win-rate" style="color: #c0392b; font-size: 1.2rem; align-self: center;">
-                            請先選擇作戰武將...</div>
-                        <div style="color: var(--ink-light);"><span id="officer-def-label">敵方守城總和</span> <br><span
-                                id="officer-def-total" style="font-size: 1.3rem;">0</span></div>
+                    style="display: none; background: rgba(0,0,0,0.05); border: 2px solid var(--border-color); padding: 5px; margin-bottom: 10px; border-radius: 5px; text-align: center;">
+                    <div id="officer-win-rate"
+                        style="color: #c0392b; font-size: 1.1rem; font-weight: bold; margin-bottom: 5px;">請先選擇作戰武將...
                     </div>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.95rem;">
+                        <tbody>
+                            <tr style="font-weight: bold; background: rgba(0,0,0,0.1);">
+                                <td style="padding: 4px; width: 22%; color: var(--primary-color);">我軍出擊
+                                    <br><small>(加成後)</small></td>
+                                <td style="padding: 4px; width: 13%;"><span id="atk-stat-1">-</span></td>
+                                <td style="padding: 4px; width: 13%;"><span id="atk-stat-2">-</span></td>
+                                <td style="padding: 4px; width: 13%;"><span id="atk-stat-3">-</span></td>
+                                <td style="padding: 4px; width: 13%;"><span id="atk-stat-4">-</span></td>
+                                <td style="padding: 4px; width: 13%;"><span id="atk-stat-5">-</span></td>
+                                <td style="padding: 4px; width: 13%;"><span id="atk-stat-6">-</span></td>
+                            </tr>
+                            <tr style="font-size: 0.85rem; color: #555;">
+                                <td style="padding: 2px;">項目</td>
+                                <td style="padding: 2px;">武力</td>
+                                <td style="padding: 2px;">智力</td>
+                                <td style="padding: 2px;">統率</td>
+                                <td style="padding: 2px;">政治</td>
+                                <td style="padding: 2px;">魅力</td>
+                                <td style="padding: 2px;">運氣</td>
+                            </tr>
+                            <tr style="font-weight: bold; background: rgba(0,0,0,0.1);">
+                                <td style="padding: 4px; color: var(--ink-light);">敵軍防守 <br><small>(含城池優勢)</small></td>
+                                <td style="padding: 4px;"><span id="def-stat-1">-</span></td>
+                                <td style="padding: 4px;"><span id="def-stat-2">-</span></td>
+                                <td style="padding: 4px;"><span id="def-stat-3">-</span></td>
+                                <td style="padding: 4px;"><span id="def-stat-4">-</span></td>
+                                <td style="padding: 4px;"><span id="def-stat-5">-</span></td>
+                                <td style="padding: 4px;"><span id="def-stat-6">-</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
 
                 <div class="encyclopedia-table-container" style="max-height: 400px; margin-bottom: 15px;">
