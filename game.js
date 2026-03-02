@@ -139,14 +139,32 @@ const OFFICERS_DATA = [
 // 替每位武將註冊不可變的 baseStats (Phase 17)，作為成長計算基準
 OFFICERS_DATA.forEach(o => {
     o.baseStats = { ...o.stats };
+    o.injuryRate = 0; // Phase 21: 初始化受傷程度為 0 (健康)
 });
 
-// Phase 17: 戰鬥成長呈現輔助函式
-function formatStatDisplay(base, current) {
-    if (current > base) {
-        return `${base} &nbsp;<span style="color: #ff5252; font-weight: bold;">(+${current - base})</span>`;
+// Phase 21: 取得戰鬥時有效的能力 (計算衰減)
+function getEffectiveStat(o, statIdx) {
+    let val = o.stats[statIdx];
+    if (o.injuryRate > 0) {
+        val = Math.floor(val * (100 - o.injuryRate) / 100);
     }
-    return `${base}`;
+    return val;
+}
+
+// Phase 17 & 21: 戰鬥成長與受傷呈現輔助函式
+function formatStatDisplay(base, current, injuryRate = 0) {
+    let effective = current;
+    if (injuryRate > 0) {
+        effective = Math.floor(current * (100 - injuryRate) / 100);
+    }
+    let html = `${base}`;
+    if (current > base) {
+        html += ` &nbsp;<span style="color: #ff5252; font-weight: bold;">(+${current - base})</span>`;
+    }
+    if (injuryRate > 0) {
+        html += ` <span style="color: #e57373; font-weight: bold; font-size: 0.9em;">(傷&rarr;${effective})</span>`;
+    }
+    return html;
 }
 
 // 地圖資料 (10格)
@@ -306,7 +324,10 @@ function initGame() {
                     info += '【駐軍陣容】';
                     landInfo.defenders.forEach(id => {
                         const o = getOfficer(id);
-                        if (o) info += `\n${o.name} (武:${o.stats[1]} 智:${o.stats[2]} 統:${o.stats[3]} 政:${o.stats[4]} 魅:${o.stats[5]} 運:${o.stats[6]})`;
+                        if (o) {
+                            let injuryStr = o.injuryRate > 0 ? ` [受傷 -${o.injuryRate}%]` : '';
+                            info += `\n${o.name}${injuryStr} (武:${getEffectiveStat(o, 1)} 智:${getEffectiveStat(o, 2)} 統:${getEffectiveStat(o, 3)} 政:${getEffectiveStat(o, 4)} 魅:${getEffectiveStat(o, 5)} 運:${getEffectiveStat(o, 6)})`;
+                        }
                     });
                 } else {
                     info += '(目前空無一人駐守)';
@@ -703,7 +724,7 @@ function getBestSiegeTeam(attackerOfficerIds, defenderIds) {
     const defStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
     defenderIds.forEach(id => {
         const o = getOfficer(id);
-        if (o) for (let i = 1; i <= 6; i++) defStats[i] += o.stats[i];
+        if (o) for (let i = 1; i <= 6; i++) defStats[i] += getEffectiveStat(o, i);
     });
 
     // 套用防守方團隊特技
@@ -714,10 +735,17 @@ function getBestSiegeTeam(attackerOfficerIds, defenderIds) {
 
     const evaluateTeamWinRate = (teamIds) => {
         let wins = 0;
+        let totalStats = 0;
         const atkStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
         teamIds.forEach(id => {
             const o = getOfficer(id);
-            if (o) for (let i = 1; i <= 6; i++) atkStats[i] += o.stats[i];
+            if (o) {
+                for (let i = 1; i <= 6; i++) {
+                    let eff = getEffectiveStat(o, i);
+                    atkStats[i] += eff;
+                    totalStats += eff;
+                }
+            }
         });
 
         // 套用攻方團隊特技
@@ -726,34 +754,33 @@ function getBestSiegeTeam(attackerOfficerIds, defenderIds) {
         for (let i = 1; i <= 6; i++) {
             if (atkStats[i] > defStats[i]) wins++;
         }
-        return wins;
+        return { wins, totalStats };
+    };
+
+    let minTotalStats = Infinity;
+
+    const checkTeam = (team) => {
+        let res = evaluateTeamWinRate(team);
+        if (res.wins > maxWins || (res.wins === maxWins && res.totalStats < minTotalStats)) {
+            maxWins = res.wins;
+            minTotalStats = res.totalStats;
+            bestTeam = team;
+        }
     };
 
     const officers = attackerOfficerIds.filter(id => id != null);
     const n = Math.min(officers.length, 20);
 
     // 1 人組合
-    for (let i = 0; i < n; i++) {
-        let team = [officers[i]];
-        let wins = evaluateTeamWinRate(team);
-        if (wins > maxWins) { maxWins = wins; bestTeam = team; }
-    }
+    for (let i = 0; i < n; i++) checkTeam([officers[i]]);
     // 2 人組合
     for (let i = 0; i < n; i++) {
-        for (let j = i + 1; j < n; j++) {
-            let team = [officers[i], officers[j]];
-            let wins = evaluateTeamWinRate(team);
-            if (wins > maxWins) { maxWins = wins; bestTeam = team; }
-        }
+        for (let j = i + 1; j < n; j++) checkTeam([officers[i], officers[j]]);
     }
     // 3 人組合
     for (let i = 0; i < n; i++) {
         for (let j = i + 1; j < n; j++) {
-            for (let k = j + 1; k < n; k++) {
-                let team = [officers[i], officers[j], officers[k]];
-                let wins = evaluateTeamWinRate(team);
-                if (wins > maxWins) { maxWins = wins; bestTeam = team; }
-            }
+            for (let k = j + 1; k < n; k++) checkTeam([officers[i], officers[j], officers[k]]);
         }
     }
 
@@ -779,7 +806,7 @@ function executeSiege(attacker, landInfo, attackingIds) {
     const atkTempStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
     attackingIds.forEach(id => {
         const o = getOfficer(id);
-        if (o) { for (let i = 1; i <= 6; i++) atkTempStats[i] += o.stats[i]; }
+        if (o) { for (let i = 1; i <= 6; i++) atkTempStats[i] += getEffectiveStat(o, i); }
     });
     applyTeamSkills(attackingIds, atkTempStats);
     attackerScore = atkTempStats[statRoll];
@@ -788,7 +815,7 @@ function executeSiege(attacker, landInfo, attackingIds) {
     const defTempStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
     defendingIds.forEach(id => {
         const o = getOfficer(id);
-        if (o) { for (let i = 1; i <= 6; i++) defTempStats[i] += o.stats[i]; }
+        if (o) { for (let i = 1; i <= 6; i++) defTempStats[i] += getEffectiveStat(o, i); }
     });
     applyTeamSkills(defendingIds, defTempStats);
     defenderScore = defTempStats[statRoll];
@@ -799,7 +826,9 @@ function executeSiege(attacker, landInfo, attackingIds) {
     // 結算勝負與成長機制 (平局算攻方敗)
     let isAttackerWin = attackerScore > defenderScore;
     let winningTeamIds = isAttackerWin ? attackingIds : defendingIds;
+    let losingTeamIds = isAttackerWin ? defendingIds : attackingIds; // Phase 21: 取出戰敗方
     let growthHtml = "";
+    let injuryHtml = ""; // Phase 21: 受傷紀錄
 
     winningTeamIds.forEach(id => {
         if (Math.random() < 0.5) {
@@ -812,11 +841,29 @@ function executeSiege(attacker, landInfo, attackingIds) {
         }
     });
 
+    // Phase 21: 戰敗受傷機制
+    losingTeamIds.forEach(id => {
+        if (Math.random() < 0.5) {
+            const o = getOfficer(id);
+            if (o) {
+                o.injuryRate = 50;
+                injuryHtml += `<div style="font-size: 14px; margin-top: 5px;">💥 <strong>${o.name}</strong> 受到重創，全能力下降 50%！</div>`;
+                log(`💥 ${o.name} 在戰敗中身受重傷，全能力下降 50%！`);
+            }
+        }
+    });
+
     let resultHtml = `系統擲出 ${statRoll} 點，決定比拚【${statName}】！<br>攻方 (${attackerScore} 點) VS 守方加成後 (${defenderScore} 點)！`;
     if (growthHtml) {
         resultHtml += `<div style="margin-top: 15px; padding: 10px; background: rgba(76, 175, 80, 0.2); border: 1px solid #4CAF50; border-radius: 5px;">
             <div style="color: #4CAF50; font-weight: bold; margin-bottom: 5px;">【戰鬥成長】</div>
             ${growthHtml}
+        </div>`;
+    }
+    if (injuryHtml) {
+        resultHtml += `<div style="margin-top: 15px; padding: 10px; background: rgba(244, 67, 54, 0.2); border: 1px solid #F44336; border-radius: 5px;">
+            <div style="color: #F44336; font-weight: bold; margin-bottom: 5px;">【將星隕落】</div>
+            ${injuryHtml}
         </div>`;
     }
 
@@ -1011,10 +1058,40 @@ function endTurn() {
 
         log(`現在輪到 ${nextPlayer.name} 回合。`);
 
+        // Phase 21: 執行武將復原判定
+        healOfficers(nextPlayer);
+
         checkTurn();
     } catch (e) {
         console.error("endTurn error:", e);
         log(`[系統區] endTurn 時發生未預期錯誤，遊戲進度可能中斷。`);
+    }
+}
+
+// Phase 21: 武將自然恢復機制
+function healOfficers(player) {
+    let healed = [];
+
+    const healLogic = (id) => {
+        let o = getOfficer(id);
+        if (o && o.injuryRate > 0) {
+            o.injuryRate = Math.max(0, o.injuryRate - 10);
+            if (o.injuryRate === 0) healed.push(o.name);
+        }
+    };
+
+    // 檢查閒置武將
+    player.officers.forEach(healLogic);
+
+    // 檢查駐守武將
+    MAP_DATA.forEach(land => {
+        if (land.owner === player.id) {
+            land.defenders.forEach(healLogic);
+        }
+    });
+
+    if (healed.length > 0) {
+        log(`⚕️ 傷勢好轉！${player.name} 麾下的 ${healed.join('、')} 已經完全康復！`);
     }
 }
 
@@ -1043,71 +1120,135 @@ function hideModal() {
     GAME_STATE.isWaitingForAction = false;
 }
 
+// Phase 22: 攻城選陣清單改革
+let currentSiegeSortKey = 'total';
+let currentSiegeSortOrder = -1; // -1 = DESC
+let currentSiegePlayer = null;
+
 function showOfficerModal(title, message, player, onConfirm, onCancel, showCancelBtn = false, isSiege = false, defIds = [], allowZero = false) {
     GAME_STATE.isWaitingForAction = true;
     selectedOfficers = [];
     maxSelectableOfficers = 3;
     window.allowZeroSelection = allowZero;
+    currentSiegePlayer = player;
 
     UI.officerModalTitle.textContent = title;
     UI.officerModalMessage.textContent = message;
 
-    // 如果是攻城模式，準備勝率顯示 UI
     let winRateEl = document.getElementById('officer-win-rate');
-    if (!winRateEl) {
-        winRateEl = document.createElement('p');
-        winRateEl.id = 'officer-win-rate';
-        winRateEl.style.fontWeight = 'bold';
-        winRateEl.style.color = '#c0392b';
-        winRateEl.style.marginTop = '10px';
-        UI.officerList.parentNode.insertBefore(winRateEl, UI.officerList);
-    }
+    let comparePanel = document.getElementById('officer-compare-panel');
 
     if (isSiege) {
-        winRateEl.style.display = 'block';
-        winRateEl.textContent = '預估勝率：請先選擇武將...';
+        if (comparePanel) comparePanel.style.display = 'block';
         window.currentDefIds = defIds;
+
+        // Phase 22: 智能預設最佳陣容
+        // 取得預設最佳陣容並自動勾選
+        const bestTeam = getBestSiegeTeam(player.officers, defIds);
+        if (bestTeam && bestTeam.length > 0) {
+            selectedOfficers = [...bestTeam];
+        }
     } else {
-        winRateEl.style.display = 'none';
+        if (comparePanel) comparePanel.style.display = 'none';
         window.currentDefIds = [];
     }
 
-    // 生成武將清單 UI
-    UI.officerList.innerHTML = '';
-    player.officers.forEach(id => {
-        const o = getOfficer(id);
-        if (!o) return;
+    renderSiegeOfficerList();
 
-        let skillHtml = "";
-        if (OFFICER_SKILLS[id]) {
-            const skill = OFFICER_SKILLS[id];
-            skillHtml = `<div style="font-size: 11px; margin-top: 5px; color: #ffeb3b; background: rgba(0,0,0,0.4); padding: 2px 5px; border-radius: 4px;">
-                <strong>★${skill.name}★</strong>: ${skill.desc}
-            </div>`;
-        }
-
-        const div = document.createElement('div');
-        div.className = 'officer-item'; // Keep original class name
-        div.innerHTML = `
-            <strong>${o.name}</strong> 
-            <div class="officer-stats">
-                <span>武:${formatStatDisplay(o.baseStats[1], o.stats[1])}</span><span>智:${formatStatDisplay(o.baseStats[2], o.stats[2])}</span>
-                <span>統:${formatStatDisplay(o.baseStats[3], o.stats[3])}</span><span>政:${formatStatDisplay(o.baseStats[4], o.stats[4])}</span>
-                <span>魅:${formatStatDisplay(o.baseStats[5], o.stats[5])}</span><span>運:${formatStatDisplay(o.baseStats[6], o.stats[6])}</span>
-            </div>
-            ${skillHtml}
-        `;
-        div.onclick = () => toggleOfficerSelection(div, o.id);
-        UI.officerList.appendChild(div);
-    });
-
-    UI.btnOfficerConfirm.disabled = !window.allowZeroSelection;
+    UI.btnOfficerConfirm.disabled = !window.allowZeroSelection && selectedOfficers.length === 0;
     UI.btnOfficerCancel.style.display = showCancelBtn ? 'inline-block' : 'none';
 
     officerConfirmCallback = onConfirm;
     officerCancelCallback = onCancel;
 
     UI.officerModal.classList.remove('hidden');
+
+    // 初始化排序事件 (避免重複綁定，可在 window.onload 處理或確保只註冊一次)
+    setupSiegeSort();
+}
+
+function renderSiegeOfficerList() {
+    const tbody = document.getElementById('officer-list-tbody');
+    if (!tbody) {
+        // Fallback for older HTML caching
+        console.warn("officer-list-tbody not found! Skip rendering list.");
+        return;
+    }
+    tbody.innerHTML = '';
+
+    if (!currentSiegePlayer) return;
+
+    let officers = currentSiegePlayer.officers.map(id => getOfficer(id)).filter(o => o != null);
+
+    // 套用排序
+    officers.sort((a, b) => {
+        let valA, valB;
+        if (currentSiegeSortKey === 'total') {
+            valA = 0; valB = 0;
+            for (let i = 1; i <= 6; i++) { valA += getEffectiveStat(a, i); valB += getEffectiveStat(b, i); }
+        } else if (['1', '2', '3', '4', '5', '6'].includes(currentSiegeSortKey)) {
+            valA = getEffectiveStat(a, currentSiegeSortKey);
+            valB = getEffectiveStat(b, currentSiegeSortKey);
+        } else {
+            valA = a[currentSiegeSortKey];
+            valB = b[currentSiegeSortKey];
+        }
+
+        if (typeof valA === 'string' && typeof valB === 'string') {
+            return valA.localeCompare(valB) * currentSiegeSortOrder;
+        }
+        return (valA - valB) * currentSiegeSortOrder;
+    });
+
+    officers.forEach(o => {
+        const tr = document.createElement('tr');
+        tr.style.cursor = 'pointer';
+        const isSelected = selectedOfficers.includes(o.id);
+        if (isSelected) tr.style.backgroundColor = 'rgba(76, 175, 80, 0.15)';
+
+        // 計算折損後的總和
+        let total = 0;
+        for (let i = 1; i <= 6; i++) total += getEffectiveStat(o, i);
+
+        let skillText = "-";
+        if (OFFICER_SKILLS[o.id]) {
+            skillText = `<strong style="color:var(--primary-color)">【${OFFICER_SKILLS[o.id].name}】</strong>`;
+        }
+        if (o.injuryRate > 0) {
+            skillText += ` <span style="color:#e57373; font-size:0.85em;">(受傷 -${o.injuryRate}%)</span>`;
+        }
+
+        tr.innerHTML = `
+            <td><input type="checkbox" ${isSelected ? 'checked' : ''} style="pointer-events: none; transform: scale(1.3);"></td>
+            <td style="font-weight:bold;">${o.name}</td>
+            <td>${formatStatDisplay(o.baseStats[1], o.stats[1], o.injuryRate)}</td>
+            <td>${formatStatDisplay(o.baseStats[2], o.stats[2], o.injuryRate)}</td>
+            <td>${formatStatDisplay(o.baseStats[3], o.stats[3], o.injuryRate)}</td>
+            <td>${formatStatDisplay(o.baseStats[4], o.stats[4], o.injuryRate)}</td>
+            <td>${formatStatDisplay(o.baseStats[5], o.stats[5], o.injuryRate)}</td>
+            <td>${formatStatDisplay(o.baseStats[6], o.stats[6], o.injuryRate)}</td>
+            <td style="color:var(--primary-color); font-weight:bold;">${total}</td>
+            <td class="desc-col">${skillText}</td>
+        `;
+
+        tr.onclick = () => {
+            toggleOfficerSelection(tr, o.id);
+            // 同步 Checkbox 狀態與樣式
+            const cb = tr.querySelector('input[type="checkbox"]');
+            const nowSelected = selectedOfficers.includes(o.id);
+            cb.checked = nowSelected;
+            if (nowSelected) {
+                tr.style.backgroundColor = 'rgba(76, 175, 80, 0.15)';
+            } else {
+                tr.style.backgroundColor = '';
+            }
+        };
+
+        tbody.appendChild(tr);
+    });
+
+    // 每次重新渲染，更新面板
+    updateWinRateDisplay();
 }
 
 function hideOfficerModal() {
@@ -1118,22 +1259,14 @@ function hideOfficerModal() {
 function toggleOfficerSelection(element, officerId) {
     const idx = selectedOfficers.indexOf(officerId);
     if (idx > -1) {
-        // Deselect
         selectedOfficers.splice(idx, 1);
-        element.classList.remove('selected');
     } else {
-        // Select
-        if (selectedOfficers.length >= maxSelectableOfficers) {
-            return; // 達上限
-        }
+        if (selectedOfficers.length >= maxSelectableOfficers) return;
         selectedOfficers.push(officerId);
-        element.classList.add('selected');
     }
 
-    // 只要有選 1 人即可確認 (若 allowZeroSelection 為 true 則可為 0)
     UI.btnOfficerConfirm.disabled = !window.allowZeroSelection && selectedOfficers.length === 0;
 
-    // 更新勝率顯示
     if (window.currentDefIds && window.currentDefIds.length > 0) {
         updateWinRateDisplay();
     }
@@ -1141,33 +1274,56 @@ function toggleOfficerSelection(element, officerId) {
 
 function updateWinRateDisplay() {
     const el = document.getElementById('officer-win-rate');
+    const atkTotalEl = document.getElementById('officer-atk-total');
+    const defTotalEl = document.getElementById('officer-def-total');
     if (!el) return;
 
-    if (selectedOfficers.length === 0) {
-        el.textContent = '預估勝率：請先選擇武將...';
+    if (!window.currentDefIds || window.currentDefIds.length === 0) {
+        if (atkTotalEl) atkTotalEl.textContent = "0";
+        if (defTotalEl) defTotalEl.textContent = "0";
         return;
     }
 
     const defStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+    let defTotal = 0;
     window.currentDefIds.forEach(id => {
         const o = getOfficer(id);
-        if (o) for (let i = 1; i <= 6; i++) defStats[i] += o.stats[i];
+        if (o) for (let i = 1; i <= 6; i++) {
+            let eff = getEffectiveStat(o, i);
+            defStats[i] += eff;
+        }
     });
 
-    // 套用防守方團隊特技
     applyTeamSkills(window.currentDefIds, defStats);
 
-    // 防守方 3% 能力加成 (套用完武將特技後再疊加地理優勢)
-    for (let i = 1; i <= 6; i++) defStats[i] = Math.ceil(defStats[i] * 1.03);
+    for (let i = 1; i <= 6; i++) {
+        defStats[i] = Math.ceil(defStats[i] * 1.03);
+        defTotal += defStats[i];
+    }
 
     const atkStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+    let atkTotal = 0;
     selectedOfficers.forEach(id => {
         const o = getOfficer(id);
-        if (o) for (let i = 1; i <= 6; i++) atkStats[i] += o.stats[i];
+        if (o) for (let i = 1; i <= 6; i++) {
+            let eff = getEffectiveStat(o, i);
+            atkStats[i] += eff;
+        }
     });
 
-    // 套用攻方團隊特技
     applyTeamSkills(selectedOfficers, atkStats);
+
+    for (let i = 1; i <= 6; i++) {
+        atkTotal += atkStats[i];
+    }
+
+    if (atkTotalEl) atkTotalEl.textContent = atkTotal;
+    if (defTotalEl) defTotalEl.textContent = defTotal;
+
+    if (selectedOfficers.length === 0) {
+        el.textContent = '預估勝率：請先選擇作戰武將...';
+        return;
+    }
 
     let wins = 0;
     for (let i = 1; i <= 6; i++) {
@@ -1176,6 +1332,27 @@ function updateWinRateDisplay() {
 
     const rate = Math.round((wins / 6) * 100);
     el.textContent = `預估勝率：${rate}% (${wins} / 6 屬性佔優)`;
+}
+
+// 事件綁定只須執行一次
+let isSiegeSortSetup = false;
+function setupSiegeSort() {
+    if (isSiegeSortSetup) return;
+    const headers = document.querySelectorAll('.sortable-siege');
+    headers.forEach(th => {
+        th.addEventListener('click', () => {
+            const sortKey = th.getAttribute('data-sort-siege');
+            if (currentSiegeSortKey === sortKey) {
+                currentSiegeSortOrder *= -1;
+            } else {
+                currentSiegeSortKey = sortKey;
+                currentSiegeSortOrder = -1;
+                if (sortKey === 'name') currentSiegeSortOrder = 1;
+            }
+            renderSiegeOfficerList();
+        });
+    });
+    isSiegeSortSetup = true;
 }
 
 // -----------------------------------------------------------------------------
@@ -1218,9 +1395,9 @@ function showChanganModal(player) {
         div.innerHTML = `
             <strong>${o.name}</strong> 
             <div class="officer-stats">
-                <span>武:${formatStatDisplay(o.baseStats[1], o.stats[1])}</span><span>智:${formatStatDisplay(o.baseStats[2], o.stats[2])}</span>
-                <span>統:${formatStatDisplay(o.baseStats[3], o.stats[3])}</span><span>政:${formatStatDisplay(o.baseStats[4], o.stats[4])}</span>
-                <span>魅:${formatStatDisplay(o.baseStats[5], o.stats[5])}</span><span>運:${formatStatDisplay(o.baseStats[6], o.stats[6])}</span>
+                <span>武:${formatStatDisplay(o.baseStats[1], o.stats[1], o.injuryRate)}</span><span>智:${formatStatDisplay(o.baseStats[2], o.stats[2], o.injuryRate)}</span>
+                <span>統:${formatStatDisplay(o.baseStats[3], o.stats[3], o.injuryRate)}</span><span>政:${formatStatDisplay(o.baseStats[4], o.stats[4], o.injuryRate)}</span>
+                <span>魅:${formatStatDisplay(o.baseStats[5], o.stats[5], o.injuryRate)}</span><span>運:${formatStatDisplay(o.baseStats[6], o.stats[6], o.injuryRate)}</span>
             </div>
             ${skillHtml}
             <div class="officer-cost">招募金：$${cost}</div>
@@ -1410,12 +1587,12 @@ function renderEncyclopedia() {
             <td>${o.id}</td>
             <td style="font-weight:bold;">${o.name}</td>
             <td style="color: ${factionColors[o.faction]}; font-weight:bold;">${factionNames[o.faction]}</td>
-            <td>${formatStatDisplay(o.baseStats[1], o.stats[1])}</td>
-            <td>${formatStatDisplay(o.baseStats[2], o.stats[2])}</td>
-            <td>${formatStatDisplay(o.baseStats[3], o.stats[3])}</td>
-            <td>${formatStatDisplay(o.baseStats[4], o.stats[4])}</td>
-            <td>${formatStatDisplay(o.baseStats[5], o.stats[5])}</td>
-            <td>${formatStatDisplay(o.baseStats[6], o.stats[6])}</td>
+            <td>${formatStatDisplay(o.baseStats[1], o.stats[1], o.injuryRate)}</td>
+            <td>${formatStatDisplay(o.baseStats[2], o.stats[2], o.injuryRate)}</td>
+            <td>${formatStatDisplay(o.baseStats[3], o.stats[3], o.injuryRate)}</td>
+            <td>${formatStatDisplay(o.baseStats[4], o.stats[4], o.injuryRate)}</td>
+            <td>${formatStatDisplay(o.baseStats[5], o.stats[5], o.injuryRate)}</td>
+            <td>${formatStatDisplay(o.baseStats[6], o.stats[6], o.injuryRate)}</td>
             <td class="desc-col">${skillText}</td>
         `;
         UI.encyclopediaTbody.appendChild(tr);
