@@ -860,6 +860,23 @@ function executeSiege(attacker, landInfo, attackingIds) {
     let growthHtml = "";
     let injuryHtml = ""; // Phase 21: 受傷紀錄
 
+    // Phase 27: 動態受傷判定
+    let pointDiff = Math.abs(attackerScore - defenderScore);
+    let winInjuryRate = 0.1;
+    let loseInjuryRate = 0.5;
+
+    if (statRoll === 1) { // 比較武力時，無論勝負受傷機率加倍
+        winInjuryRate *= 2;
+        loseInjuryRate *= 2;
+    }
+
+    if (pointDiff > 50) {
+        loseInjuryRate = 1.0; // 差距>50，戰敗方必定受傷
+    } else if (pointDiff < 10) {
+        winInjuryRate *= 0.5; // 差距<10，雙方受傷機率減半
+        loseInjuryRate *= 0.5;
+    }
+
     winningTeamIds.forEach(id => {
         const o = getOfficer(id);
         if (o) {
@@ -869,8 +886,8 @@ function executeSiege(attacker, landInfo, attackingIds) {
                 growthHtml += `<div style="font-size: 14px; margin-top: 5px;">⬆️ <strong>${o.name}</strong> 的【${statName}】提升了 1 點！</div>`;
                 log(`✨ ${o.name} 在戰鬥中得到了成長，【${statName}】提升了 1 點！`);
             }
-            // Phase 21 擴充：勝方也有 10% 機率受傷 (殺敵一千，自損八百)
-            if (Math.random() < 0.1) {
+            // 勝方受傷判定
+            if (Math.random() < winInjuryRate) {
                 let dmg = Math.floor(Math.random() * 81) + 10; // 10% ~ 90%
                 if (o.baseStats[1] >= 95) dmg = Math.floor(dmg / 2); // 猛將減傷
                 o.injuryRate = Math.min(100, o.injuryRate + dmg);
@@ -880,16 +897,22 @@ function executeSiege(attacker, landInfo, attackingIds) {
         }
     });
 
-    // Phase 21: 戰敗受傷機制 (敗方 50% 機率受傷)
     losingTeamIds.forEach(id => {
-        if (Math.random() < 0.5) {
-            const o = getOfficer(id);
-            if (o) {
+        const o = getOfficer(id);
+        if (o) {
+            // Phase 27 擴充：敗方也有 20% 機率從失敗中淬鍊成長
+            if (Math.random() < 0.2) {
+                o.stats[statRoll] += 1;
+                growthHtml += `<div style="font-size: 14px; margin-top: 5px;">🔥 <strong>${o.name}</strong> 越挫越勇，【${statName}】提升了 1 點！</div>`;
+                log(`🔥 ${o.name} 從敗軍中記取教訓，【${statName}】提升了 1 點！`);
+            }
+            // 敗方受傷判定
+            if (Math.random() < loseInjuryRate) {
                 let dmg = Math.floor(Math.random() * 81) + 10; // 10% ~ 90%
                 if (o.baseStats[1] >= 95) dmg = Math.floor(dmg / 2); // 猛將減傷
                 o.injuryRate = Math.min(100, o.injuryRate + dmg);
                 injuryHtml += `<div style="font-size: 14px; margin-top: 5px;">💥 <strong>${o.name}</strong> 受到重創，全能力下降 ${dmg}%！</div>`;
-                log(`💥 ${o.name} 在戰敗中身受重傷，全能力下降 ${dmg}%！`);
+                log(`💥 ${o.name} 在戰局中身受重傷，全能力下降 ${dmg}%！`);
             }
         }
     });
