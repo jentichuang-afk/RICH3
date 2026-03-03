@@ -151,6 +151,8 @@ const OFFICERS_DATA = [
 OFFICERS_DATA.forEach(o => {
     o.baseStats = { ...o.stats };
     o.injuryRate = 0; // Phase 21: 初始化受傷程度為 0 (健康)
+    o.battleCount = 0; // Phase 26: 出戰次數
+    o.winCount = 0;    // Phase 26: 勝利次數
 });
 
 // Phase 21: 取得戰鬥時有效的能力 (計算衰減)
@@ -842,6 +844,17 @@ function executeSiege(attacker, landInfo, attackingIds) {
 
     // 結算勝負與成長機制 (平局算攻方敗)
     let isAttackerWin = attackerScore > defenderScore;
+
+    // Phase 26: 紀錄戰績
+    attackingIds.forEach(id => {
+        const o = getOfficer(id);
+        if (o) { o.battleCount++; if (isAttackerWin) o.winCount++; }
+    });
+    defendingIds.forEach(id => {
+        const o = getOfficer(id);
+        if (o) { o.battleCount++; if (!isAttackerWin) o.winCount++; }
+    });
+
     let winningTeamIds = isAttackerWin ? attackingIds : defendingIds;
     let losingTeamIds = isAttackerWin ? defendingIds : attackingIds; // Phase 21: 取出戰敗方
     let growthHtml = "";
@@ -1641,6 +1654,12 @@ function renderEncyclopedia() {
         } else if (currentSortKey === 'total') {
             valA = a.dynTotal;
             valB = b.dynTotal;
+        } else if (currentSortKey === 'battle') { // Phase 26
+            valA = a.battleCount;
+            valB = b.battleCount;
+        } else if (currentSortKey === 'winrate') { // Phase 26
+            valA = a.battleCount > 0 ? a.winCount / a.battleCount : -1;
+            valB = b.battleCount > 0 ? b.winCount / b.battleCount : -1;
         } else if (currentSortKey === 'faction') {
             valA = a.dynFaction;
             valB = b.dynFaction;
@@ -1664,6 +1683,8 @@ function renderEncyclopedia() {
             skillText = `<strong style="color:var(--primary-color)">【${OFFICER_SKILLS[o.id].name}】</strong> ${OFFICER_SKILLS[o.id].desc}`;
         }
 
+        let winRateStr = o.battleCount > 0 ? Math.round((o.winCount / o.battleCount) * 100) + '%' : '-';
+
         tr.innerHTML = `
             <td>${o.id}</td>
             <td style="font-weight:bold;">${o.name}</td>
@@ -1675,6 +1696,8 @@ function renderEncyclopedia() {
             <td>${formatStatDisplay(o.baseStats[5], o.stats[5], o.injuryRate)}</td>
             <td>${formatStatDisplay(o.baseStats[6], o.stats[6], o.injuryRate)}</td>
             <td style="font-weight:bold; color:var(--ink-dark);">${o.dynTotal}</td>
+            <td style="text-align:center;">${o.battleCount}</td>
+            <td style="text-align:center;">${winRateStr}</td>
             <td class="desc-col">${skillText}</td>
         `;
         UI.encyclopediaTbody.appendChild(tr);
