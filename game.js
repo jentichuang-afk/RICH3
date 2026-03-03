@@ -1627,10 +1627,28 @@ function renderEncyclopedia() {
 
         // 尋找當前所屬活體玩家
         let currentOwnerId = null;
+
+        // 1. 先檢索玩家手中的閒置武將
         for (let pid in GAME_STATE.players) {
-            if (GAME_STATE.players[pid] && !GAME_STATE.players[pid].isBankrupt && GAME_STATE.players[pid].officers.includes(o.id)) {
+            let p = GAME_STATE.players[pid];
+            if (p && !p.isBankrupt && p.officers.includes(o.id)) {
                 currentOwnerId = parseInt(pid);
                 break;
+            }
+        }
+
+        // 2. 若不在閒置區，則檢索全地圖的守城武將
+        if (!currentOwnerId) {
+            for (let i = 0; i < MAP_DATA.length; i++) {
+                let land = MAP_DATA[i];
+                if (land.owner && land.defenders && land.defenders.includes(o.id)) {
+                    // 若這塊地的物主尚未破產，則該守軍屬於該物主
+                    let ownerPlayer = GAME_STATE.players[land.owner];
+                    if (ownerPlayer && !ownerPlayer.isBankrupt) {
+                        currentOwnerId = land.owner;
+                        break;
+                    }
+                }
             }
         }
 
