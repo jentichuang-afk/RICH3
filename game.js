@@ -1451,8 +1451,20 @@ function setupSiegeSort() {
 }
 
 // -----------------------------------------------------------------------------
-// 【Phase 15】 長安城武將招募系統
+// 【Phase 15, 29】 長安城武將招募系統
 // -----------------------------------------------------------------------------
+// 計算特技總加成百分點 (Phase 29)
+function getSkillPowerPercentage(skill) {
+    if (!skill || !skill.effect) return 0;
+    let mockStats = { 1: 100, 2: 100, 3: 100, 4: 100, 5: 100, 6: 100 };
+    skill.effect(mockStats);
+    let totalDiff = 0;
+    for (let i = 1; i <= 6; i++) {
+        totalDiff += (mockStats[i] - 100);
+    }
+    return totalDiff;
+}
+
 let changanSelectedOfficers = [];
 
 function showChanganModal(player) {
@@ -1471,9 +1483,14 @@ function showChanganModal(player) {
         let cost = 0;
         for (let i = 1; i <= 6; i++) cost += o.stats[i];
 
-        // 【Phase 15 更新規則】若武將擁有特技，招募金額需兩倍
+        // 【Phase 29 更新規則】若武將擁有特技為 1.5 倍，強力特技 (加總 > 9%) 為 2 倍
         if (OFFICER_SKILLS[id]) {
-            cost *= 2;
+            let power = getSkillPowerPercentage(OFFICER_SKILLS[id]);
+            if (power > 9) {
+                cost *= 2;
+            } else {
+                cost = Math.floor(cost * 1.5);
+            }
         }
         o._recruitCost = cost; // 暫存起來方便取用
 
@@ -1585,9 +1602,14 @@ function handleChanganRecruitAI(player) {
         let cost = 0;
         for (let i = 1; i <= 6; i++) cost += o.stats[i];
 
-        // 【Phase 15 更新規則】AI 同樣遵循特技將領招募金額兩倍的規則
+        // 【Phase 29 更新規則】AI 同樣遵循特技將領招募金額 1.5 倍/ 2 倍的規則
         if (OFFICER_SKILLS[id]) {
-            cost *= 2;
+            let power = getSkillPowerPercentage(OFFICER_SKILLS[id]);
+            if (power > 9) {
+                cost *= 2;
+            } else {
+                cost = Math.floor(cost * 1.5);
+            }
         }
 
         return { id: o.id, name: o.name, cost: cost };
