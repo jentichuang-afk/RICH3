@@ -13,18 +13,18 @@ const OFFICER_SKILLS = {
     102: { name: "萬人敵", desc: "團隊武力+10%", effect: (stats) => { stats[1] = Math.ceil(stats[1] * 1.10); } }, // 張飛
     103: { name: "單騎救主", desc: "團隊運氣+5%、武力+5%", effect: (stats) => { stats[6] = Math.ceil(stats[6] * 1.05); stats[1] = Math.ceil(stats[1] * 1.05); } }, // 趙雲
     104: { name: "神威天將", desc: "團隊武力+5%", effect: (stats) => { stats[1] = Math.ceil(stats[1] * 1.05); } }, // 馬超
-    106: { name: "神機算", desc: "團隊智力+10%", effect: (stats) => { stats[2] = Math.ceil(stats[2] * 1.10); } }, // 諸葛亮
-    108: { name: "破陣", desc: "團隊智力+5%", effect: (stats) => { stats[2] = Math.ceil(stats[2] * 1.05); } }, // 徐庶
+    106: { name: "臥龍", desc: "團隊智力+10%", effect: (stats) => { stats[2] = Math.ceil(stats[2] * 1.10); } }, // 諸葛亮
+    107: { name: "鳳雛", desc: "團隊智力+5%", effect: (stats) => { stats[2] = Math.ceil(stats[2] * 1.05); } }, // 龐統
     110: { name: "天水麒麟", desc: "團隊智力+3%、統率+2%", effect: (stats) => { stats[2] = Math.ceil(stats[2] * 1.03); stats[3] = Math.ceil(stats[3] * 1.02); } }, // 姜維
     // 魏國
     200: { name: "亂世奸雄", desc: "團隊全能力+3%", effect: (stats) => { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.03); } }, // 曹操
     201: { name: "盲夏侯", desc: "團隊統御+5%、運氣+5%", effect: (stats) => { stats[3] = Math.ceil(stats[3] * 1.05); stats[6] = Math.ceil(stats[6] * 1.05); } }, // 夏侯惇
     203: { name: "威震逍遙", desc: "團隊統率+10%", effect: (stats) => { stats[3] = Math.ceil(stats[3] * 1.10); } }, // 張遼
-    204: { name: "鐵壁", desc: "團隊統率+5%", effect: (stats) => { stats[3] = Math.ceil(stats[3] * 1.05); } }, // 曹仁
     206: { name: "狼顧", desc: "團隊智力+10%", effect: (stats) => { stats[2] = Math.ceil(stats[2] * 1.10); } }, // 司馬懿
     207: { name: "鬼才", desc: "團隊智力+5%", effect: (stats) => { stats[2] = Math.ceil(stats[2] * 1.05); } }, // 郭嘉
     211: { name: "虎痴", desc: "團隊武力+5%", effect: (stats) => { stats[1] = Math.ceil(stats[1] * 1.05); } }, // 許褚
     212: { name: "古之惡來", desc: "團隊武力+10%", effect: (stats) => { stats[1] = Math.ceil(stats[1] * 1.10); } }, // 典韋
+    214: { name: "鐵壁", desc: "團隊統御+5%", effect: (stats) => { stats[3] = Math.ceil(stats[3] * 1.05); } }, // 曹仁
     // 吳國
     300: { name: "江東之主", desc: "團隊全能力+3%", effect: (stats) => { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.03); } }, // 孫權
     301: { name: "火攻", desc: "團隊智力+10%", effect: (stats) => { stats[2] = Math.ceil(stats[2] * 1.10); } }, // 周瑜
