@@ -1099,6 +1099,58 @@ function getOfficer(id) {
     return OFFICERS_DATA.find(o => o.id === id);
 }
 
+// Phase 30: 政治稅收與城池通膨
+function processCityTaxesAndInflation(player) {
+    let totalTaxIncome = 0;
+    let taxedCities = 0;
+
+    MAP_DATA.forEach(land => {
+        if (land.owner === player.id) {
+            // 1. 每回合該玩家名下城池過路費通膨 1%
+            if (land.toll > 0) {
+                land.toll = Math.ceil(land.toll * 1.01);
+            }
+
+            // 2. 政治稅收計算
+            let totalPolitics = 0;
+            if (land.defenders && land.defenders.length > 0) {
+                let teamStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+                land.defenders.forEach(id => {
+                    const o = getOfficer(id);
+                    if (o) {
+                        for (let i = 1; i <= 6; i++) {
+                            teamStats[i] += getEffectiveStat(o, i);
+                        }
+                    }
+                });
+
+                // 加上特技光環影響
+                applyTeamSkills(land.defenders, teamStats);
+                totalPolitics = teamStats[4]; // 政治為 4
+            }
+
+            // 稅收比率判定
+            let taxRate = 0.01; // 基礎 1%
+            if (totalPolitics > 300) {
+                taxRate = 0.03;
+            } else if (totalPolitics > 200) {
+                taxRate = 0.02;
+            }
+
+            let cityIncome = Math.floor(land.price * taxRate);
+            if (cityIncome > 0) {
+                totalTaxIncome += cityIncome;
+                taxedCities++;
+            }
+        }
+    });
+
+    if (totalTaxIncome > 0) {
+        updateMoney(player.id, totalTaxIncome);
+        log(`💰 【政治歲入】${player.name} 從其名下的 ${taxedCities} 座城池，徵收了總計 $${totalTaxIncome} 的發展稅賦！`);
+    }
+}
+
 // 處理團隊特技光環加成
 function applyTeamSkills(teamIds, teamStats) {
     teamIds.forEach(id => {
@@ -1132,6 +1184,9 @@ function endTurn() {
 
         // Phase 21: 執行武將復原判定
         healOfficers(nextPlayer);
+
+        // Phase 30: 結算政治稅收與過路費通膨
+        processCityTaxesAndInflation(nextPlayer);
 
         checkTurn();
     } catch (e) {
