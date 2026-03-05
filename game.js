@@ -838,9 +838,18 @@ function executeSiege(attacker, landInfo, attackingIds) {
         if (o) {
             // 勝方：50% 機率獲得能力提升
             if (Math.random() < 0.5) {
+                const oldVal = o.stats[statRoll];
                 o.stats[statRoll] += 1;
+                const newVal = o.stats[statRoll];
+
                 growthHtml += `<div style="font-size: 14px; margin-top: 5px;">⬆️ <strong>${o.name}</strong> 的【${statName}】提升了 1 點！</div>`;
                 log(`✨ ${o.name} 在戰鬥中得到了成長，【${statName}】提升了 1 點！`);
+
+                // Phase 39: 覺醒判定 (從 <95 變為 >=95)
+                if (oldVal < 95 && newVal >= 95) {
+                    playAwakeningAnimation(o.name, statName);
+                    log(`🎊 【覺醒】${o.name} 突破極限，領悟了新的隱藏特技！`);
+                }
             }
             // 由於 Phase 31: 若為逆轉勝，勝方需全體承受 80%~99% 絕對重傷代價
             if (reversalProc) {
@@ -870,9 +879,18 @@ function executeSiege(attacker, landInfo, attackingIds) {
         if (o) {
             // Phase 27 擴充：敗方也有 20% 機率從失敗中淬鍊成長
             if (Math.random() < 0.2) {
+                const oldVal = o.stats[statRoll];
                 o.stats[statRoll] += 1;
+                const newVal = o.stats[statRoll];
+
                 growthHtml += `<div style="font-size: 14px; margin-top: 5px;">🔥 <strong>${o.name}</strong> 越挫越勇，【${statName}】提升了 1 點！</div>`;
                 log(`🔥 ${o.name} 從敗軍中記取教訓，【${statName}】提升了 1 點！`);
+
+                // Phase 39: 覺醒判定
+                if (oldVal < 95 && newVal >= 95) {
+                    playAwakeningAnimation(o.name, statName);
+                    log(`🎊 【覺醒】${o.name} 突破極限，領悟了新的隱藏特技！`);
+                }
             }
             // 敗方受傷判定
             if (Math.random() < loseInjuryRate) {
@@ -1214,6 +1232,31 @@ function playReversalAnimation() {
             document.body.removeChild(overlay);
         }
     }, 1200); // 稍微多給一點緩衝
+}
+
+// 播放「武將覺醒」特效動畫 (Phase 39)
+function playAwakeningAnimation(officerName, attrName) {
+    const overlay = document.createElement('div');
+    overlay.className = 'awakening-overlay';
+
+    const title = document.createElement('div');
+    title.className = 'awakening-title';
+    title.textContent = '能力覺醒';
+
+    const subtitle = document.createElement('div');
+    subtitle.className = 'awakening-subtitle';
+    subtitle.textContent = `${officerName} 領悟了新的特技！`;
+
+    overlay.appendChild(title);
+    overlay.appendChild(subtitle);
+    document.body.appendChild(overlay);
+
+    // 1.5秒後自動移除
+    setTimeout(() => {
+        if (overlay.parentNode) {
+            document.body.removeChild(overlay);
+        }
+    }, 1500);
 }
 
 function showModal(title, messageHtml, onConfirm, onCancel, confirmText = "確定", cancelText = "取消") {

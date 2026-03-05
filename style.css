@@ -818,3 +818,97 @@ h1 {
         opacity: 0;
     }
 }
+
+/* --- Phase 39: 武將覺醒動畫 --- */
+.awakening-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: radial-gradient(circle, rgba(255, 215, 0, 0.4) 0%, rgba(0, 0, 0, 0) 70%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    pointer-events: none;
+    animation: awakening-aura 1s ease-out forwards;
+}
+
+.awakening-title {
+    font-size: 6rem;
+    color: #fff;
+    font-weight: 900;
+    text-shadow: 0 0 15px #ffd700, 0 0 30px #ffd700, 0 0 45px #fff;
+    letter-spacing: 15px;
+    margin-bottom: 20px;
+    animation: awakening-text-in 0.8s cubic-bezier(0.17, 0.89, 0.32, 1.49) forwards;
+}
+
+.awakening-subtitle {
+    font-size: 2.5rem;
+    color: #ffd700;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 10px 30px;
+    border-radius: 50px;
+    border: 2px solid #ffd700;
+    animation: awakening-sub-in 1s ease-out forwards;
+}
+
+@keyframes awakening-aura {
+    0% {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+
+    20% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+
+    80% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(1.5);
+    }
+}
+
+@keyframes awakening-text-in {
+    0% {
+        transform: scale(0.2);
+        opacity: 0;
+        filter: blur(10px);
+    }
+
+    50% {
+        transform: scale(1.3);
+        opacity: 1;
+        filter: blur(0);
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes awakening-sub-in {
+    0% {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+
+    40% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
