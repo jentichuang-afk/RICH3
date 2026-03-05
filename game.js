@@ -771,7 +771,7 @@ function executeSiege(attacker, landInfo, attackingIds) {
         return o && o.baseStats[2] >= 95; // 基礎智力 >= 95
     });
 
-    if (topStrategistId && Math.random() < 0.10) {
+    if (topStrategistId && Math.random() < 0.50) {
         reversalProc = true;
         isAttackerWin = !isAttackerWin; // 翻轉勝負
         const strategistName = getOfficer(topStrategistId).name;
@@ -933,7 +933,8 @@ function executeSiege(attacker, landInfo, attackingIds) {
         null, '確認戰果', null
     );
 
-    if (attacker.isBot) {
+    // 只有在雙方皆為電腦時，才自動關閉戰報 (Phase 35: 玩家參戰必等確認)
+    if (attacker.isBot && defender.isBot) {
         setTimeout(() => {
             try {
                 const btn = document.getElementById('btn-modal-yes');
@@ -942,7 +943,7 @@ function executeSiege(attacker, landInfo, attackingIds) {
                 console.error("AI click modal error:", e);
                 endTurn(); // fallback
             }
-        }, 1500);
+        }, 3000); // AI 對戰稍微停一下讓玩家看清日誌變化
     }
 }
 
