@@ -549,6 +549,27 @@ function triggerLandEvent(player, landInfo) {
             return;
         }
 
+        // Phase 41: 魅力 (95+)「名德重望」- 50% 機率不戰而退
+        let eliteCharismaId = landInfo.defenders.find(id => {
+            const o = getOfficer(id);
+            return o && getEffectiveStat(o, 5) >= 95;
+        });
+
+        if (eliteCharismaId && Math.random() < 0.5) {
+            const charmer = getOfficer(eliteCharismaId);
+            log(`✨ 【名德重望】${charmer.name} 威名遠播，${player.name} 被其風采感化，決定繳費離開。`);
+            showModal(
+                `名德重望 - ${charmer.name}`,
+                `<div style="text-align:center;">
+                    <div style="font-size: 1.2rem; color: #9c27b0; font-weight: bold; margin-bottom: 10px;">★ 名德重望 ★</div>
+                    <p>${charmer.name} 的仁德之風使我軍肅然起敬，<br>不忍與其正對。僅繳納過路費 $${toll} 後離去。</p>
+                </div>`,
+                () => { payToll(player, owner, toll); },
+                null, "繳費離開", null
+            );
+            return;
+        }
+
         log(`${player.name} 來到 ${owner.name} 的領地 ${landInfo.name}，防守兵力：${landInfo.defenders.length}將！\n可繳交軍費 $${toll} 或 發起攻城！`);
 
         if (player.isBot) {
@@ -845,8 +866,8 @@ function executeSiege(attacker, landInfo, attackingIds) {
                 growthHtml += `<div style="font-size: 14px; margin-top: 5px;">⬆️ <strong>${o.name}</strong> 的【${statName}】提升了 1 點！</div>`;
                 log(`✨ ${o.name} 在戰鬥中得到了成長，【${statName}】提升了 1 點！`);
 
-                // Phase 39: 覺醒判定 (僅武力、智力、統率且從 <95 變為 >=95)
-                if (oldVal < 95 && newVal >= 95 && [1, 2, 3].includes(statRoll)) {
+                // Phase 39 & 41: 覺醒判定 (1-6 屬性各具備隱藏特技，從 <95 變為 >=95)
+                if (oldVal < 95 && newVal >= 95 && [1, 2, 3, 4, 5, 6].includes(statRoll)) {
                     playAwakeningAnimation(o.name, statName);
                     log(`🎊 【覺醒】${o.name} 突破極限，領悟了新的隱藏特技！`);
                 }
@@ -886,8 +907,8 @@ function executeSiege(attacker, landInfo, attackingIds) {
                 growthHtml += `<div style="font-size: 14px; margin-top: 5px;">🔥 <strong>${o.name}</strong> 越挫越勇，【${statName}】提升了 1 點！</div>`;
                 log(`🔥 ${o.name} 從敗軍中記取教訓，【${statName}】提升了 1 點！`);
 
-                // Phase 39: 覺醒判定
-                if (oldVal < 95 && newVal >= 95 && [1, 2, 3].includes(statRoll)) {
+                // Phase 39 & 41: 覺醒判定
+                if (oldVal < 95 && newVal >= 95 && [1, 2, 3, 4, 5, 6].includes(statRoll)) {
                     playAwakeningAnimation(o.name, statName);
                     log(`🎊 【覺醒】${o.name} 突破極限，領悟了新的隱藏特技！`);
                 }
@@ -921,6 +942,33 @@ function executeSiege(attacker, landInfo, attackingIds) {
             ${injuryHtml}
         </div>`;
     }
+
+    // Phase 41: 運氣 (95+)「吉星高照」- 戰後隨機治癒己方一人 100% 傷勢
+    const teams = [
+        { ids: attackingIds, name: attacker.name },
+        { ids: defendingIds, name: defender.name }
+    ];
+    teams.forEach(team => {
+        let luckHealerId = team.ids.find(id => {
+            const o = getOfficer(id);
+            return o && getEffectiveStat(o, 6) >= 95;
+        });
+        if (luckHealerId) {
+            const healer = getOfficer(luckHealerId);
+            let injuredAllies = team.ids.filter(id => getOfficer(id).injuryRate > 0);
+            if (injuredAllies.length > 0) {
+                let targetId = injuredAllies[Math.floor(Math.random() * injuredAllies.length)];
+                let target = getOfficer(targetId);
+                target.injuryRate = 0;
+                let healMsg = `🍀 【吉星高照】${healer.name} 展現奇蹟，使 ${target.name} 的傷勢完全恢復了！`;
+                log(healMsg);
+                resultHtml += `<div style="margin-top: 10px; padding: 8px; background: rgba(255, 235, 59, 0.2); border: 1px solid #FBC02D; border-radius: 5px;">
+                    <div style="color: #FBC02D; font-weight: bold; margin-bottom: 3px;">【幸運治療】</div>
+                    <div style="font-size: 13px;">${healMsg}</div>
+                </div>`;
+            }
+        }
+    });
 
     GAME_STATE.isWaitingForAction = true;
     showModal(
@@ -1087,6 +1135,7 @@ function getOfficer(id) {
 function processCityTaxesAndInflation(player) {
     let totalTaxIncome = 0;
     let taxedCities = 0;
+    let eliteTaxCities = 0;
 
     MAP_DATA.forEach(land => {
         if (land.owner === player.id) {
@@ -1122,6 +1171,17 @@ function processCityTaxesAndInflation(player) {
             }
 
             let cityIncome = Math.floor(land.price * taxRate);
+
+            // Phase 41: 政治 (95+)「經世濟民」- 稅收倍增
+            let elitePolitician = land.defenders.find(id => {
+                const o = getOfficer(id);
+                return o && getEffectiveStat(o, 4) >= 95;
+            });
+            if (elitePolitician) {
+                cityIncome *= 2;
+                eliteTaxCities++;
+            }
+
             if (cityIncome > 0) {
                 totalTaxIncome += cityIncome;
                 taxedCities++;
@@ -1131,7 +1191,8 @@ function processCityTaxesAndInflation(player) {
 
     if (totalTaxIncome > 0) {
         updateMoney(player.id, totalTaxIncome);
-        log(`💰 【政治歲入】${player.name} 從其名下的 ${taxedCities} 座城池，徵收了總計 $${totalTaxIncome} 的發展稅賦！`);
+        let eliteStr = eliteTaxCities > 0 ? ` (含 ${eliteTaxCities} 座「經世濟民」加成)` : "";
+        log(`💰 【政治歲入】${player.name} 從其名下的 ${taxedCities} 座城池，徵收了總計 $${totalTaxIncome} 的發展稅賦！${eliteStr}`);
     }
 }
 
