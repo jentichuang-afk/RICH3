@@ -46,14 +46,26 @@ if (gamesPlayed >= MAX_GAMES) {
         overlay.innerHTML = `Running simulation <b style="color:yellow">${gamesPlayed + 1}</b> / ${MAX_GAMES}...<br><span style="font-size:14px">Wins: Liu(${results['Liu']}) Cao(${results['Cao']}) Sun(${results['Sun']}) Dong(${results['Dong']})</span>`;
         document.body.appendChild(overlay);
 
-        // Auto start 4-player AI game
+        // Auto start 4-player AI game by simulating UI clicks
         origSetTimeout(() => {
-            if (typeof window.selectedPlayerCount !== 'undefined') {
-                window.selectedPlayerCount = 4;
-                window.humanFactions = []; // Set all as bots
-                if (typeof window.startGame === 'function') window.startGame();
-            }
-        }, 100);
+            const script = document.createElement('script');
+            script.textContent = `
+                if (typeof selectPlayerCount === 'function') {
+                    selectPlayerCount(4);
+                    setTimeout(() => {
+                        selectFaction(1);
+                        selectFaction(2);
+                        selectFaction(3);
+                        selectFaction(4);
+                        humanFactions = []; // All bots
+                        startGame();
+                    }, 100);
+                } else {
+                    console.error('selectPlayerCount not found');
+                }
+            `;
+            document.body.appendChild(script);
+        }, 500);
 
         // Check for modals and game over
         const monitor = origSetInterval(() => {
