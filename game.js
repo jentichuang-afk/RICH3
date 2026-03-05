@@ -763,6 +763,12 @@ function executeSiege(attacker, landInfo, attackingIds) {
         loseInjuryRate *= 0.5;
     }
 
+    // Phase 33: 頂級統帥減傷光環 (統率 >= 95)
+    let winnerTopCommander = winningTeamIds.find(id => getOfficer(id)?.baseStats[3] >= 95);
+    let loserTopCommander = losingTeamIds.find(id => getOfficer(id)?.baseStats[3] >= 95);
+    let winnerCmdName = winnerTopCommander ? getOfficer(winnerTopCommander).name : "";
+    let loserCmdName = loserTopCommander ? getOfficer(loserTopCommander).name : "";
+
     winningTeamIds.forEach(id => {
         const o = getOfficer(id);
         if (o) {
@@ -775,16 +781,20 @@ function executeSiege(attacker, landInfo, attackingIds) {
             // 由於 Phase 31: 若為逆轉勝，勝方需全體承受 80%~99% 絕對重傷代價
             if (reversalProc) {
                 let dmg = Math.floor(Math.random() * 20) + 80; // 80% ~ 99%
+                if (winnerTopCommander) dmg = Math.floor(dmg / 2); // Phase 33
                 o.injuryRate = Math.min(100, o.injuryRate + dmg);
-                injuryHtml += `<div style="font-size: 14px; margin-top: 5px;">🩸 <strong>${o.name}</strong> 因發動逆轉奇謀透支過度，重創 ${dmg}%！</div>`;
-                log(`🩸 ${o.name} 承受逆轉代價，陷入 ${dmg}% 的絕對重傷！`);
+                let auraStr = winnerTopCommander ? ` 🛡️(受到 ${winnerCmdName} 指揮護衛，降為 ${dmg}%)` : ``;
+                injuryHtml += `<div style="font-size: 14px; margin-top: 5px;">🩸 <strong>${o.name}</strong> 因發動逆轉奇謀透支過度，重創 ${dmg}%！${auraStr}</div>`;
+                log(`🩸 ${o.name} 承受逆轉代價，陷入 ${dmg}% 的絕對重傷！${auraStr}`);
             } else {
                 // 一般勝方受傷判定
                 if (Math.random() < winInjuryRate) {
                     let dmg = Math.floor(Math.random() * 81) + 10; // 10% ~ 90%
                     if (o.baseStats[1] >= 95) dmg = Math.floor(dmg / 2); // 猛將減傷
+                    if (winnerTopCommander) dmg = Math.floor(dmg / 2); // Phase 33
                     o.injuryRate = Math.min(100, o.injuryRate + dmg);
-                    injuryHtml += `<div style="font-size: 14px; margin-top: 5px;">⚠️ <strong>${o.name}</strong> 在激戰中掛彩，能力下降 ${dmg}%！</div>`;
+                    let auraStr = winnerTopCommander ? ` 🛡️(${winnerCmdName} 統整降低傷亡)` : ``;
+                    injuryHtml += `<div style="font-size: 14px; margin-top: 5px;">⚠️ <strong>${o.name}</strong> 在激戰中掛彩，能力下降 ${dmg}%！${auraStr}</div>`;
                     log(`⚠️ ${o.name} 戰勝後掛彩，能力下降 ${dmg}%！`);
                 }
             }
@@ -804,8 +814,10 @@ function executeSiege(attacker, landInfo, attackingIds) {
             if (Math.random() < loseInjuryRate) {
                 let dmg = Math.floor(Math.random() * 81) + 10; // 10% ~ 90%
                 if (o.baseStats[1] >= 95) dmg = Math.floor(dmg / 2); // 猛將減傷
+                if (loserTopCommander) dmg = Math.floor(dmg / 2); // Phase 33
                 o.injuryRate = Math.min(100, o.injuryRate + dmg);
-                injuryHtml += `<div style="font-size: 14px; margin-top: 5px;">💥 <strong>${o.name}</strong> 受到重創，全能力下降 ${dmg}%！</div>`;
+                let auraStr = loserTopCommander ? ` 🛡️(${loserCmdName} 統整降低傷亡)` : ``;
+                injuryHtml += `<div style="font-size: 14px; margin-top: 5px;">💥 <strong>${o.name}</strong> 受到重創，全能力下降 ${dmg}%！${auraStr}</div>`;
                 log(`💥 ${o.name} 在戰局中身受重傷，全能力下降 ${dmg}%！`);
             }
         }
