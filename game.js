@@ -681,7 +681,10 @@ function getBestSiegeTeam(attackerOfficerIds, defenderIds) {
         // 套用攻方團隊特技
         applyTeamSkills(teamIds, atkStats);
 
-        const hasLegend = teamIds.some(id => LEGENDARY_WARRIORS.includes(id)) || defenderIds.some(id => LEGENDARY_WARRIORS.includes(id));
+        const hasLegend = [...teamIds, ...defenderIds].some(id => {
+            const o = getOfficer(id);
+            return o && getEffectiveStat(o, 1) >= 95;
+        });
 
         for (let i = 1; i <= 6; i++) {
             if (atkStats[i] > defStats[i]) {
@@ -731,8 +734,11 @@ function executeSiege(attacker, landInfo, attackingIds) {
     attacker.officers = attacker.officers.filter(id => id != null && !attackingIds.includes(id));
     updateOfficerCountUI(attacker.id);
 
-    // 電腦擲骰決定比拚項目 (若有傳奇猛將參戰，武力機率翻倍)
-    const hasLegend = attackingIds.some(id => LEGENDARY_WARRIORS.includes(id)) || defendingIds.some(id => LEGENDARY_WARRIORS.includes(id));
+    // 電腦擲骰決定比拚項目 (若參戰武將武力 >= 95，武力機率翻倍)
+    const hasLegend = [...attackingIds, ...defendingIds].some(id => {
+        const o = getOfficer(id);
+        return o && getEffectiveStat(o, 1) >= 95;
+    });
     const statPool = hasLegend ? [1, 1, 2, 3, 4, 5, 6] : [1, 2, 3, 4, 5, 6];
     const statRoll = statPool[Math.floor(Math.random() * statPool.length)];
     const statNames = { 1: '武力', 2: '智力', 3: '統率', 4: '政治', 5: '魅力', 6: '運氣' };
@@ -768,7 +774,7 @@ function executeSiege(attacker, landInfo, attackingIds) {
     let losingIdsForCheck = isAttackerWin ? defendingIds : attackingIds;
     let topStrategistId = losingIdsForCheck.find(id => {
         const o = getOfficer(id);
-        return o && o.baseStats[2] >= 95; // 基礎智力 >= 95
+        return o && getEffectiveStat(o, 2) >= 95; // 智力 >= 95 (包含成長與受傷影響)
     });
 
     if (topStrategistId && Math.random() < 0.50) {
@@ -815,9 +821,15 @@ function executeSiege(attacker, landInfo, attackingIds) {
         loseInjuryRate *= 0.5;
     }
 
-    // Phase 33: 頂級統帥減傷光環 (統率 >= 95)
-    let winnerTopCommander = winningTeamIds.find(id => getOfficer(id)?.baseStats[3] >= 95);
-    let loserTopCommander = losingTeamIds.find(id => getOfficer(id)?.baseStats[3] >= 95);
+    // Phase 33 & 38: 頂級統帥減傷光環 (統率 >= 95)
+    let winnerTopCommander = winningTeamIds.find(id => {
+        const o = getOfficer(id);
+        return o && getEffectiveStat(o, 3) >= 95;
+    });
+    let loserTopCommander = losingTeamIds.find(id => {
+        const o = getOfficer(id);
+        return o && getEffectiveStat(o, 3) >= 95;
+    });
     let winnerCmdName = winnerTopCommander ? getOfficer(winnerTopCommander).name : "";
     let loserCmdName = loserTopCommander ? getOfficer(loserTopCommander).name : "";
 
@@ -842,7 +854,7 @@ function executeSiege(attacker, landInfo, attackingIds) {
                 // 一般勝方受傷判定
                 if (Math.random() < winInjuryRate) {
                     let dmg = Math.floor(Math.random() * 81) + 10; // 10% ~ 90%
-                    if (o.baseStats[1] >= 95) dmg = Math.floor(dmg / 2); // 猛將減傷
+                    if (getEffectiveStat(o, 1) >= 95) dmg = Math.floor(dmg / 2); // 猛將減傷 (武力 >= 95)
                     if (winnerTopCommander) dmg = Math.floor(dmg / 2); // Phase 33
                     o.injuryRate = Math.min(100, o.injuryRate + dmg);
                     let auraStr = winnerTopCommander ? ` 🛡️(${winnerCmdName} 統整降低傷亡)` : ``;
@@ -865,7 +877,7 @@ function executeSiege(attacker, landInfo, attackingIds) {
             // 敗方受傷判定
             if (Math.random() < loseInjuryRate) {
                 let dmg = Math.floor(Math.random() * 81) + 10; // 10% ~ 90%
-                if (o.baseStats[1] >= 95) dmg = Math.floor(dmg / 2); // 猛將減傷
+                if (getEffectiveStat(o, 1) >= 95) dmg = Math.floor(dmg / 2); // 猛將減傷 (武力 >= 95)
                 if (loserTopCommander) dmg = Math.floor(dmg / 2); // Phase 33
                 o.injuryRate = Math.min(100, o.injuryRate + dmg);
                 let auraStr = loserTopCommander ? ` 🛡️(${loserCmdName} 統整降低傷亡)` : ``;
@@ -1426,7 +1438,10 @@ function updateWinRateDisplay() {
     }
 
     let expectedWins = 0;
-    const hasLegend = selectedOfficers.some(id => LEGENDARY_WARRIORS.includes(id)) || window.currentDefIds.some(id => LEGENDARY_WARRIORS.includes(id));
+    const hasLegend = [...selectedOfficers, ...window.currentDefIds].some(id => {
+        const o = getOfficer(id);
+        return o && getEffectiveStat(o, 1) >= 95;
+    });
     const totalOutcomes = hasLegend ? 7 : 6;
 
     // 更新個別數字與顏色
