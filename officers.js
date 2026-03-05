@@ -19,11 +19,11 @@ const OFFICER_SKILLS = {
     212: { name: "古之惡來", desc: "團隊武力+10%", effect: (stats) => { stats[1] = Math.ceil(stats[1] * 1.10); } }, // 典韋
     214: { name: "鐵壁", desc: "團隊統御+5%", effect: (stats) => { stats[3] = Math.ceil(stats[3] * 1.05); } }, // 曹仁
     // 吳國
-    300: { name: "江東之主", desc: "團隊全能力+3%", effect: (stats) => { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.03); } }, // 孫權
-    301: { name: "雅量高致", desc: "團隊智力+5%、魅力+5%", effect: (stats) => { stats[2] = Math.ceil(stats[2] * 1.05); stats[5] = Math.ceil(stats[5] * 1.05); } }, // 周瑜
+    300: { name: "江東之主", desc: "團隊全能力+4%", effect: (stats) => { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.04); } }, // 孫權
+    301: { name: "雅量高致", desc: "團隊智力+7%、魅力+5%", effect: (stats) => { stats[2] = Math.ceil(stats[2] * 1.07); stats[5] = Math.ceil(stats[5] * 1.05); } }, // 周瑜
     302: { name: "宏碁大略", desc: "團隊政治+10%", effect: (stats) => { stats[4] = Math.ceil(stats[4] * 1.10); } }, // 魯肅
-    303: { name: "白衣渡江", desc: "團隊運氣+5%", effect: (stats) => { stats[6] = Math.ceil(stats[6] * 1.05); } }, // 呂蒙
-    304: { name: "連營", desc: "團隊統御+5%、智力+5%", effect: (stats) => { stats[3] = Math.ceil(stats[3] * 1.05); stats[2] = Math.ceil(stats[2] * 1.05); } }, // 陸遜
+    303: { name: "白衣渡江", desc: "團隊運氣+7%、統率+2%", effect: (stats) => { stats[6] = Math.ceil(stats[6] * 1.07); stats[3] = Math.ceil(stats[3] * 1.02); } }, // 呂蒙
+    304: { name: "連營", desc: "團隊統御+7%、智力+5%", effect: (stats) => { stats[3] = Math.ceil(stats[3] * 1.07); stats[2] = Math.ceil(stats[2] * 1.05); } }, // 陸遜
     305: { name: "錦帆賊", desc: "團隊武力+5%", effect: (stats) => { stats[1] = Math.ceil(stats[1] * 1.05); } }, // 甘寧
     306: { name: "篤烈", desc: "團隊武力+5%", effect: (stats) => { stats[1] = Math.ceil(stats[1] * 1.05); } }, // 太史慈
     320: { name: "小霸王", desc: "團隊武力+5%、魅力+5%", effect: (stats) => { stats[1] = Math.ceil(stats[1] * 1.05); stats[5] = Math.ceil(stats[5] * 1.05); } }, // 孫策
@@ -87,17 +87,17 @@ const OFFICERS_DATA = [
     { id: 218, name: "于禁", faction: 2, stats: { 1: 79, 2: 69, 3: 83, 4: 58, 5: 55, 6: 32 } },
     { id: 219, name: "程昱", faction: 2, stats: { 1: 47, 2: 92, 3: 70, 4: 79, 5: 59, 6: 60 } },
     { id: 220, name: "滿寵", faction: 2, stats: { 1: 67, 2: 82, 3: 78, 4: 84, 5: 80, 6: 60 } },
-    // 吳國 (21 人, 總計 8763 點)
-    { id: 300, name: "孫權", faction: 3, stats: { 1: 64, 2: 77, 3: 72, 4: 84, 5: 92, 6: 77 } },
-    { id: 301, name: "周瑜", faction: 3, stats: { 1: 66, 2: 95, 3: 93, 4: 82, 5: 90, 6: 78 } },
-    { id: 302, name: "魯肅", faction: 3, stats: { 1: 52, 2: 88, 3: 65, 4: 91, 5: 94, 6: 82 } },
-    { id: 303, name: "呂蒙", faction: 3, stats: { 1: 79, 2: 87, 3: 85, 4: 75, 5: 80, 6: 75 } },
-    { id: 304, name: "陸遜", faction: 3, stats: { 1: 67, 2: 95, 3: 92, 4: 84, 5: 85, 6: 87 } },
-    { id: 305, name: "甘寧", faction: 3, stats: { 1: 93, 2: 74, 3: 84, 4: 44, 5: 55, 6: 14 } },
-    { id: 306, name: "太史慈", faction: 3, stats: { 1: 91, 2: 64, 3: 79, 4: 54, 5: 76, 6: 57 } },
-    { id: 307, name: "黃蓋", faction: 3, stats: { 1: 81, 2: 68, 3: 77, 4: 63, 5: 78, 6: 62 } },
-    { id: 308, name: "程普", faction: 3, stats: { 1: 77, 2: 77, 3: 83, 4: 72, 5: 84, 6: 78 } },
-    { id: 309, name: "韓當", faction: 3, stats: { 1: 83, 2: 54, 3: 74, 4: 49, 5: 67, 6: 54 } },
+    // 吳國 (21 人, 總計提升體質以平衡勝率)
+    { id: 300, name: "孫權", faction: 3, stats: { 1: 72, 2: 83, 3: 81, 4: 84, 5: 95, 6: 77 } },
+    { id: 301, name: "周瑜", faction: 3, stats: { 1: 71, 2: 97, 3: 98, 4: 82, 5: 93, 6: 82 } },
+    { id: 302, name: "魯肅", faction: 3, stats: { 1: 52, 2: 91, 3: 75, 4: 93, 5: 94, 6: 82 } },
+    { id: 303, name: "呂蒙", faction: 3, stats: { 1: 82, 2: 90, 3: 92, 4: 75, 5: 80, 6: 75 } },
+    { id: 304, name: "陸遜", faction: 3, stats: { 1: 67, 2: 96, 3: 97, 4: 84, 5: 88, 6: 87 } },
+    { id: 305, name: "甘寧", faction: 3, stats: { 1: 96, 2: 74, 3: 88, 4: 44, 5: 55, 6: 14 } },
+    { id: 306, name: "太史慈", faction: 3, stats: { 1: 94, 2: 68, 3: 86, 4: 54, 5: 76, 6: 57 } },
+    { id: 307, name: "黃蓋", faction: 3, stats: { 1: 85, 2: 72, 3: 82, 4: 63, 5: 78, 6: 62 } },
+    { id: 308, name: "程普", faction: 3, stats: { 1: 81, 2: 80, 3: 86, 4: 72, 5: 84, 6: 78 } },
+    { id: 309, name: "韓當", faction: 3, stats: { 1: 86, 2: 54, 3: 79, 4: 49, 5: 67, 6: 54 } },
     { id: 310, name: "周泰", faction: 3, stats: { 1: 90, 2: 40, 3: 80, 4: 36, 5: 58, 6: 41 } },
     { id: 311, name: "蔣欽", faction: 3, stats: { 1: 82, 2: 50, 3: 76, 4: 51, 5: 63, 6: 52 } },
     { id: 312, name: "徐盛", faction: 3, stats: { 1: 79, 2: 76, 3: 81, 4: 65, 5: 74, 6: 61 } },

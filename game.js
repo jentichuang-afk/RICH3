@@ -558,15 +558,19 @@ function triggerLandEvent(player, landInfo) {
         if (eliteCharismaId && Math.random() < 0.3) {
             const charmer = getOfficer(eliteCharismaId);
             log(`✨ 【名德重望】${charmer.name} 威名遠播，${player.name} 被其風采感化，決定繳費離開。`);
-            showModal(
-                `名德重望 - ${charmer.name}`,
-                `<div style="text-align:center;">
-                    <div style="font-size: 1.2rem; color: #9c27b0; font-weight: bold; margin-bottom: 10px;">★ 名德重望 ★</div>
-                    <p>${charmer.name} 的仁德之風使我軍肅然起敬，<br>不忍與其正對。僅繳納過路費 $${toll} 後離去。</p>
-                </div>`,
-                () => { payToll(player, owner, toll); },
-                null, "繳費離開", null
-            );
+            if (player.isBot) {
+                setTimeout(() => { payToll(player, owner, toll); }, 1500);
+            } else {
+                showModal(
+                    `名德重望 - ${charmer.name}`,
+                    `<div style="text-align:center;">
+                        <div style="font-size: 1.2rem; color: #9c27b0; font-weight: bold; margin-bottom: 10px;">★ 名德重望 ★</div>
+                        <p>${charmer.name} 的仁德之風使我軍肅然起敬，<br>不忍與其正對。僅繳納過路費 $${toll} 後離去。</p>
+                    </div>`,
+                    () => { payToll(player, owner, toll); },
+                    null, "繳費離開", null
+                );
+            }
             return;
         }
 
