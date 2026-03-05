@@ -798,7 +798,7 @@ function executeSiege(attacker, landInfo, attackingIds) {
         return o && getEffectiveStat(o, 2) >= 95; // 智力 >= 95 (包含成長與受傷影響)
     });
 
-    if (topStrategistId && Math.random() < 0.50) {
+    if (topStrategistId && Math.random() < 0.30) {
         reversalProc = true;
         isAttackerWin = !isAttackerWin; // 翻轉勝負
         playReversalAnimation(); // 播放 Phase 37 特效動畫
