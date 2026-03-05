@@ -27,24 +27,24 @@ def load_file(filepath):
 try:
     html_content = load_file('index.html')
     css_content = load_file('style.css')
-    js_content = load_file('game.js')
+    officers_js = load_file('officers.js')
+    game_js = load_file('game.js')
 
-    # 將 CSS 和 JS 直接注入到 HTML 的 <head> 和 <body> 底部
-    # 我們找到 </head> 標籤，然後插入 <style> 區塊
+    # 將 CSS 和 JS 直接注入到 HTML
     html_with_css = html_content.replace('</head>', f'<style>{css_content}</style></head>')
     
-    # 我們找到 </body> 標籤之前，插入 <script> 區塊
-    # 如果原本 HTML 中有載入外部 game.js 和 style.css 的 tag，我們也能確保注入的可以覆蓋或獨立運作
-    final_html = html_with_css.replace('</body>', f'<script>{js_content}</script></body>')
+    # 注意：officers.js 必須在 game.js 之前載入，因為 game.js 需要使用裡面的資料
+    scripts = f'<script>{officers_js}</script><script>{game_js}</script>'
+    final_html = html_with_css.replace('</body>', f'{scripts}</body>')
 
     # 將背景顏色鎖定，防止受到 Streamlit 佈景主題影響
-    iframe_style = "background-color: #f4ecdf; width: 100%; height: 100vh; border: none;"
+    # iframe_style = "background-color: #f4ecdf; width: 100%; height: 100vh; border: none;"
     
-    # 渲染至 Streamlit (高度設為 900 以確保畫面裝得下)
+    # 渲染至 Streamlit
     components.html(final_html, height=1000, scrolling=True)
 
 except Exception as e:
-    st.error(f"遊戲資源載入失敗: {e}\n請確認應用程式目錄中包含 index.html, style.css 以及 game.js。")
+    st.error(f"遊戲資源載入失敗: {e}\n請確認應用程式目錄中包含 index.html, style.css, officers.js 以及 game.js。")
     
 # 側邊欄簡易說明
 with st.sidebar:
