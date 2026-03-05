@@ -549,13 +549,13 @@ function triggerLandEvent(player, landInfo) {
             return;
         }
 
-        // Phase 41: 魅力 (95+)「名德重望」- 50% 機率不戰而退
+        // Phase 41 & 45: 魅力 (95+)「名德重望」- 30% 機率不戰而退
         let eliteCharismaId = landInfo.defenders.find(id => {
             const o = getOfficer(id);
             return o && getEffectiveStat(o, 5) >= 95;
         });
 
-        if (eliteCharismaId && Math.random() < 0.5) {
+        if (eliteCharismaId && Math.random() < 0.3) {
             const charmer = getOfficer(eliteCharismaId);
             log(`✨ 【名德重望】${charmer.name} 威名遠播，${player.name} 被其風采感化，決定繳費離開。`);
             showModal(
