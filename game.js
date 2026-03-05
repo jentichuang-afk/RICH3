@@ -853,6 +853,26 @@ function executeSiege(attacker, landInfo, attackingIds) {
     // 結算勝負與成長機制 (平局算攻方敗)
     let isAttackerWin = attackerScore > defenderScore;
 
+    // Phase 31: 頂尖智將「絕境逆轉」隱藏被動
+    let reversalProc = false;
+    let reversalHtml = "";
+    let losingIdsForCheck = isAttackerWin ? defendingIds : attackingIds;
+    let topStrategistId = losingIdsForCheck.find(id => {
+        const o = getOfficer(id);
+        return o && o.baseStats[2] >= 95; // 基礎智力 >= 95
+    });
+
+    if (topStrategistId && Math.random() < 0.10) {
+        reversalProc = true;
+        isAttackerWin = !isAttackerWin; // 翻轉勝負
+        const strategistName = getOfficer(topStrategistId).name;
+        reversalHtml = `<div style="margin-top: 15px; padding: 10px; background: rgba(156, 39, 176, 0.2); border: 1px solid #9C27B0; border-radius: 5px;">
+            <div style="color: #9C27B0; font-weight: bold; margin-bottom: 5px;">【神機妙算】絕境逆轉！</div>
+            <div style="font-size: 14px; margin-top: 5px;">✨ <strong>${strategistName}</strong> 在絕境中看破敵陣，以慘痛代價逆轉了戰局！</div>
+        </div>`;
+        log(`✨ 【神機妙算】${strategistName} 智力超群，在絕境中看破敵陣，以慘痛代價逆轉了戰局！`);
+    }
+
     // Phase 26: 紀錄戰績
     attackingIds.forEach(id => {
         const o = getOfficer(id);
@@ -894,13 +914,21 @@ function executeSiege(attacker, landInfo, attackingIds) {
                 growthHtml += `<div style="font-size: 14px; margin-top: 5px;">⬆️ <strong>${o.name}</strong> 的【${statName}】提升了 1 點！</div>`;
                 log(`✨ ${o.name} 在戰鬥中得到了成長，【${statName}】提升了 1 點！`);
             }
-            // 勝方受傷判定
-            if (Math.random() < winInjuryRate) {
-                let dmg = Math.floor(Math.random() * 81) + 10; // 10% ~ 90%
-                if (o.baseStats[1] >= 95) dmg = Math.floor(dmg / 2); // 猛將減傷
+            // 由於 Phase 31: 若為逆轉勝，勝方需全體承受 80%~99% 絕對重傷代價
+            if (reversalProc) {
+                let dmg = Math.floor(Math.random() * 20) + 80; // 80% ~ 99%
                 o.injuryRate = Math.min(100, o.injuryRate + dmg);
-                injuryHtml += `<div style="font-size: 14px; margin-top: 5px;">⚠️ <strong>${o.name}</strong> 在激戰中掛彩，能力下降 ${dmg}%！</div>`;
-                log(`⚠️ ${o.name} 戰勝後掛彩，能力下降 ${dmg}%！`);
+                injuryHtml += `<div style="font-size: 14px; margin-top: 5px;">🩸 <strong>${o.name}</strong> 因發動逆轉奇謀透支過度，重創 ${dmg}%！</div>`;
+                log(`🩸 ${o.name} 承受逆轉代價，陷入 ${dmg}% 的絕對重傷！`);
+            } else {
+                // 一般勝方受傷判定
+                if (Math.random() < winInjuryRate) {
+                    let dmg = Math.floor(Math.random() * 81) + 10; // 10% ~ 90%
+                    if (o.baseStats[1] >= 95) dmg = Math.floor(dmg / 2); // 猛將減傷
+                    o.injuryRate = Math.min(100, o.injuryRate + dmg);
+                    injuryHtml += `<div style="font-size: 14px; margin-top: 5px;">⚠️ <strong>${o.name}</strong> 在激戰中掛彩，能力下降 ${dmg}%！</div>`;
+                    log(`⚠️ ${o.name} 戰勝後掛彩，能力下降 ${dmg}%！`);
+                }
             }
         }
     });
@@ -926,6 +954,9 @@ function executeSiege(attacker, landInfo, attackingIds) {
     });
 
     let resultHtml = `系統擲出 ${statRoll} 點，決定比拚【${statName}】！<br>攻方 (${attackerScore} 點) VS 守方加成後 (${defenderScore} 點)！`;
+    if (reversalHtml) {
+        resultHtml += reversalHtml;
+    }
     if (growthHtml) {
         resultHtml += `<div style="margin-top: 15px; padding: 10px; background: rgba(76, 175, 80, 0.2); border: 1px solid #4CAF50; border-radius: 5px;">
             <div style="color: #4CAF50; font-weight: bold; margin-bottom: 5px;">【戰鬥成長】</div>
