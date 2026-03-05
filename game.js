@@ -805,9 +805,9 @@ function executeSiege(attacker, landInfo, attackingIds) {
         const strategistName = getOfficer(topStrategistId).name;
         reversalHtml = `<div style="margin-top: 15px; padding: 10px; background: rgba(156, 39, 176, 0.2); border: 1px solid #9C27B0; border-radius: 5px;">
             <div style="color: #9C27B0; font-weight: bold; margin-bottom: 5px;">【神機妙算】絕境逆轉！</div>
-            <div style="font-size: 14px; margin-top: 5px;">✨ <strong>${strategistName}</strong> 在絕境中看破敵陣，以慘痛代價逆轉了戰局！</div>
+            <div style="font-size: 14px; margin-top: 5px;">✨ <strong>${strategistName}</strong> 在絕境中看破敵陣，雙方兩敗俱傷，攻城瓦解！</div>
         </div>`;
-        log(`✨ 【神機妙算】${strategistName} 智力超群，在絕境中看破敵陣，以慘痛代價逆轉了戰局！`);
+        log(`✨ 【神機妙算】${strategistName} 智力超群，在絕境中看破敵陣，雙方兩敗俱傷，攻方無功而返，守方亦未得錢糧！`);
     }
 
     // Phase 26: 紀錄戰績
@@ -975,7 +975,17 @@ function executeSiege(attacker, landInfo, attackingIds) {
         `攻城戰報 - 比拚【${statName}】`,
         resultHtml,
         () => {
-            if (isAttackerWin) {
+            if (reversalProc) {
+                // Phase 44: 逆轉特殊結算 - 無奪城、無過路費
+                log(`🛑 雙方因【神機妙算】絕境拼鬥，兩敗俱傷！${attacker.name} 撤隊而回，幸免於過路費損失。`);
+
+                // 攻方武將退回給攻方
+                attacker.officers.push(...attackingIds);
+                updateOfficerCountUI(attacker.id);
+                // 守軍保持原樣
+
+                endTurn();
+            } else if (isAttackerWin) {
                 // 攻佔成功
                 log(`🔥 攻城勝利！${attacker.name} 奪下 ${landInfo.name}！`);
 
