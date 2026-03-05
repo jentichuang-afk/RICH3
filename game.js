@@ -307,7 +307,26 @@ function checkTurn() {
 
 // 擲骰子
 function handleRollDice() {
-    if (GAME_STATE.isWaitingForAction || GAME_STATE.gameOver) return;
+    if (GAME_STATE.gameOver) return;
+    if (GAME_STATE.isWaitingForAction) {
+        log(`[提示] 系統正在處理對話框或動畫，請稍後再試。`);
+        // 作為一種防禦機制，如果真的卡死，讓使用者有個反饋
+        // 特別設計一個強行解除鎖定的 fallback:
+        // 如果這個 log 連續出現，代表狀態機可能死鎖，直接釋放
+        if (!window.__deadlockCounter) window.__deadlockCounter = 0;
+        window.__deadlockCounter++;
+        if (window.__deadlockCounter >= 3) {
+            log(`[系統區] 偵測到可能卡死，強行解除等待鎖定。`);
+            hideModal();
+            hideOfficerModal();
+            hideChanganModal();
+            GAME_STATE.isWaitingForAction = false;
+            window.__deadlockCounter = 0;
+            enableRollButton(true);
+        }
+        return;
+    }
+    window.__deadlockCounter = 0;
 
     enableRollButton(false);
     UI.dice.classList.add('rolling');
@@ -389,7 +408,13 @@ function triggerLandEvent(player, landInfo) {
 
     if (landInfo.owner === null) {
         // 無人土地
-        if (player.money >= landInfo.price && player.officers.length > 0) {
+        if (player.money < parseInt(landInfo.price)) {
+            log(`${player.name} 停在 ${landInfo.name}，但資金不足無法佔領 (持有 $${player.money}，需要 $${landInfo.price})。`);
+            endTurn();
+        } else if (player.officers && player.officers.length === 0) {
+            log(`${player.name} 停在 ${landInfo.name}，但無可用武將可派駐，放棄佔領。`);
+            endTurn();
+        } else if (player.money >= parseInt(landInfo.price) && player.officers.length > 0) {
             if (player.isBot) {
                 try {
                     // AI 自動購買邏輯
@@ -435,7 +460,7 @@ function triggerLandEvent(player, landInfo) {
                 );
             }
         } else {
-            log(`${player.name} 停在 ${landInfo.name}，但資金不足無法佔領。`);
+            log(`${player.name} 停在 ${landInfo.name}，發生未知錯誤無法佔領 (資金: ${player.money}, 武將數: ${player.officers ? player.officers.length : 'undefined'})。`);
             endTurn();
         }
     } else if (landInfo.owner === player.id) {
