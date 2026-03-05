@@ -845,8 +845,8 @@ function executeSiege(attacker, landInfo, attackingIds) {
                 growthHtml += `<div style="font-size: 14px; margin-top: 5px;">⬆️ <strong>${o.name}</strong> 的【${statName}】提升了 1 點！</div>`;
                 log(`✨ ${o.name} 在戰鬥中得到了成長，【${statName}】提升了 1 點！`);
 
-                // Phase 39: 覺醒判定 (從 <95 變為 >=95)
-                if (oldVal < 95 && newVal >= 95) {
+                // Phase 39: 覺醒判定 (僅武力、智力、統率且從 <95 變為 >=95)
+                if (oldVal < 95 && newVal >= 95 && [1, 2, 3].includes(statRoll)) {
                     playAwakeningAnimation(o.name, statName);
                     log(`🎊 【覺醒】${o.name} 突破極限，領悟了新的隱藏特技！`);
                 }
@@ -887,7 +887,7 @@ function executeSiege(attacker, landInfo, attackingIds) {
                 log(`🔥 ${o.name} 從敗軍中記取教訓，【${statName}】提升了 1 點！`);
 
                 // Phase 39: 覺醒判定
-                if (oldVal < 95 && newVal >= 95) {
+                if (oldVal < 95 && newVal >= 95 && [1, 2, 3].includes(statRoll)) {
                     playAwakeningAnimation(o.name, statName);
                     log(`🎊 【覺醒】${o.name} 突破極限，領悟了新的隱藏特技！`);
                 }
