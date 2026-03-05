@@ -774,6 +774,7 @@ function executeSiege(attacker, landInfo, attackingIds) {
     if (topStrategistId && Math.random() < 0.50) {
         reversalProc = true;
         isAttackerWin = !isAttackerWin; // 翻轉勝負
+        playReversalAnimation(); // 播放 Phase 37 特效動畫
         const strategistName = getOfficer(topStrategistId).name;
         reversalHtml = `<div style="margin-top: 15px; padding: 10px; background: rgba(156, 39, 176, 0.2); border: 1px solid #9C27B0; border-radius: 5px;">
             <div style="color: #9C27B0; font-weight: bold; margin-bottom: 5px;">【神機妙算】絕境逆轉！</div>
@@ -1181,6 +1182,26 @@ function healOfficers(player) {
 // UI 輔助
 function enableRollButton(enable) {
     UI.btnRoll.disabled = !enable;
+}
+
+// 播放「絕境逆轉」特效動畫 (Phase 37)
+function playReversalAnimation() {
+    const overlay = document.createElement('div');
+    overlay.className = 'reversal-overlay';
+
+    const text = document.createElement('div');
+    text.className = 'reversal-text';
+    text.textContent = '神機妙算';
+
+    overlay.appendChild(text);
+    document.body.appendChild(overlay);
+
+    // 1秒後自動移除
+    setTimeout(() => {
+        if (overlay.parentNode) {
+            document.body.removeChild(overlay);
+        }
+    }, 1200); // 稍微多給一點緩衝
 }
 
 function showModal(title, messageHtml, onConfirm, onCancel, confirmText = "確定", cancelText = "取消") {

@@ -740,3 +740,81 @@ h1 {
     background-color: var(--p4-color);
     box-shadow: 0 0 5px var(--p4-color);
 }
+
+/* --- Phase 37: 絕境逆轉動畫 --- */
+.reversal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: radial-gradient(circle, rgba(156, 39, 176, 0.8) 0%, rgba(0, 0, 0, 0) 70%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    pointer-events: none;
+    animation: reversal-flash 1s ease-out forwards;
+}
+
+.reversal-text {
+    font-size: 8rem;
+    color: #fff;
+    font-weight: 900;
+    text-shadow: 0 0 20px #9c27b0, 0 0 40px #9c27b0, 0 0 60px #fff;
+    letter-spacing: 20px;
+    filter: drop-shadow(5px 5px 10px rgba(0, 0, 0, 0.5));
+    animation: reversal-text-zoom 1s cubic-bezier(0.17, 0.89, 0.32, 1.28) forwards;
+}
+
+@keyframes reversal-flash {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+
+    10% {
+        opacity: 1;
+        transform: scale(1.2);
+        background: rgba(156, 39, 176, 0.4);
+    }
+
+    20% {
+        transform: scale(1);
+        background: transparent;
+    }
+
+    80% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
+@keyframes reversal-text-zoom {
+    0% {
+        transform: scale(0.1) rotate(-10deg);
+        opacity: 0;
+    }
+
+    20% {
+        transform: scale(1.5) rotate(5deg);
+        opacity: 1;
+    }
+
+    30% {
+        transform: scale(1) rotate(0deg);
+    }
+
+    80% {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(2);
+        opacity: 0;
+    }
+}
