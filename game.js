@@ -97,7 +97,7 @@ const UI = {
     officerModal: document.getElementById('officer-modal'),
     officerModalTitle: document.getElementById('officer-modal-title'),
     officerModalMessage: document.getElementById('officer-modal-message'),
-    officerList: document.getElementById('officer-list'),
+    officerList: document.getElementById('officer-list') || document.getElementById('officer-list-tbody'),
     btnOfficerConfirm: document.getElementById('btn-officer-confirm'),
     btnOfficerCancel: document.getElementById('btn-officer-cancel'),
 
@@ -130,98 +130,124 @@ let maxSelectableOfficers = 3;
 
 // 初始化遊戲
 function initGame() {
-    // 分配初始武將
-    OFFICERS_DATA.forEach(officer => {
-        GAME_STATE.players[officer.faction].officers.push(officer.id);
-    });
+    console.log("Game initialization started...");
 
-    UI.btnRoll.addEventListener('click', handleRollDice);
+    try {
+        // 優先綁定核心按鈕，防止後續資料出錯導致功能全滅
+        if (UI.btnRoll) UI.btnRoll.addEventListener('click', handleRollDice);
+        if (UI.btnShowEncyclopedia) UI.btnShowEncyclopedia.addEventListener('click', openEncyclopedia);
+        if (UI.btnEncyclopediaClose) UI.btnEncyclopediaClose.addEventListener('click', () => UI.encyclopediaModal.classList.add('hidden'));
 
-    UI.btnModalYes.addEventListener('click', () => {
-        hideModal();
-        if (modalConfirmCallback) {
-            modalConfirmCallback();
-            modalConfirmCallback = null;
+        // 分配初始武將 (強化錯誤處理)
+        if (typeof OFFICERS_DATA === 'undefined') {
+            throw new Error("找不到 OFFICERS_DATA，請檢查 officers.js 是否載入成功。");
         }
-    });
 
-    UI.btnModalNo.addEventListener('click', () => {
-        hideModal();
-        if (modalCancelCallback) {
-            modalCancelCallback();
-            modalCancelCallback = null;
-        }
-    });
-
-    UI.btnOfficerConfirm.addEventListener('click', () => {
-        hideOfficerModal();
-        if (officerConfirmCallback) {
-            officerConfirmCallback([...selectedOfficers]);
-            officerConfirmCallback = null;
-        }
-    });
-
-    UI.btnOfficerCancel.addEventListener('click', () => {
-        hideOfficerModal();
-        if (officerCancelCallback) {
-            officerCancelCallback();
-            officerCancelCallback = null;
-        }
-    });
-
-    updateOfficerCountUI(1);
-    updateOfficerCountUI(2);
-    updateOfficerCountUI(3);
-    updateOfficerCountUI(4); // Added for player 4
-
-    UI.btnInfoClose.addEventListener('click', () => {
-        UI.infoModal.classList.add('hidden');
-    });
-
-    UI.btnShowEncyclopedia.addEventListener('click', () => {
-        openEncyclopedia();
-    });
-
-    UI.btnEncyclopediaClose.addEventListener('click', () => {
-        UI.encyclopediaModal.classList.add('hidden');
-    });
-
-    setupEncyclopediaSort();
-
-    // 為所有地圖格子加上點擊事件 (查看情報)
-    document.querySelectorAll('.cell').forEach(cell => {
-        cell.addEventListener('click', () => {
-            const index = parseInt(cell.getAttribute('data-index'), 10);
-            const landInfo = MAP_DATA[index];
-            if (!landInfo || landInfo.type === 'START') return;
-
-            let info = '';
-            if (landInfo.owner) {
-                const owner = GAME_STATE.players[landInfo.owner];
-                info += `擁有者：${owner.name}\n過路費：$${landInfo.toll}\n\n`;
-                if (landInfo.defenders.length > 0) {
-                    info += '【駐軍陣容】';
-                    landInfo.defenders.forEach(id => {
-                        const o = getOfficer(id);
-                        if (o) {
-                            let injuryStr = o.injuryRate > 0 ? ` [受傷 -${o.injuryRate}%]` : '';
-                            info += `\n${o.name}${injuryStr} (武:${getEffectiveStat(o, 1)} 智:${getEffectiveStat(o, 2)} 統:${getEffectiveStat(o, 3)} 政:${getEffectiveStat(o, 4)} 魅:${getEffectiveStat(o, 5)} 運:${getEffectiveStat(o, 6)})`;
-                        }
-                    });
-                } else {
-                    info += '(目前空無一人駐守)';
-                }
+        OFFICERS_DATA.forEach(officer => {
+            if (officer && officer.faction && GAME_STATE.players[officer.faction]) {
+                GAME_STATE.players[officer.faction].officers.push(officer.id);
             } else {
-                info = `此城池尚未被佔領。\n佔領價格：$${landInfo.price}`;
+                console.warn(`跳過無效武將資料或陣營:`, officer);
             }
-
-            UI.infoModalTitle.textContent = `${landInfo.name} 情報`;
-            UI.infoModalMessage.textContent = info;
-            UI.infoModal.classList.remove('hidden');
         });
-    });
 
-    // 等待玩家選擇人數與勢力...
+        // 綁定其餘 Modal 事件
+        if (UI.btnModalYes) UI.btnModalYes.addEventListener('click', () => {
+            hideModal();
+            if (modalConfirmCallback) {
+                modalConfirmCallback();
+                modalConfirmCallback = null;
+            }
+        });
+
+
+        UI.btnModalNo.addEventListener('click', () => {
+            hideModal();
+            if (modalCancelCallback) {
+                modalCancelCallback();
+                modalCancelCallback = null;
+            }
+        });
+
+        UI.btnOfficerConfirm.addEventListener('click', () => {
+            hideOfficerModal();
+            if (officerConfirmCallback) {
+                officerConfirmCallback([...selectedOfficers]);
+                officerConfirmCallback = null;
+            }
+        });
+
+        UI.btnOfficerCancel.addEventListener('click', () => {
+            hideOfficerModal();
+            if (officerCancelCallback) {
+                officerCancelCallback();
+                officerCancelCallback = null;
+            }
+        });
+
+        updateOfficerCountUI(1);
+        updateOfficerCountUI(2);
+        updateOfficerCountUI(3);
+        updateOfficerCountUI(4); // Added for player 4
+
+        UI.btnInfoClose.addEventListener('click', () => {
+            UI.infoModal.classList.add('hidden');
+        });
+
+        UI.btnShowEncyclopedia.addEventListener('click', () => {
+            openEncyclopedia();
+        });
+
+        UI.btnEncyclopediaClose.addEventListener('click', () => {
+            UI.encyclopediaModal.classList.add('hidden');
+        });
+
+        setupEncyclopediaSort();
+
+        // 為所有地圖格子加上點擊事件 (查看情報)
+        document.querySelectorAll('.cell').forEach(cell => {
+            cell.addEventListener('click', () => {
+                const index = parseInt(cell.getAttribute('data-index'), 10);
+                const landInfo = MAP_DATA[index];
+                if (!landInfo || landInfo.type === 'START') return;
+
+                let info = '';
+                if (landInfo.owner) {
+                    const owner = GAME_STATE.players[landInfo.owner];
+                    info += `擁有者：${owner.name}\n過路費：$${landInfo.toll}\n\n`;
+                    if (landInfo.defenders.length > 0) {
+                        info += '【駐軍陣容】';
+                        landInfo.defenders.forEach(id => {
+                            const o = getOfficer(id);
+                            if (o) {
+                                let injuryStr = o.injuryRate > 0 ? ` [受傷 -${o.injuryRate}%]` : '';
+                                info += `\n${o.name}${injuryStr} (武:${getEffectiveStat(o, 1)} 智:${getEffectiveStat(o, 2)} 統:${getEffectiveStat(o, 3)} 政:${getEffectiveStat(o, 4)} 魅:${getEffectiveStat(o, 5)} 運:${getEffectiveStat(o, 6)})`;
+                            }
+                        });
+                    } else {
+                        info += '(目前空無一人駐守)';
+                    }
+                } else {
+                    info = `此城池尚未被佔領。\n佔領價格：$${landInfo.price}`;
+                }
+
+                UI.infoModalTitle.textContent = `${landInfo.name} 情報`;
+                UI.infoModalMessage.textContent = info;
+                UI.infoModal.classList.remove('hidden');
+            });
+        });
+
+        // 等待玩家選擇人數與勢力...
+        console.log("Game initialization completed successfully.");
+    } catch (e) {
+        console.error("Critical error in initGame:", e);
+        // 若日誌尚未準備好，嘗試在 body 頂端警告
+        if (UI && UI.logPanel) {
+            log(`[致命錯誤] 遊戲初始化失敗: ${e.message}`);
+        } else {
+            alert(`遊戲初始化致命錯誤: ${e.message}`);
+        }
+    }
 }
 
 let selectedPlayerCount = 1;
@@ -1088,6 +1114,9 @@ function applyTeamSkills(teamIds, teamStats) {
 
 function endTurn() {
     if (GAME_STATE.gameOver) return;
+
+    // 重要：釋放行動鎖定，允許下一位玩家動作 (Bugfix Phase 34)
+    GAME_STATE.isWaitingForAction = false;
 
     try {
         // 尋找下一個未破產的玩家
