@@ -1,5 +1,5 @@
-﻿// Phase 58: 定義女性武將 ID，用於專有特技判定
-const FEMALE_OFFICER_IDS = [311, 315, 316, 402];
+﻿// Phase 58, 59: 定義女性武將 ID，用於專有特技判定
+const FEMALE_OFFICER_IDS = [311, 315, 316, 402, 416, 418];
 
 // 武將特技定義
 const OFFICER_SKILLS = {
@@ -41,7 +41,10 @@ const OFFICER_SKILLS = {
     406: { name: "白馬將軍", desc: "團隊統率+5%", effect: (stats) => { stats[3] = Math.ceil(stats[3] * 1.05); } }, // 公孫瓚
     408: { name: "黃天當立", desc: "團隊運氣+5%、魅力+5%", effect: (stats) => { stats[6] = Math.ceil(stats[6] * 1.05); stats[5] = Math.ceil(stats[5] * 1.05); } }, // 張角
     411: { name: "平黃巾", desc: "團隊全能力+1%", effect: (stats) => { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.01); } }, // 皇甫嵩
-    412: { name: "海內人望", desc: "團隊全能力+1%", effect: (stats) => { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.01); } } // 盧植
+    412: { name: "海內人望", desc: "團隊全能力+1%", effect: (stats) => { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.01); } }, // 盧植
+    // Phase 59: 新增女性武將群雄特技
+    416: { name: "悲歌", desc: "若敵方無女性對手，團隊全能力+2%", effect: (stats, enemyIds = []) => { const hasFemale = enemyIds.some(id => FEMALE_OFFICER_IDS.includes(id)); if (!hasFemale) { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.02); } } }, // 蔡文姬
+    418: { name: "戰姬", desc: "若敵方無女性對手，團隊全能力+2%", effect: (stats, enemyIds = []) => { const hasFemale = enemyIds.some(id => FEMALE_OFFICER_IDS.includes(id)); if (!hasFemale) { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.02); } } }, // 呂玲綺
 };
 
 // Phase 25 隱藏被動定義：這十位超一線猛將出場時，骰出武力的機率自帶翻倍
@@ -133,9 +136,10 @@ const OFFICERS_DATA = [
     { id: 413, name: "朱儁", faction: 4, stats: { 1: 74, 2: 80, 3: 84, 4: 82, 5: 87, 6: 85 } },
     { id: 414, name: "華雄", faction: 4, stats: { 1: 92, 2: 32, 3: 87, 4: 43, 5: 57, 6: 41 } },
     { id: 415, name: "陶謙", faction: 4, stats: { 1: 30, 2: 74, 3: 43, 4: 87, 5: 90, 6: 84 } },
-    { id: 416, name: "孔融", faction: 4, stats: { 1: 23, 2: 81, 3: 30, 4: 93, 5: 89, 6: 86 } },
+    // Phase 59: 替換孔融與紀靈，改為蔡文姬與呂玲綺 (維持總屬性 781 點不變)
+    { id: 416, name: "蔡文姬", faction: 4, stats: { 1: 12, 2: 86, 3: 35, 4: 85, 5: 96, 6: 88 } },
     { id: 417, name: "袁術", faction: 4, stats: { 1: 64, 2: 61, 3: 67, 4: 44, 5: 43, 6: 20 } },
-    { id: 418, name: "紀靈", faction: 4, stats: { 1: 83, 2: 47, 3: 80, 4: 50, 5: 64, 6: 55 } },
+    { id: 418, name: "呂玲綺", faction: 4, stats: { 1: 93, 2: 40, 3: 82, 4: 28, 5: 76, 6: 60 } },
     { id: 419, name: "高順", faction: 4, stats: { 1: 86, 2: 62, 3: 87, 4: 57, 5: 80, 6: 64 } },
     { id: 420, name: "陳宮", faction: 4, stats: { 1: 37, 2: 91, 3: 73, 4: 85, 5: 72, 6: 57 } },
 ];
