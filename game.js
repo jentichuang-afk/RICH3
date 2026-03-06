@@ -314,6 +314,7 @@ function log(message) {
     UI.logPanel.prepend(p);
 }
 
+
 // 檢查當前回合 (處理 AI)
 function checkTurn() {
     if (GAME_STATE.gameOver) return;
@@ -1224,39 +1225,60 @@ function applyTeamSkills(teamIds, teamStats) {
         }
     });
 }
-
+// 結束回合
 function endTurn() {
     if (GAME_STATE.gameOver) return;
 
-    // 重要：釋放行動鎖定，允許下一位玩家動作 (Bugfix Phase 34)
+    // Phase 48: 統一結算破產 (處理買地、招募、事件卡扣錢導致的破產)
+    const currentPlayer = GAME_STATE.players[GAME_STATE.currentPlayer];
+    if (currentPlayer && currentPlayer.money <= 0 && !currentPlayer.isBankrupt) {
+        // 如果這個回合的動作導致當前玩家資金歸零，直接在此宣告破產
+        handleBankrupt(currentPlayer);
+        return; // handleBankrupt 會自行重新呼叫 endTurn 或宣告遊戲結束
+    }
+
     GAME_STATE.isWaitingForAction = false;
+    UI.dice.classList.remove('rolling');
+
+    let nextPlayerId = GAME_STATE.currentPlayer;
+    let foundNext = false;
+    for (let i = 0; i < 4; i++) { // 假設最多四個玩家
+        nextPlayerId = (nextPlayerId % 4) + 1; // 1 -> 2 -> 3 -> 4 -> 1
+        if (GAME_STATE.players[nextPlayerId] && !GAME_STATE.players[nextPlayerId].isBankrupt) {
+            foundNext = true;
+            break;
+        }
+    }
 
     try {
-        // 尋找下一個未破產的玩家
-        let currentIdx = GAME_STATE.activePlayers.indexOf(GAME_STATE.currentPlayer);
-        let nextIdx = (currentIdx + 1) % GAME_STATE.activePlayers.length;
-        GAME_STATE.currentPlayer = GAME_STATE.activePlayers[nextIdx];
+        if (foundNext) {
+            GAME_STATE.currentPlayer = nextPlayerId;
+            const nextPlayer = GAME_STATE.players[GAME_STATE.currentPlayer];
 
-        const nextPlayer = GAME_STATE.players[GAME_STATE.currentPlayer];
+            // 更新 UI 顯示 (四人版)
+            UI.p1Card.classList.toggle('active', GAME_STATE.currentPlayer === 1);
+            UI.p2Card.classList.toggle('active', GAME_STATE.currentPlayer === 2);
+            UI.p3Card.classList.toggle('active', GAME_STATE.currentPlayer === 3);
+            if (UI.p4Card) UI.p4Card.classList.toggle('active', GAME_STATE.currentPlayer === 4);
 
-        // 更新 UI 顯示 (四人版)
-        UI.p1Card.classList.toggle('active', GAME_STATE.currentPlayer === 1);
-        UI.p2Card.classList.toggle('active', GAME_STATE.currentPlayer === 2);
-        UI.p3Card.classList.toggle('active', GAME_STATE.currentPlayer === 3);
-        if (UI.p4Card) UI.p4Card.classList.toggle('active', GAME_STATE.currentPlayer === 4);
+            UI.currentTurnName.textContent = nextPlayer.name;
+            UI.currentTurnName.className = nextPlayer.nameClass;
 
-        UI.currentTurnName.textContent = nextPlayer.name;
-        UI.currentTurnName.className = nextPlayer.nameClass;
+            log(`現在輪到 ${nextPlayer.name} 回合。`);
 
-        log(`現在輪到 ${nextPlayer.name} 回合。`);
+            // Phase 21: 執行武將復原判定
+            healOfficers(nextPlayer);
 
-        // Phase 21: 執行武將復原判定
-        healOfficers(nextPlayer);
+            // Phase 30: 結算政治稅收與過路費通膨
+            processCityTaxesAndInflation(nextPlayer);
 
-        // Phase 30: 結算政治稅收與過路費通膨
-        processCityTaxesAndInflation(nextPlayer);
-
-        checkTurn();
+            checkTurn();
+        } else {
+            // 所有玩家都破產了，遊戲結束
+            GAME_STATE.gameOver = true;
+            log("所有玩家都已破產，遊戲結束！");
+            showModal("遊戲結束", "所有玩家都已破產！", () => { }, null, "確定");
+        }
     } catch (e) {
         console.error("endTurn error:", e);
         log(`[系統區] endTurn 時發生未預期錯誤，遊戲進度可能中斷。`);

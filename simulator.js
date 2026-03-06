@@ -24,12 +24,17 @@ if (gamesPlayed >= MAX_GAMES) {
     window.setInterval = function (cb, delay, ...args) { return origSetInterval(cb, 1, ...args); };
 
     window.alert = function (msg) {
-        if (window.GAME_STATE && window.GAME_STATE.gameOver) {
-            let activeId = window.GAME_STATE.activePlayers[0];
-            let winnerOpts = { 1: 'Liu', 2: 'Cao', 3: 'Sun', 4: 'Dong' };
-            let winner = winnerOpts[activeId];
+        if (msg.includes('獲勝')) {
+            let winnerOpts = { '劉備': 'Liu', '曹操': 'Cao', '孫權': 'Sun', '董卓': 'Dong' };
+            let winnerStr = '';
+            for (let name in winnerOpts) {
+                if (msg.includes(name)) {
+                    winnerStr = winnerOpts[name];
+                    break;
+                }
+            }
 
-            if (winner) results[winner]++;
+            if (winnerStr) results[winnerStr]++;
             gamesPlayed++;
 
             localStorage.setItem('sim_games_played', gamesPlayed.toString());
