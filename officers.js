@@ -1,5 +1,5 @@
-﻿// Phase 58, 59: 定義女性武將 ID，用於專有特技判定
-const FEMALE_OFFICER_IDS = [311, 315, 316, 402, 416, 418];
+﻿// Phase 58, 59, 61: 定義女性武將 ID，用於專有特技判定
+const FEMALE_OFFICER_IDS = [115, 215, 219, 311, 315, 316, 402, 416, 418];
 
 // 武將特技定義
 const OFFICER_SKILLS = {
@@ -12,6 +12,8 @@ const OFFICER_SKILLS = {
     106: { name: "臥龍", desc: "團隊智力+10%", effect: (stats) => { stats[2] = Math.ceil(stats[2] * 1.10); } }, // 諸葛亮
     107: { name: "鳳雛", desc: "團隊智力+5%", effect: (stats) => { stats[2] = Math.ceil(stats[2] * 1.05); } }, // 龐統
     110: { name: "天水麒麟", desc: "團隊智力+3%、統率+2%", effect: (stats) => { stats[2] = Math.ceil(stats[2] * 1.03); stats[3] = Math.ceil(stats[3] * 1.02); } }, // 姜維
+    // Phase 61: 新增蜀漢女性武將特技
+    115: { name: "奇才", desc: "若敵方無女性對手，團隊全能力+2%", effect: (stats, enemyIds = []) => { const hasFemale = enemyIds.some(id => FEMALE_OFFICER_IDS.includes(id)); if (!hasFemale) { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.02); } } }, // 黃月英
     // 魏國
     200: { name: "亂世奸雄", desc: "團隊全能力+3%", effect: (stats) => { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.03); } }, // 曹操
     201: { name: "盲夏侯", desc: "團隊統御+5%、運氣+5%", effect: (stats) => { stats[3] = Math.ceil(stats[3] * 1.05); stats[6] = Math.ceil(stats[6] * 1.05); } }, // 夏侯惇
@@ -21,6 +23,9 @@ const OFFICER_SKILLS = {
     211: { name: "虎痴", desc: "團隊武力+5%", effect: (stats) => { stats[1] = Math.ceil(stats[1] * 1.05); } }, // 許褚
     212: { name: "古之惡來", desc: "團隊武力+10%", effect: (stats) => { stats[1] = Math.ceil(stats[1] * 1.10); } }, // 典韋
     214: { name: "鐵壁", desc: "團隊統御+5%", effect: (stats) => { stats[3] = Math.ceil(stats[3] * 1.05); } }, // 曹仁
+    // Phase 61: 新增曹魏女性武將特技
+    215: { name: "洛神", desc: "若敵方無女性對手，團隊全能力+2%", effect: (stats, enemyIds = []) => { const hasFemale = enemyIds.some(id => FEMALE_OFFICER_IDS.includes(id)); if (!hasFemale) { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.02); } } }, // 甄姬
+    219: { name: "節烈", desc: "若敵方無女性對手，團隊全能力+2%", effect: (stats, enemyIds = []) => { const hasFemale = enemyIds.some(id => FEMALE_OFFICER_IDS.includes(id)); if (!hasFemale) { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.02); } } }, // 王異
     // 吳國
     300: { name: "江東之主", desc: "團隊全能力+3%", effect: (stats) => { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.03); } }, // 孫權
     301: { name: "雅量高致", desc: "團隊智力+5%、魅力+5%", effect: (stats) => { stats[2] = Math.ceil(stats[2] * 1.05); stats[5] = Math.ceil(stats[5] * 1.05); } }, // 周瑜
@@ -68,7 +73,8 @@ const OFFICERS_DATA = [
     { id: 112, name: "馬岱", faction: 1, stats: { 1: 85, 2: 55, 3: 80, 4: 47, 5: 65, 6: 49 } },
     { id: 113, name: "王平", faction: 1, stats: { 1: 77, 2: 76, 3: 83, 4: 58, 5: 61, 6: 69 } },
     { id: 114, name: "關平", faction: 1, stats: { 1: 82, 2: 67, 3: 76, 4: 60, 5: 75, 6: 55 } },
-    { id: 115, name: "周倉", faction: 1, stats: { 1: 81, 2: 42, 3: 64, 4: 33, 5: 58, 6: 44 } },
+    // Phase 61: 替換周倉，改為黃月英 (維持總屬性 322 點不變)
+    { id: 115, name: "黃月英", faction: 1, stats: { 1: 20, 2: 95, 3: 52, 4: 80, 5: 65, 6: 10 } },
     { id: 116, name: "嚴顏", faction: 1, stats: { 1: 82, 2: 70, 3: 80, 4: 64, 5: 74, 6: 60 } },
     // Phase 57: 替換孟獲與祝融，改為關興與張苞 (維持總屬性 696 點不變)
     { id: 117, name: "關興", faction: 1, stats: { 1: 86, 2: 55, 3: 72, 4: 45, 5: 60, 6: 30 } },
@@ -91,11 +97,12 @@ const OFFICERS_DATA = [
     { id: 212, name: "典韋", faction: 2, stats: { 1: 96, 2: 34, 3: 48, 4: 26, 5: 58, 6: 40 } },
     { id: 213, name: "龐德", faction: 2, stats: { 1: 94, 2: 71, 3: 79, 4: 45, 5: 67, 6: 46 } },
     { id: 214, name: "曹仁", faction: 2, stats: { 1: 85, 2: 58, 3: 88, 4: 46, 5: 75, 6: 66 } },
-    { id: 215, name: "曹洪", faction: 2, stats: { 1: 77, 2: 44, 3: 79, 4: 34, 5: 62, 6: 60 } },
+    // Phase 61: 替換曹洪與程昱，改為甄姬與王異 (維持二人總屬性 763 點不變)
+    { id: 215, name: "甄姬", faction: 2, stats: { 1: 15, 2: 80, 3: 30, 4: 75, 5: 96, 6: 85 } },
     { id: 216, name: "樂進", faction: 2, stats: { 1: 84, 2: 50, 3: 78, 4: 51, 5: 67, 6: 54 } },
     { id: 217, name: "李典", faction: 2, stats: { 1: 77, 2: 75, 3: 79, 4: 75, 5: 69, 6: 59 } },
     { id: 218, name: "于禁", faction: 2, stats: { 1: 79, 2: 69, 3: 83, 4: 58, 5: 55, 6: 32 } },
-    { id: 219, name: "程昱", faction: 2, stats: { 1: 47, 2: 92, 3: 70, 4: 79, 5: 59, 6: 60 } },
+    { id: 219, name: "王異", faction: 2, stats: { 1: 65, 2: 85, 3: 88, 4: 60, 5: 60, 6: 24 } },
     { id: 220, name: "滿寵", faction: 2, stats: { 1: 67, 2: 82, 3: 78, 4: 84, 5: 80, 6: 60 } },
     // 吳國 (21 人, 總計提升體質以平衡勝率)
     { id: 300, name: "孫權", faction: 3, stats: { 1: 69, 2: 80, 3: 80, 4: 84, 5: 74, 6: 95 } },
