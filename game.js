@@ -447,7 +447,8 @@ function triggerLandEvent(player, landInfo) {
                     // AI 自動購買邏輯
                     log(`[追蹤] 1. 準備佔領`);
                     log(`[電腦] ${player.name} 自動佔領了 ${landInfo.name}。`);
-                    let sendCount = Math.floor(Math.random() * 3) + 1;
+                    // Phase 54: 強制 AI 派滿 3 名守城武將 (若兵力不足則全派)
+                    let sendCount = 3;
                     sendCount = Math.min(sendCount, player.officers.length);
                     let chosen = player.officers.slice(0, sendCount);
                     log(`[追蹤] 2. SetTimeout 設定前`);
