@@ -1,4 +1,7 @@
-﻿// 武將特技定義
+﻿// Phase 58: 定義女性武將 ID，用於專有特技判定
+const FEMALE_OFFICER_IDS = [311, 315, 316, 402];
+
+// 武將特技定義
 const OFFICER_SKILLS = {
     // 蜀國
     100: { name: "漢室宗親", desc: "團隊全能力+3%", effect: (stats) => { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.03); } }, // 劉備
@@ -26,11 +29,14 @@ const OFFICER_SKILLS = {
     304: { name: "連營", desc: "團隊統御+5%、智力+5%", effect: (stats) => { stats[3] = Math.ceil(stats[3] * 1.05); stats[2] = Math.ceil(stats[2] * 1.05); } }, // 陸遜
     305: { name: "錦帆賊", desc: "團隊武力+5%", effect: (stats) => { stats[1] = Math.ceil(stats[1] * 1.05); } }, // 甘寧
     306: { name: "篤烈", desc: "團隊武力+5%", effect: (stats) => { stats[1] = Math.ceil(stats[1] * 1.05); } }, // 太史慈
+    311: { name: "國色", desc: "若敵方無女性對手，團隊全能力+2%", effect: (stats, enemyIds = []) => { const hasFemale = enemyIds.some(id => FEMALE_OFFICER_IDS.includes(id)); if (!hasFemale) { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.02); } } }, // 大喬
+    315: { name: "國色", desc: "若敵方無女性對手，團隊全能力+2%", effect: (stats, enemyIds = []) => { const hasFemale = enemyIds.some(id => FEMALE_OFFICER_IDS.includes(id)); if (!hasFemale) { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.02); } } }, // 小喬
+    316: { name: "梟姬", desc: "若敵方無女性對手，團隊全能力+2%", effect: (stats, enemyIds = []) => { const hasFemale = enemyIds.some(id => FEMALE_OFFICER_IDS.includes(id)); if (!hasFemale) { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.02); } } }, // 孫尚香
     320: { name: "小霸王", desc: "團隊武力+5%、魅力+5%", effect: (stats) => { stats[1] = Math.ceil(stats[1] * 1.05); stats[5] = Math.ceil(stats[5] * 1.05); } }, // 孫策
     // 群雄
     400: { name: "魔王", desc: "團隊武/智/統/政/運+4%，魅力-5%", effect: (stats) => { stats[1] = Math.ceil(stats[1] * 1.04); stats[2] = Math.ceil(stats[2] * 1.04); stats[3] = Math.ceil(stats[3] * 1.04); stats[4] = Math.ceil(stats[4] * 1.04); stats[6] = Math.ceil(stats[6] * 1.04); stats[5] = Math.floor(stats[5] * 0.95); } }, // 董卓
     401: { name: "飛將", desc: "團隊武力+10%/統御+5%，智力-5%", effect: (stats) => { stats[1] = Math.ceil(stats[1] * 1.10); stats[3] = Math.ceil(stats[3] * 1.05); stats[2] = Math.floor(stats[2] * 0.95); } }, // 呂布
-    402: { name: "閉月", desc: "團隊魅力+10%", effect: (stats) => { stats[5] = Math.ceil(stats[5] * 1.10); } }, // 貂蟬
+    402: { name: "閉月", desc: "團隊魅力+10%。若敵方無女性對手，全能力再+2%", effect: (stats, enemyIds = []) => { stats[5] = Math.ceil(stats[5] * 1.10); const hasFemale = enemyIds.some(id => FEMALE_OFFICER_IDS.includes(id)); if (!hasFemale) { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.02); } } }, // 貂蟬
     403: { name: "名門", desc: "團隊運氣+10%/政治+5%，統御-5%", effect: (stats) => { stats[6] = Math.ceil(stats[6] * 1.10); stats[4] = Math.ceil(stats[4] * 1.05); stats[3] = Math.floor(stats[3] * 0.95); } }, // 袁紹
     406: { name: "白馬將軍", desc: "團隊統率+5%", effect: (stats) => { stats[3] = Math.ceil(stats[3] * 1.05); } }, // 公孫瓚
     408: { name: "黃天當立", desc: "團隊運氣+5%、魅力+5%", effect: (stats) => { stats[6] = Math.ceil(stats[6] * 1.05); stats[5] = Math.ceil(stats[5] * 1.05); } }, // 張角

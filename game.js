@@ -726,11 +726,10 @@ function getBestSiegeTeam(attackerOfficerIds, defenderIds) {
         if (o) for (let i = 1; i <= 6; i++) defStats[i] += getEffectiveStat(o, i);
     });
 
-    // 套用防守方團隊特技
-    applyTeamSkills(defenderIds, defStats);
+    // 套用防守方團隊特技 (這時攻城方的陣容還未知，因此針對依賴 enemyIds 的特技會先以空陣列傳入，
+    // 不過由於 AI 試算時是輪詢攻方陣容，所以我們將這段移到 evaluateTeamWinRate 內動態計算)
 
-    // 防守方 3% 能力加成 (套用完武將特技後再疊加地理優勢)
-    for (let i = 1; i <= 6; i++) defStats[i] = Math.ceil(defStats[i] * 1.03);
+    // 防守方基礎屬性總和已算出，特技與地理優勢加成移至 evaluateTeamWinRate 內動態計算。
 
     const evaluateTeamWinRate = (teamIds) => {
         let expectedWins = 0;
@@ -747,8 +746,16 @@ function getBestSiegeTeam(attackerOfficerIds, defenderIds) {
             }
         });
 
+        // 動態計算防守方的能力 (因為特技可能跟攻方有關)
+        let currentDefStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+        for (let i = 1; i <= 6; i++) currentDefStats[i] = defStats[i];
+        applyTeamSkills(defenderIds, currentDefStats, teamIds);
+
+        // 防守方 3% 能力加成 (套用完武將特技後再疊加地理優勢)
+        for (let i = 1; i <= 6; i++) currentDefStats[i] = Math.ceil(currentDefStats[i] * 1.03);
+
         // 套用攻方團隊特技
-        applyTeamSkills(teamIds, atkStats);
+        applyTeamSkills(teamIds, atkStats, defenderIds);
 
         const hasLegend = [...teamIds, ...defenderIds].some(id => {
             const o = getOfficer(id);
@@ -756,7 +763,7 @@ function getBestSiegeTeam(attackerOfficerIds, defenderIds) {
         });
 
         for (let i = 1; i <= 6; i++) {
-            if (atkStats[i] > defStats[i]) {
+            if (atkStats[i] > currentDefStats[i]) {
                 expectedWins += (hasLegend && i === 1) ? 2 : 1;
             }
         }
@@ -819,7 +826,7 @@ function executeSiege(attacker, landInfo, attackingIds) {
         const o = getOfficer(id);
         if (o) { for (let i = 1; i <= 6; i++) atkTempStats[i] += getEffectiveStat(o, i); }
     });
-    applyTeamSkills(attackingIds, atkTempStats);
+    applyTeamSkills(attackingIds, atkTempStats, defendingIds);
     attackerScore = atkTempStats[statRoll];
 
     let defenderScore = 0;
@@ -828,7 +835,7 @@ function executeSiege(attacker, landInfo, attackingIds) {
         const o = getOfficer(id);
         if (o) { for (let i = 1; i <= 6; i++) defTempStats[i] += getEffectiveStat(o, i); }
     });
-    applyTeamSkills(defendingIds, defTempStats);
+    applyTeamSkills(defendingIds, defTempStats, attackingIds);
     defenderScore = defTempStats[statRoll];
 
     // 防守方 3% 加成 (特技加成後再算地理優勢)
@@ -1255,10 +1262,10 @@ function processCityTaxesAndInflation(player) {
 }
 
 // 處理團隊特技光環加成
-function applyTeamSkills(teamIds, teamStats) {
+function applyTeamSkills(teamIds, teamStats, enemyIds = []) {
     teamIds.forEach(id => {
         if (OFFICER_SKILLS[id]) {
-            OFFICER_SKILLS[id].effect(teamStats);
+            OFFICER_SKILLS[id].effect(teamStats, enemyIds);
         }
     });
 }
