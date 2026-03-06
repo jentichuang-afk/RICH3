@@ -558,6 +558,11 @@ function triggerLandEvent(player, landInfo) {
         if (eliteCharismaId && Math.random() < 0.3) {
             const charmer = getOfficer(eliteCharismaId);
             log(`✨ 【名德重望】${charmer.name} 威名遠播，${player.name} 被其風采感化，決定繳費離開。`);
+
+            // Phase 47: 魅力特技發動後體力透支，受傷增加 50%
+            charmer.injuryRate = Math.min(1.0, charmer.injuryRate + 0.5);
+            log(`🩸 ${charmer.name} 因為發揮特技消耗大量精神，受傷程度大幅增加！(目前健康: ${Math.round((1 - charmer.injuryRate) * 100)}%)`);
+
             if (player.isBot) {
                 setTimeout(() => { payToll(player, owner, toll); }, 1500);
             } else {
@@ -566,6 +571,7 @@ function triggerLandEvent(player, landInfo) {
                     `<div style="text-align:center;">
                         <div style="font-size: 1.2rem; color: #9c27b0; font-weight: bold; margin-bottom: 10px;">★ 名德重望 ★</div>
                         <p>${charmer.name} 的仁德之風使我軍肅然起敬，<br>不忍與其正對。僅繳納過路費 $${toll} 後離去。</p>
+                        <p style="color:#d32f2f; font-size: 0.9rem; margin-top: 10px;">(※ ${charmer.name} 因發動特技消耗精神，受傷程度增加 50%)</p>
                     </div>`,
                     () => { payToll(player, owner, toll); },
                     null, "繳費離開", null
