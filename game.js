@@ -561,8 +561,8 @@ function triggerLandEvent(player, landInfo) {
             log(`✨ 【名德重望】${charmer.name} 威名遠播，${player.name} 被其風采感化，決定繳費離開。`);
 
             // Phase 47: 魅力特技發動後體力透支，受傷增加 50%
-            charmer.injuryRate = Math.min(1.0, charmer.injuryRate + 0.5);
-            log(`🩸 ${charmer.name} 因為發揮特技消耗大量精神，受傷程度大幅增加！(目前健康: ${Math.round((1 - charmer.injuryRate) * 100)}%)`);
+            charmer.injuryRate = Math.min(100, charmer.injuryRate + 50);
+            log(`🩸 ${charmer.name} 因為發揮特技消耗大量精神，受傷程度大幅增加！(目前健康: ${100 - charmer.injuryRate}%)`);
 
             if (player.isBot) {
                 setTimeout(() => { payToll(player, owner, toll); }, 1500);
