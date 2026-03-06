@@ -8,7 +8,7 @@ if (urlParams.get('reset') === '1') {
 
 let gamesPlayed = parseInt(localStorage.getItem('sim_games_played') || '0');
 let results = JSON.parse(localStorage.getItem('sim_results') || '{"Liu":0,"Cao":0,"Sun":0,"Dong":0}');
-const MAX_GAMES = 10;
+const MAX_GAMES = 30;
 
 if (gamesPlayed >= MAX_GAMES) {
     window.addEventListener('load', () => {
