@@ -909,6 +909,16 @@ function executeSiege(attacker, landInfo, attackingIds) {
     let winnerCmdName = winnerTopCommander ? getOfficer(winnerTopCommander).name : "";
     let loserCmdName = loserTopCommander ? getOfficer(loserTopCommander).name : "";
 
+    // Phase 63 (Bugfix): 提前捕捉「吉星高照」發動者，避免戰鬥中的受傷導致其能力下降而無法發動
+    const preBattleAttackerLuckHealerId = attackingIds.find(id => {
+        const o = getOfficer(id);
+        return o && getEffectiveStat(o, 6) >= 95;
+    });
+    const preBattleDefenderLuckHealerId = defendingIds.find(id => {
+        const o = getOfficer(id);
+        return o && getEffectiveStat(o, 6) >= 95;
+    });
+
     winningTeamIds.forEach(id => {
         const o = getOfficer(id);
         if (o) {
@@ -998,18 +1008,14 @@ function executeSiege(attacker, landInfo, attackingIds) {
         </div>`;
     }
 
-    // Phase 41: 運氣 (95+)「吉星高照」- 戰後隨機治癒己方一人 100% 傷勢
+    // Phase 41 & 63: 運氣 (95+)「吉星高照」- 戰後隨機治癒己方一人 100% 傷勢
     const teams = [
-        { ids: attackingIds, name: attacker.name },
-        { ids: defendingIds, name: defender.name }
+        { ids: attackingIds, name: attacker.name, healerId: preBattleAttackerLuckHealerId },
+        { ids: defendingIds, name: defender.name, healerId: preBattleDefenderLuckHealerId }
     ];
     teams.forEach(team => {
-        let luckHealerId = team.ids.find(id => {
-            const o = getOfficer(id);
-            return o && getEffectiveStat(o, 6) >= 95;
-        });
-        if (luckHealerId) {
-            const healer = getOfficer(luckHealerId);
+        if (team.healerId) {
+            const healer = getOfficer(team.healerId);
             let injuredAllies = team.ids.filter(id => getOfficer(id).injuryRate > 0);
             if (injuredAllies.length > 0) {
                 let targetId = injuredAllies[Math.floor(Math.random() * injuredAllies.length)];
