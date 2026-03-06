@@ -1,3 +1,11 @@
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('reset') === '1') {
+    localStorage.removeItem('sim_games_played');
+    localStorage.removeItem('sim_results');
+    // Change URL without reload to avoid infinite reset loops
+    window.history.replaceState({}, document.title, window.location.pathname);
+}
+
 let gamesPlayed = parseInt(localStorage.getItem('sim_games_played') || '0');
 let results = JSON.parse(localStorage.getItem('sim_results') || '{"Liu":0,"Cao":0,"Sun":0,"Dong":0}');
 const MAX_GAMES = 10;

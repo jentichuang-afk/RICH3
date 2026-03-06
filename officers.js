@@ -19,11 +19,11 @@ const OFFICER_SKILLS = {
     212: { name: "古之惡來", desc: "團隊武力+10%", effect: (stats) => { stats[1] = Math.ceil(stats[1] * 1.10); } }, // 典韋
     214: { name: "鐵壁", desc: "團隊統御+5%", effect: (stats) => { stats[3] = Math.ceil(stats[3] * 1.05); } }, // 曹仁
     // 吳國
-    300: { name: "江東之主", desc: "團隊全能力+4%", effect: (stats) => { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.04); } }, // 孫權
-    301: { name: "雅量高致", desc: "團隊智力+7%、魅力+5%", effect: (stats) => { stats[2] = Math.ceil(stats[2] * 1.07); stats[5] = Math.ceil(stats[5] * 1.05); } }, // 周瑜
+    300: { name: "江東之主", desc: "團隊全能力+3%", effect: (stats) => { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.03); } }, // 孫權
+    301: { name: "雅量高致", desc: "團隊智力+5%、魅力+5%", effect: (stats) => { stats[2] = Math.ceil(stats[2] * 1.05); stats[5] = Math.ceil(stats[5] * 1.05); } }, // 周瑜
     302: { name: "宏碁大略", desc: "團隊政治+10%", effect: (stats) => { stats[4] = Math.ceil(stats[4] * 1.10); } }, // 魯肅
     303: { name: "白衣渡江", desc: "團隊運氣+7%、統率+2%", effect: (stats) => { stats[6] = Math.ceil(stats[6] * 1.07); stats[3] = Math.ceil(stats[3] * 1.02); } }, // 呂蒙
-    304: { name: "連營", desc: "團隊統御+7%、智力+5%", effect: (stats) => { stats[3] = Math.ceil(stats[3] * 1.07); stats[2] = Math.ceil(stats[2] * 1.05); } }, // 陸遜
+    304: { name: "連營", desc: "團隊統御+5%、智力+5%", effect: (stats) => { stats[3] = Math.ceil(stats[3] * 1.05); stats[2] = Math.ceil(stats[2] * 1.05); } }, // 陸遜
     305: { name: "錦帆賊", desc: "團隊武力+5%", effect: (stats) => { stats[1] = Math.ceil(stats[1] * 1.05); } }, // 甘寧
     306: { name: "篤烈", desc: "團隊武力+5%", effect: (stats) => { stats[1] = Math.ceil(stats[1] * 1.05); } }, // 太史慈
     320: { name: "小霸王", desc: "團隊武力+5%、魅力+5%", effect: (stats) => { stats[1] = Math.ceil(stats[1] * 1.05); stats[5] = Math.ceil(stats[5] * 1.05); } }, // 孫策
