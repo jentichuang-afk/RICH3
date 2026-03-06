@@ -290,6 +290,9 @@ function startGame() {
     for (let i = 1; i <= 4; i++) {
         GAME_STATE.players[i].isBot = !humanFactions.includes(i);
 
+        // Phase 55: 開局隨機初始站位
+        GAME_STATE.players[i].position = Math.floor(Math.random() * 12);
+
         // 如果電腦玩家（非人類），顯示其 UI 為電腦標記
         if (GAME_STATE.players[i].isBot) {
             const card = UI[`p${i}Card`];
@@ -299,6 +302,16 @@ function startGame() {
             }
         }
     }
+
+    // Phase 55: 隨機決定起手順序
+    GAME_STATE.activePlayers = [1, 2, 3, 4].sort(() => Math.random() - 0.5);
+    GAME_STATE.currentPlayer = GAME_STATE.activePlayers[0];
+
+    // 更新 UI 指示燈
+    UI.p1Card.classList.toggle('active', GAME_STATE.currentPlayer === 1);
+    UI.p2Card.classList.toggle('active', GAME_STATE.currentPlayer === 2);
+    UI.p3Card.classList.toggle('active', GAME_STATE.currentPlayer === 3);
+    if (UI.p4Card) UI.p4Card.classList.toggle('active', GAME_STATE.currentPlayer === 4);
 
     log(`遊戲開始！玩家操作：${humanFactions.map(id => GAME_STATE.players[id].name).join('、')}。`);
 
@@ -1264,10 +1277,14 @@ function endTurn() {
     GAME_STATE.isWaitingForAction = false;
     UI.dice.classList.remove('rolling');
 
+    let currentIndex = GAME_STATE.activePlayers.indexOf(GAME_STATE.currentPlayer);
     let nextPlayerId = GAME_STATE.currentPlayer;
     let foundNext = false;
-    for (let i = 0; i < 4; i++) { // 假設最多四個玩家
-        nextPlayerId = (nextPlayerId % 4) + 1; // 1 -> 2 -> 3 -> 4 -> 1
+
+    // 依據開局隨機洗牌後的 activePlayers 陣列順序尋找下一位非破產的玩家
+    for (let i = 1; i <= GAME_STATE.activePlayers.length; i++) {
+        let nextIndex = (currentIndex + i) % GAME_STATE.activePlayers.length;
+        nextPlayerId = GAME_STATE.activePlayers[nextIndex];
         if (GAME_STATE.players[nextPlayerId] && !GAME_STATE.players[nextPlayerId].isBankrupt) {
             foundNext = true;
             break;
