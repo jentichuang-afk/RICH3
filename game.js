@@ -433,14 +433,16 @@ function updatePiecesPosition(initial = false) {
 function triggerLandEvent(player, landInfo) {
     if (landInfo.type === "START") {
         if (GAME_STATE.changanOfficers.length > 0) {
-            log(`${player.name} 抵達起點長安。發現城中有 ${GAME_STATE.changanOfficers.length} 名在野武將！`);
+            // Phase 64: 隨機選出至多 3 名在野武將
+            let offeredIds = [...GAME_STATE.changanOfficers].sort(() => 0.5 - Math.random()).slice(0, 3);
+            log(`${player.name} 抵達起點長安。尋訪發現了 ${offeredIds.length} 名武將蹤跡 (長安共有 ${GAME_STATE.changanOfficers.length} 人在野)！`);
             if (player.isBot) {
-                handleChanganRecruitAI(player);
+                handleChanganRecruitAI(player, offeredIds);
             } else {
-                showChanganModal(player);
+                showChanganModal(player, offeredIds);
             }
         } else {
-            log(`${player.name} 停在起點長安，稍作休息。`);
+            log(`${player.name} 停在起點長安，稍作休息。城中已無在野武將。`);
             endTurn();
         }
         return;
@@ -1714,7 +1716,7 @@ function getSkillPowerPercentage(skill) {
 
 let changanSelectedOfficers = [];
 
-function showChanganModal(player) {
+function showChanganModal(player, offeredIds) {
     GAME_STATE.isWaitingForAction = true;
     changanSelectedOfficers = [];
     if (!UI.changanTotalCost) return;
@@ -1722,7 +1724,8 @@ function showChanganModal(player) {
 
     // 產生招募清單
     UI.changanOfficerList.innerHTML = '';
-    GAME_STATE.changanOfficers.forEach(id => {
+    // Phase 64: 只渲染隨機選出的武將
+    offeredIds.forEach(id => {
         const o = getOfficer(id);
         if (!o) return;
 
@@ -1842,9 +1845,9 @@ function updateChanganCostDisplay(player) {
 }
 
 // 電腦玩長安招募
-function handleChanganRecruitAI(player) {
-    // 預算評估
-    let availableList = GAME_STATE.changanOfficers.map(id => {
+function handleChanganRecruitAI(player, offeredIds) {
+    // 預算評估，Phase 64: 只針對隨機選出的武將
+    let availableList = offeredIds.map(id => {
         const o = getOfficer(id);
         let cost = 0;
         for (let i = 1; i <= 6; i++) cost += o.stats[i];
