@@ -2461,25 +2461,36 @@ function handleChanganChoiceAI(player, offeredIds) {
     }
 
     setTimeout(() => {
-        if (canRecruit && (!canBuyItem || Math.random() < 0.6)) {
-            // 傾向招募 (60%)
-            playRecruitAnimation(targetOfficer.name, player.name);
+        try {
+            if (canRecruit && (!canBuyItem || Math.random() < 0.6)) {
+                // 傾向招募 (60%)
+                playRecruitAnimation(targetOfficer.name, player.name);
 
-            setTimeout(() => {
-                updateMoney(player.id, -officerCost);
-                player.officers.push(targetOfficer.id);
-                GAME_STATE.changanOfficers = GAME_STATE.changanOfficers.filter(cid => cid !== targetOfficer.id);
-                updateOfficerCountUI(player.id);
-                log(`[電腦] ${player.name} 在長安招募了猛將 ${targetOfficer.name} (花費 $${officerCost})。`);
+                setTimeout(() => {
+                    try {
+                        updateMoney(player.id, -officerCost);
+                        player.officers.push(targetOfficer.id);
+                        GAME_STATE.changanOfficers = GAME_STATE.changanOfficers.filter(cid => cid !== targetOfficer.id);
+                        updateOfficerCountUI(player.id);
+                        log(`[電腦] ${player.name} 在長安招募了猛將 ${targetOfficer.name} (花費 $${officerCost})。`);
+                    } catch (e) {
+                        console.error("handleChanganChoiceAI recruit error:", e);
+                        log(`[系統區] AI 招募時發生錯誤: ${e.message}`);
+                    }
+                    endTurn();
+                }, 1200);
+            } else if (canBuyItem) {
+                updateMoney(player.id, -targetItem.price);
+                player.items.push({ ...targetItem });
+                log(`[電腦] ${player.name} 在長安道具店購買了【${targetItem.name}】。`);
                 endTurn();
-            }, 1200);
-        } else if (canBuyItem) {
-            updateMoney(player.id, -targetItem.price);
-            player.items.push({ ...targetItem });
-            log(`[電腦] ${player.name} 在長安道具店購買了【${targetItem.name}】。`);
-            endTurn();
-        } else {
-            log(`[電腦] ${player.name} 衡量資金與發展後，離開了長安。`);
+            } else {
+                log(`[電腦] ${player.name} 衡量資金與發展後，離開了長安。`);
+                endTurn();
+            }
+        } catch (e) {
+            console.error("handleChanganChoiceAI error:", e);
+            log(`[系統區] AI 長安選擇時發生錯誤: ${e.message}`);
             endTurn();
         }
     }, 1500);
