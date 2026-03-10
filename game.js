@@ -21,6 +21,24 @@ const GAME_STATE = {
     }
 };
 
+// Phase 66: 計算連續領地長度 (相連城池加成)
+function getCityChainLength(playerId, cityId) {
+    if (cityId <= 0 || cityId > 11 || playerId == null) return 0; // 起點不可佔領
+    let count = 1;
+    // 往左搜尋
+    for (let i = cityId - 1; i >= 1; i--) {
+        if (MAP_DATA[i] && MAP_DATA[i].owner === playerId) count++;
+        else break;
+    }
+    // 往右搜尋
+    for (let i = cityId + 1; i <= 11; i++) {
+        if (MAP_DATA[i] && MAP_DATA[i].owner === playerId) count++;
+        else break;
+    }
+    // 使用者規定：單獨領地不加成
+    return count > 1 ? count : 0;
+}
+
 
 // Phase 21: 取得戰鬥時有效的能力 (計算衰減)
 function getEffectiveStat(o, statIdx) {
@@ -591,7 +609,11 @@ function triggerLandEvent(player, landInfo) {
                                 log(`${player.name} 放棄佔領 ${landInfo.name}。`);
                                 endTurn();
                             },
-                            false
+                            false,
+                            false,
+                            [],
+                            false,
+                            landInfo.id
                         );
                     },
                     () => {
@@ -643,7 +665,8 @@ function triggerLandEvent(player, landInfo) {
                         true, // show cancel button
                         false, // isSiege
                         [], // defIds
-                        true // allowZero
+                        true, // allowZero
+                        landInfo.id
                     );
                 },
                 () => { // 選擇不更換
@@ -698,7 +721,7 @@ function triggerLandEvent(player, landInfo) {
 
             setTimeout(() => {
                 overlay.style.opacity = '0';
-                setTimeout(() => overlay.remove(), 300);
+                setTimeout(() => overlay.remove(), 500);
 
                 // Continue original logic
                 if (player.isBot) {
@@ -724,7 +747,7 @@ function triggerLandEvent(player, landInfo) {
         if (player.isBot) {
             // AI 自動抉擇：計算所有可能派出的 1~3 名武將組合
             // 如果有一組陣容能在 6 個屬性中贏過對手至少 4 項 (>50% 勝率)，則發起攻城
-            const bestTeam = getBestSiegeTeam(player.officers, landInfo.defenders);
+            const bestTeam = getBestSiegeTeam(player.officers, landInfo.defenders, landInfo.id);
             if (bestTeam) {
                 log(`[電腦] ${player.name} 評估勝算極高，決定發起攻城！`);
                 setTimeout(() => { executeSiege(player, landInfo, bestTeam); }, 1500);
@@ -772,13 +795,12 @@ function triggerLandEvent(player, landInfo) {
                         (selectedIds) => {
                             executeSiege(player, landInfo, selectedIds);
                         },
-                        () => {
-                            // 取消攻城就乖乖付錢
-                            payToll(player, owner, toll);
-                        },
-                        true, // 顯示取消按鈕 (轉換回付費)
+                        () => { log(`我軍取消了進攻 ${landInfo.name} 的計畫。`); endTurn(); },
+                        true, // showCancelBtn
                         true, // isSiege
-                        landInfo.defenders // defIds
+                        landInfo.defenders,
+                        false, // allowZero
+                        landInfo.id
                     );
                 } : null,
                 '繳交軍費', canSiege ? '發起攻城' : null
@@ -817,9 +839,10 @@ function executeBuyLand(player, landInfo, selectedIds) {
 }
 
 // 計算 AI 最佳攻城陣容 (>50% 勝率)
-function getBestSiegeTeam(attackerOfficerIds, defenderIds) {
+function getBestSiegeTeam(attackerOfficerIds, defenderIds, cityId = -1) {
+    const landInfo = (cityId !== -1) ? MAP_DATA[cityId] : null;
     let bestTeam = null;
-    let maxWins = 2; // AI 在預估勝率 >= 50%（大於 49%，即贏得至少 3 項屬性）便會發起攻城
+    let maxWins = -1; // AI 在預估勝率 >= 50%（大於 49%，即贏得至少 3 項屬性）便會發起攻城
 
     const defStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
     defenderIds.forEach(id => {
@@ -854,6 +877,12 @@ function getBestSiegeTeam(attackerOfficerIds, defenderIds) {
 
         // 防守方 3% 能力加成 (套用完武將特技後再疊加地理優勢)
         for (let i = 1; i <= 6; i++) currentDefStats[i] = Math.ceil(currentDefStats[i] * 1.03);
+
+        // Phase 66: 連續封地加成 (n%)
+        const chainBonus = (landInfo) ? getCityChainLength(landInfo.owner, landInfo.id) : 0;
+        if (chainBonus > 0) {
+            for (let i = 1; i <= 6; i++) currentDefStats[i] = Math.ceil(currentDefStats[i] * (1 + chainBonus / 100));
+        }
 
         // 套用攻方團隊特技
         applyTeamSkills(teamIds, atkStats, defenderIds);
@@ -957,6 +986,13 @@ function executeSiege(attacker, landInfo, attackingIds) {
 
     // 防守方 3% 加成 (特技加成後再算地理優勢)
     defenderScore = Math.ceil(defenderScore * 1.03);
+
+    // Phase 66: 連續封地加成 (n%)
+    const chainBonus = getCityChainLength(landInfo.owner, landInfo.id);
+    if (chainBonus > 0) {
+        log(`🏰 【連橫效應】此城為連續 ${chainBonus} 座領地之一，全防守屬性提升 ${chainBonus}%！`);
+        defenderScore = Math.ceil(defenderScore * (1 + chainBonus / 100));
+    }
 
     // 結算勝負與成長機制 (平局算攻方敗)
     let isAttackerWin = attackerScore > defenderScore;
@@ -1541,6 +1577,34 @@ function playAwakeningAnimation(officerName, attrName) {
     }, 1500);
 }
 
+// Phase 67: AI 招募動畫
+function playRecruitAnimation(officerName, playerName) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+        background: rgba(0, 0, 0, 0.75); z-index: 10001;
+        display: flex; justify-content: center; align-items: center;
+        flex-direction: column; pointer-events: none; opacity: 0; transition: opacity 0.4s;
+    `;
+    overlay.innerHTML = `
+        <div style="color: #ffd700; font-size: 2.5vw; text-shadow: 0 0 10px #ffd700; margin-bottom: 20px; font-family: 'Noto Serif TC', serif;">✨ 賢才歸心 ✨</div>
+        <div style="color: white; font-size: 4vw; text-shadow: 0 0 20px rgba(255,255,255,0.5); transform: scale(0.6); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+            <span style="color: #64b5f6;">${playerName}</span> 成功招募了 <span style="color: #ffb74d;">${officerName}</span>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+
+    requestAnimationFrame(() => {
+        overlay.style.opacity = '1';
+        overlay.querySelector('div:last-child').style.transform = 'scale(1)';
+    });
+
+    setTimeout(() => {
+        overlay.style.opacity = '0';
+        setTimeout(() => overlay.remove(), 500);
+    }, 1200);
+}
+
 function showModal(title, messageHtml, onConfirm, onCancel, confirmText = "確定", cancelText = "取消") {
     GAME_STATE.isWaitingForAction = true;
     UI.modalTitle.textContent = title;
@@ -1562,16 +1626,16 @@ function hideModal() {
 }
 
 // Phase 22: 攻城選陣清單改革
-let currentSiegeSortKey = 'total';
-let currentSiegeSortOrder = -1; // -1 = DESC
 let currentSiegePlayer = null;
+let currentSiegeCityId = -1;
 
-function showOfficerModal(title, message, player, onConfirm, onCancel, showCancelBtn = false, isSiege = false, defIds = [], allowZero = false) {
+function showOfficerModal(title, message, player, onConfirm, onCancel, showCancelBtn = false, isSiege = false, defIds = [], allowZero = false, cityId = -1) {
     GAME_STATE.isWaitingForAction = true;
     selectedOfficers = [];
     maxSelectableOfficers = 3;
     window.allowZeroSelection = allowZero;
     currentSiegePlayer = player;
+    currentSiegeCityId = cityId;
 
     UI.officerModalTitle.textContent = title;
     UI.officerModalMessage.textContent = message;
@@ -1585,7 +1649,7 @@ function showOfficerModal(title, message, player, onConfirm, onCancel, showCance
 
         // Phase 22: 智能預設最佳陣容
         // 取得預設最佳陣容並自動勾選
-        const bestTeam = getBestSiegeTeam(player.officers, defIds);
+        const bestTeam = getBestSiegeTeam(player.officers, defIds, cityId);
         if (bestTeam && bestTeam.length > 0) {
             selectedOfficers = [...bestTeam];
         }
@@ -1715,6 +1779,7 @@ function toggleOfficerSelection(element, officerId) {
 
 function updateWinRateDisplay() {
     const el = document.getElementById('officer-win-rate');
+    const comparePanel = document.getElementById('officer-compare-panel');
     if (!el) return;
 
     // 清零顯示
@@ -1742,8 +1807,20 @@ function updateWinRateDisplay() {
 
     applyTeamSkills(window.currentDefIds, defStats);
 
+    // 防守方 3% 加成
     for (let i = 1; i <= 6; i++) {
         defStats[i] = Math.ceil(defStats[i] * 1.03);
+    }
+
+    // Phase 66: 連續封地加成 (n%)
+    const chainBonus = getCityChainLength(MAP_DATA[currentSiegeCityId]?.owner, currentSiegeCityId);
+    console.log(`[Phase 66] currentSiegeCityId: ${currentSiegeCityId}, owner: ${MAP_DATA[currentSiegeCityId]?.owner}, bonus: ${chainBonus}%`);
+    let chainHtml = "";
+    if (chainBonus > 0) {
+        for (let i = 1; i <= 6; i++) {
+            defStats[i] = Math.ceil(defStats[i] * (1 + chainBonus / 100));
+        }
+        chainHtml = ` <b style="color: #2e7d32; font-size: 0.9em; background: rgba(76, 175, 80, 0.1); padding: 2px 4px; border-radius: 3px; border: 1px solid #4caf50; margin-left: 5px;">🏰 地利 +${chainBonus}%</b>`;
     }
 
     const atkStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
@@ -1797,8 +1874,8 @@ function updateWinRateDisplay() {
         }
     }
 
-    const rate = Math.round((expectedWins / totalOutcomes) * 100);
-    el.textContent = `預估勝率：${rate}% (${expectedWins} / ${totalOutcomes} 預期期望值)`;
+    const winRate = Math.round((expectedWins / totalOutcomes) * 100);
+    el.innerHTML = `預估勝率：<span style="color: ${winRate >= 50 ? '#27ae60' : '#e67e22'}; font-size: 1.2rem;">${winRate}%</span>${chainHtml} (${expectedWins} / ${totalOutcomes} 預期期望值)`;
 }
 
 // 事件綁定只須執行一次
@@ -2386,12 +2463,16 @@ function handleChanganChoiceAI(player, offeredIds) {
     setTimeout(() => {
         if (canRecruit && (!canBuyItem || Math.random() < 0.6)) {
             // 傾向招募 (60%)
-            updateMoney(player.id, -officerCost);
-            player.officers.push(targetOfficer.id);
-            GAME_STATE.changanOfficers = GAME_STATE.changanOfficers.filter(cid => cid !== targetOfficer.id);
-            updateOfficerCountUI(player.id);
-            log(`[電腦] ${player.name} 在長安招募了猛將 ${targetOfficer.name} (花費 $${officerCost})。`);
-            endTurn();
+            playRecruitAnimation(targetOfficer.name, player.name);
+
+            setTimeout(() => {
+                updateMoney(player.id, -officerCost);
+                player.officers.push(targetOfficer.id);
+                GAME_STATE.changanOfficers = GAME_STATE.changanOfficers.filter(cid => cid !== targetOfficer.id);
+                updateOfficerCountUI(player.id);
+                log(`[電腦] ${player.name} 在長安招募了猛將 ${targetOfficer.name} (花費 $${officerCost})。`);
+                endTurn();
+            }, 1200);
         } else if (canBuyItem) {
             updateMoney(player.id, -targetItem.price);
             player.items.push({ ...targetItem });
