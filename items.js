@@ -1,0 +1,12 @@
+// Phase 65: 道具系統設定 (Items Configuration)
+// 每個道具售價均為 1000 元
+
+const ITEMS_DATA = {
+    1: { id: 1, name: "瞞天過海", price: 1000, desc: "使用後這個回合可以走兩次", type: "active" },
+    2: { id: 2, name: "以逸待勞", price: 1000, desc: "原地停留一次 (直接觸發事件)", type: "active" },
+    3: { id: 3, name: "暗度陳倉", price: 1000, desc: "到達任意位置", type: "active_target_land" },
+    4: { id: 4, name: "暗箭傷人", price: 1000, desc: "選定一名主公，使其能力前五名的武將中隨機一人受到 99% 傷勢", type: "active_target_player" },
+    5: { id: 5, name: "臨陣磨槍", price: 1000, desc: "下次攻城戰時我方全能力增加 3%", type: "active_buff" },
+    6: { id: 6, name: "無懈可擊", price: 1000, desc: "被動防禦，阻擋敵方的「暗箭傷人」與「臨陣磨槍」", type: "passive" },
+    7: { id: 7, name: "迴光返照", price: 1000, desc: "治療己方任意武將 (傷勢歸零)", type: "active_target_officer" }
+};

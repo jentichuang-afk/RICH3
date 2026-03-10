@@ -12,11 +12,12 @@ const GAME_STATE = {
     gameOver: false,
     activePlayers: [1, 2, 3, 4], // 記錄存活玩家的 ID
     changanOfficers: [], // 流亡長安的在野武將 (Phase 15)
+    // Phase 65: 擴充 items 陣列與相關 flag (actTwice, stayInPlace, siegeBuff, blockScheme)
     players: {
-        1: { id: 1, name: "劉備", money: 10000, position: 0, colorClass: 'p1', nameClass: 'p1-text', isBot: false, isBankrupt: false, officers: [] },
-        2: { id: 2, name: "曹操", money: 10000, position: 0, colorClass: 'p2', nameClass: 'p2-text', isBot: false, isBankrupt: false, officers: [] },
-        3: { id: 3, name: "孫權", money: 10000, position: 0, colorClass: 'p3', nameClass: 'p3-text', isBot: false, isBankrupt: false, officers: [] },
-        4: { id: 4, name: "董卓", money: 10000, position: 0, colorClass: 'p4', nameClass: 'p4-text', isBot: false, isBankrupt: false, officers: [] }
+        1: { id: 1, name: "劉備", money: 10000, position: 0, colorClass: 'p1', nameClass: 'p1-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false },
+        2: { id: 2, name: "曹操", money: 10000, position: 0, colorClass: 'p2', nameClass: 'p2-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false },
+        3: { id: 3, name: "孫權", money: 10000, position: 0, colorClass: 'p3', nameClass: 'p3-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false },
+        4: { id: 4, name: "董卓", money: 10000, position: 0, colorClass: 'p4', nameClass: 'p4-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false }
     }
 };
 
@@ -117,7 +118,32 @@ const UI = {
     changanOfficerList: document.getElementById('changan-officer-list'),
     btnChanganConfirm: document.getElementById('btn-changan-confirm'),
     btnChanganCancel: document.getElementById('btn-changan-cancel'),
-    changanTotalCost: document.getElementById('changan-total-cost')
+    changanTotalCost: document.getElementById('changan-total-cost'),
+
+    // Phase 65: 道具系統專用 UI
+    btnUseItem: document.getElementById('btn-use-item'),
+    changanChoiceModal: document.getElementById('changan-choice-modal'),
+    btnChanganGoRecruit: document.getElementById('btn-changan-go-recruit'),
+    btnChanganGoShop: document.getElementById('btn-changan-go-shop'),
+    btnChanganLeave: document.getElementById('btn-changan-leave'),
+
+    changanItemShopModal: document.getElementById('changan-item-shop-modal'),
+    changanItemList: document.getElementById('changan-item-list'),
+    btnChanganBuyItem: document.getElementById('btn-changan-buy-item'),
+    btnChanganShopCancel: document.getElementById('btn-changan-shop-cancel'),
+    changanItemCost: document.getElementById('changan-item-cost'),
+
+    inventoryModal: document.getElementById('inventory-modal'),
+    inventoryItemList: document.getElementById('inventory-item-list'),
+    btnConfirmUseItem: document.getElementById('btn-confirm-use-item'),
+    btnCancelInventory: document.getElementById('btn-cancel-inventory'),
+
+    targetSelectModal: document.getElementById('target-select-modal'),
+    targetSelectTitle: document.getElementById('target-select-title'),
+    targetSelectMessage: document.getElementById('target-select-message'),
+    targetSelectList: document.getElementById('target-select-list'),
+    btnTargetConfirm: document.getElementById('btn-target-confirm'),
+    btnTargetCancel: document.getElementById('btn-target-cancel')
 };
 
 // Modal 回調函數
@@ -135,6 +161,8 @@ function initGame() {
     try {
         // 優先綁定核心按鈕，防止後續資料出錯導致功能全滅
         if (UI.btnRoll) UI.btnRoll.addEventListener('click', handleRollDice);
+        // Phase 65: 使用道具
+        if (UI.btnUseItem) UI.btnUseItem.addEventListener('click', openInventory);
         if (UI.btnShowEncyclopedia) UI.btnShowEncyclopedia.addEventListener('click', openEncyclopedia);
         if (UI.btnEncyclopediaClose) UI.btnEncyclopediaClose.addEventListener('click', () => UI.encyclopediaModal.classList.add('hidden'));
 
@@ -336,12 +364,68 @@ function checkTurn() {
 
     // UI 控制
     enableRollButton(!currentPlayer.isBot);
+    // Phase 65: 控制使用道具按鈕 (戰鬥中或動畫中不可用)
+    if (UI.btnUseItem) {
+        UI.btnUseItem.disabled = currentPlayer.isBot || GAME_STATE.isWaitingForAction;
+    }
 
     if (currentPlayer.isBot) {
         log(`[電腦] 輪到 ${currentPlayer.name} 回合...`);
+        // Phase 65: AI 嘗試使用道具
+        handleAIItemUsage(currentPlayer);
+
         setTimeout(() => {
             handleRollDice();
-        }, 1500); // AI 等待 1.5 秒後擲骰
+        }, 3000); // 增加一點延遲讓玩家看清楚 AI 動作
+    }
+}
+
+// Phase 65: AI 使用道具決策
+function handleAIItemUsage(player) {
+    if (!player.items || player.items.length === 0) return;
+
+    // 隨機亂序檢查道具，避免 AI 永遠選第一個
+    let indices = player.items.map((_, i) => i).sort(() => 0.5 - Math.random());
+
+    for (let idx of indices) {
+        const item = player.items[idx];
+
+        if (item.id === 7) { // 迴光返照: 治療
+            let targetId = null;
+            const check = (id) => { let o = getOfficer(id); if (o && o.injuryRate > 50) targetId = id; };
+            player.officers.forEach(check);
+            if (!targetId) MAP_DATA.forEach(land => { if (land.owner === player.id) land.defenders.forEach(check); });
+            if (targetId) {
+                useItem(player, { ...item, index: idx }, targetId);
+                return;
+            }
+        }
+
+        if (item.id === 4) { // 暗箭傷人
+            if (player.money > 2000 && Math.random() < 0.4) {
+                let enemies = GAME_STATE.activePlayers.filter(pid => pid !== player.id && !GAME_STATE.players[pid].isBankrupt);
+                if (enemies.length > 0) {
+                    let targetPid = enemies[Math.floor(Math.random() * enemies.length)];
+                    useItem(player, { ...item, index: idx }, GAME_STATE.players[targetPid]);
+                    return;
+                }
+            }
+        }
+
+        if (item.id === 1 || item.id === 2 || item.id === 5) { // 瞞天過海, 以逸待勞, 臨陣磨槍
+            if (Math.random() < 0.2) {
+                useItem(player, { ...item, index: idx });
+                return;
+            }
+        }
+
+        if (item.id === 3) { // 暗度陳倉: 傳送
+            if (player.money > 4000 && Math.random() < 0.1) {
+                let targetCell = MAP_DATA[Math.floor(Math.random() * MAP_DATA.length)];
+                useItem(player, { ...item, index: idx }, targetCell);
+                return;
+            }
+        }
     }
 }
 
@@ -374,11 +458,20 @@ function handleRollDice() {
     // 模擬擲骰延遲
     setTimeout(() => {
         UI.dice.classList.remove('rolling');
-        const rollResult = Math.floor(Math.random() * 6) + 1; // 1-6
-        UI.dice.textContent = DICE_FACES[rollResult - 1];
-
         const player = GAME_STATE.players[GAME_STATE.currentPlayer];
-        log(`${player.name} 擲出了 ${rollResult} 點。`);
+
+        let rollResult = Math.floor(Math.random() * 6) + 1; // 1-6
+
+        // Phase 65: 【以逸待勞】 原地停留
+        if (player.stayInPlace) {
+            player.stayInPlace = false;
+            rollResult = 0;
+            log(`💤 【以逸待勞】！${player.name} 選擇原地休整。`);
+        } else {
+            log(`${player.name} 擲出了 ${rollResult} 點。`);
+        }
+
+        UI.dice.textContent = rollResult === 0 ? '💤' : DICE_FACES[rollResult - 1];
 
         movePlayer(player, rollResult);
     }, 600);
@@ -435,15 +528,21 @@ function triggerLandEvent(player, landInfo) {
         if (GAME_STATE.changanOfficers.length > 0) {
             // Phase 64: 隨機選出至多 3 名在野武將
             let offeredIds = [...GAME_STATE.changanOfficers].sort(() => 0.5 - Math.random()).slice(0, 3);
-            log(`${player.name} 抵達起點長安。尋訪發現了 ${offeredIds.length} 名武將蹤跡 (長安共有 ${GAME_STATE.changanOfficers.length} 人在野)！`);
+            log(`${player.name} 抵達起點長安。行館市集人聲鼎沸，尋訪發現了 ${offeredIds.length} 名在野武將的蹤跡！`);
             if (player.isBot) {
-                handleChanganRecruitAI(player, offeredIds);
+                // Phase 65: AI 改進入分歧判斷
+                handleChanganChoiceAI(player, offeredIds);
             } else {
-                showChanganModal(player, offeredIds);
+                // Phase 65: 人類玩家進入分歧 UI
+                showChanganChoiceModal(player, offeredIds);
             }
         } else {
-            log(`${player.name} 停在起點長安，稍作休息。城中已無在野武將。`);
-            endTurn();
+            log(`${player.name} 抵達起點長安。雖然無在野武將可招募，仍可逛逛市集購買奇珍異寶。`);
+            if (player.isBot) {
+                handleChanganChoiceAI(player, []);
+            } else {
+                showChanganChoiceModal(player, []);
+            }
         }
         return;
     }
@@ -830,6 +929,22 @@ function executeSiege(attacker, landInfo, attackingIds) {
     });
     applyTeamSkills(attackingIds, atkTempStats, defendingIds);
     attackerScore = atkTempStats[statRoll];
+
+    // Phase 65: 【臨陣磨槍】 攻城 Buff (3%)
+    if (attacker.siegeBuff) {
+        attacker.siegeBuff = false; // 無論是否成功觸發都消耗
+        // 檢查防守方是否有 【無懈可擊】
+        const defenderPlayer = (landInfo.owner) ? GAME_STATE.players[landInfo.owner] : null;
+        const shieldIndex = defenderPlayer ? defenderPlayer.items.findIndex(it => it.id === 6) : -1;
+
+        if (shieldIndex !== -1) {
+            log(`🛡️ 【無懈可擊】！${defenderPlayer.name} 識破了敵方的臨陣磨槍，加成無效！`);
+            consumeItem(defenderPlayer, shieldIndex);
+        } else {
+            log(`🔥 【臨陣磨槍】發動！攻城方比拚項目提升 3%！`);
+            attackerScore = Math.floor(attackerScore * 1.03);
+        }
+    }
 
     let defenderScore = 0;
     const defTempStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
@@ -1308,7 +1423,15 @@ function endTurn() {
 
     try {
         if (foundNext) {
-            GAME_STATE.currentPlayer = nextPlayerId;
+            // Phase 65: 檢查是否連續行動 (瞞天過海)
+            const currentPlayerObj = GAME_STATE.players[GAME_STATE.currentPlayer];
+            if (currentPlayerObj && currentPlayerObj.actTwice && !currentPlayerObj.isBankrupt) {
+                currentPlayerObj.actTwice = false;
+                log(`✨ 【瞞天過海】奏效！${currentPlayerObj.name} 獲得連續行動的機會！`);
+            } else {
+                GAME_STATE.currentPlayer = nextPlayerId;
+            }
+
             const nextPlayer = GAME_STATE.players[GAME_STATE.currentPlayer];
 
             // 更新 UI 顯示 (四人版)
@@ -1844,7 +1967,9 @@ function updateChanganCostDisplay(player) {
     }
 }
 
-// 電腦玩長安招募
+// ==============================
+// 舊 AI 招募邏輯 (已由 handleChanganChoiceAI 取代，不再呼叫)
+// ==============================
 function handleChanganRecruitAI(player, offeredIds) {
     // 預算評估，Phase 64: 只針對隨機選出的武將
     let availableList = offeredIds.map(id => {
@@ -1852,57 +1977,431 @@ function handleChanganRecruitAI(player, offeredIds) {
         let cost = 0;
         for (let i = 1; i <= 6; i++) cost += o.stats[i];
 
-        // 【Phase 29 更新規則】AI 同樣遵循特技將領招募金額 1.5 倍/ 2 倍的規則
         if (OFFICER_SKILLS[id]) {
             let power = getSkillPowerPercentage(OFFICER_SKILLS[id]);
-            if (power > 9) {
-                cost *= 2;
-            } else {
-                cost = Math.floor(cost * 1.5);
-            }
+            cost = power > 9 ? cost * 2 : Math.floor(cost * 1.5);
         }
 
         return { id: o.id, name: o.name, cost: cost };
     });
 
-    // 由貴至賤排序 (AI 傾向招攬神將)
     availableList.sort((a, b) => b.cost - a.cost);
 
-    let recruitedIds = [];
-    let spent = 0;
-    let currentMoney = player.money;
+    let recruited = false;
+    // 只招募一隻最強的
+    if (availableList.length > 0 && player.money >= availableList[0].cost) {
+        let best = availableList[0];
+        updateMoney(player.id, -best.cost);
+        player.officers.push(best.id);
 
-    // AI 保留 $2000 救命金
+        GAME_STATE.changanOfficers = GAME_STATE.changanOfficers.filter(id => id !== best.id);
+        updateOfficerCountUI(player.id);
+        log(`[電腦] ${player.name} 在長安招募了猛將 ${best.name} (花費 $${best.cost})。`);
+        recruited = true;
+    }
+
+    if (!recruited) {
+        log(`[電腦] ${player.name} 衡量資金與發展後，默默離開長安。`);
+    }
+
+    setTimeout(() => {
+        endTurn();
+    }, 1500);
+}
+
+// ==============================
+// Phase 65: 新增道具店 UI 與選項機制
+// ==============================
+// Phase 65: 新增道具使用介面
+let selectedInventoryItem = null;
+
+function openInventory() {
+    const player = GAME_STATE.players[GAME_STATE.currentPlayer];
+    if (!player.items || player.items.length === 0) {
+        log(`${player.name} 目前身上沒有任何錦囊道具。`);
+        return;
+    }
+
+    GAME_STATE.isWaitingForAction = true;
+    selectedInventoryItem = null;
+    if (UI.btnConfirmUseItem) UI.btnConfirmUseItem.disabled = true;
+    renderInventory(player);
+    if (UI.inventoryModal) UI.inventoryModal.classList.remove('hidden');
+}
+
+function renderInventory(player) {
+    if (!UI.inventoryItemList) return;
+    UI.inventoryItemList.innerHTML = '';
+    player.items.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'officer-item';
+        div.style.textAlign = 'left';
+        div.innerHTML = `<strong>${item.name}</strong><br><small>${item.desc}</small>`;
+        div.onclick = () => {
+            document.querySelectorAll('#inventory-item-list .officer-item').forEach(el => el.classList.remove('selected'));
+            div.classList.add('selected');
+            selectedInventoryItem = { ...item, index: index };
+            if (UI.btnConfirmUseItem) UI.btnConfirmUseItem.disabled = false;
+        };
+        UI.inventoryItemList.appendChild(div);
+    });
+}
+
+if (UI.btnConfirmUseItem) {
+    UI.btnConfirmUseItem.onclick = () => {
+        if (!selectedInventoryItem) return;
+        UI.inventoryModal.classList.add('hidden');
+        useItem(GAME_STATE.players[GAME_STATE.currentPlayer], selectedInventoryItem);
+    };
+}
+
+if (UI.btnCancelInventory) {
+    UI.btnCancelInventory.onclick = () => {
+        UI.inventoryModal.classList.add('hidden');
+        GAME_STATE.isWaitingForAction = false;
+    };
+}
+
+// 道具發動核心邏輯 (支援 AI 呼叫)
+function useItem(player, itemInfo, aiTarget = null) {
+    const item = itemInfo;
+    const isBot = player.isBot;
+    log(`✨ ${player.name} 施展了計謀：【${item.name}】！`);
+
+    switch (item.id) {
+        case 1: // 瞞天過海: 走兩次
+            player.actTwice = true;
+            consumeItem(player, itemInfo.index);
+            log(`步步為營！${player.name} 本回合結束後將可再次行動。`);
+            GAME_STATE.isWaitingForAction = false;
+            break;
+        case 2: // 以逸待勞: 原地停留
+            player.stayInPlace = true;
+            consumeItem(player, itemInfo.index);
+            log(`靜觀其變！${player.name} 下次擲骰將原地停留並直接觸發事件。`);
+            GAME_STATE.isWaitingForAction = false;
+            break;
+        case 3: // 暗度陳倉: 傳送
+            const teleportTo = (target) => {
+                const targetCellId = target.id;
+                log(`出其不意！${player.name} 瞬間移動到了 ${target.name}！`);
+                player.position = targetCellId;
+                updatePiecesPosition();
+                consumeItem(player, itemInfo.index);
+                setTimeout(() => {
+                    GAME_STATE.isWaitingForAction = false;
+                    triggerLandEvent(player, MAP_DATA[targetCellId]);
+                }, 600);
+            };
+            if (isBot && aiTarget) teleportTo(aiTarget);
+            else openTargetSelect('land', teleportTo);
+            break;
+        case 4: // 暗箭傷人: 隨機重傷敵方前五強
+            const executeSabotage = (targetPlayer) => {
+                // 檢查對手是否有無懈可擊
+                const shieldIndex = targetPlayer.items.findIndex(it => it.id === 6);
+                if (shieldIndex !== -1) {
+                    log(`🛡️ 【無懈可擊】！${targetPlayer.name} 識破了計謀，道具抵消！`);
+                    consumeItem(targetPlayer, shieldIndex);
+                    consumeItem(player, itemInfo.index);
+                    GAME_STATE.isWaitingForAction = false;
+                    return;
+                }
+
+                // 找出能力最強前五名
+                let targetOfficers = [];
+                // 閒置武將
+                targetPlayer.officers.forEach(id => {
+                    let o = getOfficer(id);
+                    let sum = 0;
+                    for (let i = 1; i <= 6; i++) sum += o.stats[i];
+                    targetOfficers.push({ id: o.id, name: o.name, total: sum });
+                });
+                // 守城武將
+                MAP_DATA.forEach(land => {
+                    if (land.owner === targetPlayer.id) {
+                        land.defenders.forEach(id => {
+                            let o = getOfficer(id);
+                            let sum = 0;
+                            for (let i = 1; i <= 6; i++) sum += o.stats[i];
+                            targetOfficers.push({ id: o.id, name: o.name, total: sum });
+                        });
+                    }
+                });
+                let candidates = targetOfficers.sort((a, b) => b.total - a.total).slice(0, 5);
+                if (candidates.length > 0) {
+                    let victimObj = candidates[Math.floor(Math.random() * candidates.length)];
+                    let victim = getOfficer(victimObj.id);
+                    victim.injuryRate = 99; // 99% 傷勢
+                    log(`🏹 暗箭噴射！${targetPlayer.name} 麾下的 ${victim.name} 遭到伏擊，負傷累累！(健康度僅剩 1%)`);
+                } else {
+                    log(`${targetPlayer.name} 帳下無將，逃過一劫。`);
+                }
+                consumeItem(player, itemInfo.index);
+                GAME_STATE.isWaitingForAction = false;
+            };
+            if (isBot && aiTarget) executeSabotage(aiTarget);
+            else openTargetSelect('player', executeSabotage, player.id);
+            break;
+        case 5: // 臨陣磨槍: 攻城 Buff
+            player.siegeBuff = true;
+            consumeItem(player, itemInfo.index);
+            log(`士氣激昂！${player.name} 下次攻城戰將獲得 3% 全能力加成。`);
+            GAME_STATE.isWaitingForAction = false;
+            break;
+        case 6: // 無懈可擊: 被動使用
+            log(`[提示] 此為被動道具，將在敵方對您使用計謀時自動發動。`);
+            GAME_STATE.isWaitingForAction = false;
+            break;
+        case 7: // 迴光返照: 治療
+            const executeHeal = (targetOfficerId) => {
+                let o = getOfficer(targetOfficerId);
+                o.injuryRate = 0;
+                log(`✨ 神醫再世！${o.name} 的傷勢已完全康復。`);
+                consumeItem(player, itemInfo.index);
+                GAME_STATE.isWaitingForAction = false;
+            };
+            if (isBot && aiTarget) executeHeal(aiTarget);
+            else openTargetSelect('officer', executeHeal, player);
+            break;
+    }
+}
+
+function consumeItem(player, index) {
+    player.items.splice(index, 1);
+}
+
+// 通用目標選擇介面
+function openTargetSelect(type, callback, extra) {
+    if (!UI.targetSelectList) return;
+    UI.targetSelectList.innerHTML = '';
+    UI.targetSelectTitle.textContent = type === 'land' ? '選擇傳送地點' : (type === 'player' ? '選擇施計對象' : '選擇治療對象');
+    UI.targetSelectMessage.textContent = '請從清單中點選一個目標：';
+    UI.btnTargetConfirm.disabled = true;
+    let selectedTarget = null;
+
+    if (type === 'land') {
+        MAP_DATA.forEach(land => {
+            const div = document.createElement('div');
+            div.className = 'officer-item';
+            div.innerHTML = `<strong>${land.name}</strong> (${land.id === 0 ? '起點' : land.id + '號地'})`;
+            div.onclick = () => {
+                document.querySelectorAll('#target-select-list .officer-item').forEach(el => el.classList.remove('selected'));
+                div.classList.add('selected');
+                selectedTarget = land;
+                UI.btnTargetConfirm.disabled = false;
+            };
+            UI.targetSelectList.appendChild(div);
+        });
+    } else if (type === 'player') {
+        GAME_STATE.activePlayers.forEach(pid => {
+            if (pid === extra) return; // 排除自己
+            const p = GAME_STATE.players[pid];
+            if (p.isBankrupt) return;
+            const div = document.createElement('div');
+            div.className = 'officer-item';
+            div.innerHTML = `<strong>${p.name}</strong>`;
+            div.onclick = () => {
+                document.querySelectorAll('#target-select-list .officer-item').forEach(el => el.classList.remove('selected'));
+                div.classList.add('selected');
+                selectedTarget = p;
+                UI.btnTargetConfirm.disabled = false;
+            };
+            UI.targetSelectList.appendChild(div);
+        });
+    } else if (type === 'officer') {
+        const player = extra;
+        // 收集受傷的武將
+        let injured = [];
+        const check = (id) => {
+            let o = getOfficer(id);
+            if (o && o.injuryRate > 0) injured.push(o);
+        };
+        player.officers.forEach(check);
+        MAP_DATA.forEach(land => {
+            if (land.owner === player.id) land.defenders.forEach(check);
+        });
+
+        if (injured.length === 0) {
+            log(`[提示] 您麾下目前沒有受傷的武將。`);
+            GAME_STATE.isWaitingForAction = false;
+            return;
+        }
+
+        injured.forEach(o => {
+            const div = document.createElement('div');
+            div.className = 'officer-item';
+            div.innerHTML = `<strong>${o.name}</strong> (傷勢: ${o.injuryRate}%)`;
+            div.onclick = () => {
+                document.querySelectorAll('#target-select-list .officer-item').forEach(el => el.classList.remove('selected'));
+                div.classList.add('selected');
+                selectedTarget = o.id;
+                UI.btnTargetConfirm.disabled = false;
+            };
+            UI.targetSelectList.appendChild(div);
+        });
+    }
+
+    UI.btnTargetConfirm.onclick = () => {
+        UI.targetSelectModal.classList.add('hidden');
+        callback(selectedTarget);
+    };
+
+    UI.btnTargetCancel.onclick = () => {
+        UI.targetSelectModal.classList.add('hidden');
+        GAME_STATE.isWaitingForAction = false;
+    };
+
+    UI.targetSelectModal.classList.remove('hidden');
+}
+
+let changanCurrentPlayer = null;
+let changanOfferedIds = [];
+
+function showChanganChoiceModal(player, offeredIds) {
+    GAME_STATE.isWaitingForAction = true;
+    changanCurrentPlayer = player;
+    changanOfferedIds = offeredIds;
+
+    UI.btnChanganGoRecruit.disabled = (offeredIds.length === 0);
+    UI.changanChoiceModal.classList.remove('hidden');
+}
+
+// 綁定長安分歧選項按鈕
+if (UI.btnChanganGoRecruit) UI.btnChanganGoRecruit.onclick = () => {
+    UI.changanChoiceModal.classList.add('hidden');
+    showChanganModal(changanCurrentPlayer, changanOfferedIds);
+};
+
+if (UI.btnChanganGoShop) UI.btnChanganGoShop.onclick = () => {
+    UI.changanChoiceModal.classList.add('hidden');
+    showChanganShopModal(changanCurrentPlayer);
+};
+
+if (UI.btnChanganLeave) UI.btnChanganLeave.onclick = () => {
+    UI.changanChoiceModal.classList.add('hidden');
+    log(`${changanCurrentPlayer.name} 視察了長安後，默默離開。`);
+    GAME_STATE.isWaitingForAction = false;
+    endTurn();
+};
+
+let shopSelectedItem = null;
+
+function showChanganShopModal(player) {
+    GAME_STATE.isWaitingForAction = true;
+    shopSelectedItem = null;
+    UI.changanItemCost.textContent = '0';
+    UI.btnChanganBuyItem.disabled = true;
+    UI.changanItemList.innerHTML = '';
+
+    Object.values(ITEMS_DATA).forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'officer-item';
+        div.style.textAlign = 'left';
+
+        const alreadyOwned = player.items.some(it => it.id === item.id);
+        if (alreadyOwned) {
+            div.style.opacity = 0.5;
+            div.innerHTML = `<strong>${item.name}</strong> <span style="color:#f44336;">(已擁有)</span><br><small>${item.desc}</small>`;
+        } else {
+            div.innerHTML = `<strong>${item.name}</strong> <span style="float:right;">$${item.price}</span><br><small>${item.desc}</small>`;
+            div.onclick = () => {
+                // Deselect all
+                document.querySelectorAll('#changan-item-list .officer-item').forEach(el => el.classList.remove('selected'));
+                div.classList.add('selected');
+                shopSelectedItem = item;
+                UI.changanItemCost.textContent = item.price;
+                if (player.money >= item.price) {
+                    UI.btnChanganBuyItem.disabled = false;
+                    UI.changanItemCost.style.color = 'inherit';
+                } else {
+                    UI.btnChanganBuyItem.disabled = true;
+                    UI.changanItemCost.style.color = '#ff1744';
+                }
+            };
+        }
+        UI.changanItemList.appendChild(div);
+    });
+
+    UI.changanItemShopModal.classList.remove('hidden');
+}
+
+if (UI.btnChanganBuyItem) UI.btnChanganBuyItem.onclick = () => {
+    if (!shopSelectedItem) return;
+    if (changanCurrentPlayer.money < shopSelectedItem.price) return;
+
+    updateMoney(changanCurrentPlayer.id, -shopSelectedItem.price);
+    changanCurrentPlayer.items.push({ ...shopSelectedItem });
+    log(`🎁 奇珍異寶！${changanCurrentPlayer.name} 花費了 $${shopSelectedItem.price} 購買了道具【${shopSelectedItem.name}】！`);
+
+    UI.changanItemShopModal.classList.add('hidden');
+    GAME_STATE.isWaitingForAction = false;
+    endTurn();
+};
+
+if (UI.btnChanganShopCancel) UI.btnChanganShopCancel.onclick = () => {
+    UI.changanItemShopModal.classList.add('hidden');
+    log(`${changanCurrentPlayer.name} 逛了逛市集，什麼也沒買就離開了。`);
+    GAME_STATE.isWaitingForAction = false;
+    endTurn();
+};
+
+function handleChanganChoiceAI(player, offeredIds) {
     const reserveFund = 2000;
 
-    for (const item of availableList) {
-        // 【Phase 15 更新規則】AI 每次抵達長安時，最多只能點選招募 1 名武將
-        if (recruitedIds.length >= 1) break;
+    // AI 判斷是否招募
+    let canRecruit = false;
+    let targetOfficer = null;
+    let officerCost = 0;
 
-        if (currentMoney - item.cost >= reserveFund) {
-            recruitedIds.push(item.id);
-            spent += item.cost;
-            currentMoney -= item.cost;
+    if (offeredIds.length > 0) {
+        let availableList = offeredIds.map(id => {
+            const o = getOfficer(id);
+            let cost = 0;
+            for (let i = 1; i <= 6; i++) cost += o.stats[i];
+            if (OFFICER_SKILLS[id]) {
+                let power = getSkillPowerPercentage(OFFICER_SKILLS[id]);
+                cost = power > 9 ? cost * 2 : Math.floor(cost * 1.5);
+            }
+            return { id: o.id, name: o.name, cost: cost };
+        });
+        availableList.sort((a, b) => b.cost - a.cost);
+        if (availableList.length > 0 && (player.money - availableList[0].cost) >= reserveFund) {
+            canRecruit = true;
+            targetOfficer = availableList[0];
+            officerCost = targetOfficer.cost;
         }
     }
 
-    if (recruitedIds.length > 0) {
-        setTimeout(() => {
-            updateMoney(player.id, -spent);
-            recruitedIds.forEach(id => {
-                player.officers.push(id);
-                GAME_STATE.changanOfficers = GAME_STATE.changanOfficers.filter(cid => cid !== id);
-            });
-            updateOfficerCountUI(player.id);
-            log(`[電腦] ${player.name} 財大氣粗，在長安城中一舉花費 $${spent} 招募了 ${recruitedIds.length} 名流亡武將！`);
-            endTurn();
-        }, 1500);
-    } else {
-        setTimeout(() => {
-            log(`[電腦] ${player.name} 衡量資金與發展後，放棄在長安招募將領。`);
-            endTurn();
-        }, 1500);
+    // AI 判斷是否買道具
+    let canBuyItem = false;
+    let targetItem = null;
+    let itemOptions = Object.values(ITEMS_DATA).filter(it => !player.items.some(pi => pi.id === it.id));
+    if (itemOptions.length > 0 && (player.money - 1000) >= 1500) {
+        canBuyItem = true;
+        // 隨機挑個道具
+        targetItem = itemOptions[Math.floor(Math.random() * itemOptions.length)];
     }
+
+    setTimeout(() => {
+        if (canRecruit && (!canBuyItem || Math.random() < 0.6)) {
+            // 傾向招募 (60%)
+            updateMoney(player.id, -officerCost);
+            player.officers.push(targetOfficer.id);
+            GAME_STATE.changanOfficers = GAME_STATE.changanOfficers.filter(cid => cid !== targetOfficer.id);
+            updateOfficerCountUI(player.id);
+            log(`[電腦] ${player.name} 在長安招募了猛將 ${targetOfficer.name} (花費 $${officerCost})。`);
+            endTurn();
+        } else if (canBuyItem) {
+            updateMoney(player.id, -targetItem.price);
+            player.items.push({ ...targetItem });
+            log(`[電腦] ${player.name} 在長安道具店購買了【${targetItem.name}】。`);
+            endTurn();
+        } else {
+            log(`[電腦] ${player.name} 衡量資金與發展後，離開了長安。`);
+            endTurn();
+        }
+    }, 1500);
 }
 
 // 啟動點

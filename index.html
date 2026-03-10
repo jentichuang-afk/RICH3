@@ -89,6 +89,8 @@
                     <div class="dice-container">
                         <div id="dice" class="dice">⚀</div>
                         <button id="btn-roll" class="btn primary-btn" disabled>擲骰子</button>
+                        <button id="btn-use-item" class="btn warning-btn" disabled
+                            style="margin-left: 10px;">使用道具</button>
                     </div>
 
                     <div class="log-panel" id="log-panel">
@@ -324,8 +326,67 @@
                 </div>
             </div>
         </div>
+        <!-- 長安城分歧選項 Modal (Phase 65) -->
+        <div id="changan-choice-modal" class="modal hidden">
+            <div class="modal-content">
+                <h3>長安行館</h3>
+                <p>天下英雄皆聚於此，城中市集也販售各路奇珍異寶。<br>您決定要拜會名將，還是逛逛市集？</p>
+                <div class="modal-actions" style="margin-top:20px;">
+                    <button id="btn-changan-go-recruit" class="btn primary-btn">尋訪武將</button>
+                    <button id="btn-changan-go-shop" class="btn warning-btn">購買道具</button>
+                    <button id="btn-changan-leave" class="btn secondary-btn">默默離開</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 長安道具店 Modal (Phase 65) -->
+        <div id="changan-item-shop-modal" class="modal hidden">
+            <div class="modal-content changan-modal-content">
+                <h3>長安西市 道具商人</h3>
+                <p>本店販售各種保命神兵與奇謀妙計，均一價 $1000！<br><small>(每次只能購買一件)</small></p>
+                <div class="officer-list changan-officer-list" id="changan-item-list">
+                    <!-- Javascript 動態生成道具清單 -->
+                </div>
+                <div class="modal-actions">
+                    <button id="btn-changan-buy-item" class="btn primary-btn" disabled>確認購買 ($<span
+                            id="changan-item-cost">0</span>)</button>
+                    <button id="btn-changan-shop-cancel" class="btn secondary-btn">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 道具使用背包 Modal (Phase 65) -->
+        <div id="inventory-modal" class="modal hidden">
+            <div class="modal-content changan-modal-content">
+                <h3>錦囊妙計</h3>
+                <p>請選擇您要使用的道具：</p>
+                <div class="officer-list changan-officer-list" id="inventory-item-list">
+                    <!-- Javascript 動態生成持有道具 -->
+                </div>
+                <div class="modal-actions">
+                    <button id="btn-confirm-use-item" class="btn warning-btn" disabled>施放計謀</button>
+                    <button id="btn-cancel-inventory" class="btn secondary-btn">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 道具目標選擇 Modal (Phase 65) -->
+        <div id="target-select-modal" class="modal hidden">
+            <div class="modal-content changan-modal-content">
+                <h3 id="target-select-title">選擇目標</h3>
+                <p id="target-select-message"></p>
+                <div class="officer-list changan-officer-list" id="target-select-list">
+                    <!-- Javascript 動態生成目標選項 -->
+                </div>
+                <div class="modal-actions">
+                    <button id="btn-target-confirm" class="btn primary-btn" disabled>確認選擇</button>
+                    <button id="btn-target-cancel" class="btn secondary-btn">取消</button>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <script src="items.js"></script>
     <script src="officers.js"></script>
     <script src="game.js"></script>
 </body>
