@@ -842,7 +842,7 @@ function executeBuyLand(player, landInfo, selectedIds) {
 function getBestSiegeTeam(attackerOfficerIds, defenderIds, cityId = -1) {
     const landInfo = (cityId !== -1) ? MAP_DATA[cityId] : null;
     let bestTeam = null;
-    let maxWins = -1; // AI 在預估勝率 >= 50%（大於 49%，即贏得至少 3 項屬性）便會發起攻城
+    let maxWins = 2; // AI 在預估勝率 >= 50%（大於 49%，即贏得至少 3 項屬性）便會發起攻城
 
     const defStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
     defenderIds.forEach(id => {
@@ -2424,6 +2424,8 @@ if (UI.btnChanganShopCancel) UI.btnChanganShopCancel.onclick = () => {
 };
 
 function handleChanganChoiceAI(player, offeredIds) {
+    GAME_STATE.isWaitingForAction = true; // 防止 handleRollDice 重入
+    console.log(`[Debug] handleChanganChoiceAI called for ${player.name}, offeredIds: ${offeredIds.length}, money: ${player.money}, items: ${player.items.length}`);
     const reserveFund = 2000;
 
     // AI 判斷是否招募
@@ -2460,10 +2462,13 @@ function handleChanganChoiceAI(player, offeredIds) {
         targetItem = itemOptions[Math.floor(Math.random() * itemOptions.length)];
     }
 
+    console.log(`[Debug] canRecruit: ${canRecruit}, canBuyItem: ${canBuyItem}, targetItem: ${targetItem?.name}`);
+
     setTimeout(() => {
         try {
             if (canRecruit && (!canBuyItem || Math.random() < 0.6)) {
                 // 傾向招募 (60%)
+                console.log(`[Debug] AI recruiting ${targetOfficer.name}`);
                 playRecruitAnimation(targetOfficer.name, player.name);
 
                 setTimeout(() => {
@@ -2477,15 +2482,20 @@ function handleChanganChoiceAI(player, offeredIds) {
                         console.error("handleChanganChoiceAI recruit error:", e);
                         log(`[系統區] AI 招募時發生錯誤: ${e.message}`);
                     }
+                    console.log(`[Debug] Calling endTurn after recruit`);
                     endTurn();
                 }, 1200);
             } else if (canBuyItem) {
+                console.log(`[Debug] AI buying item ${targetItem.name}`);
                 updateMoney(player.id, -targetItem.price);
                 player.items.push({ ...targetItem });
                 log(`[電腦] ${player.name} 在長安道具店購買了【${targetItem.name}】。`);
+                console.log(`[Debug] Calling endTurn after buy`);
                 endTurn();
             } else {
+                console.log(`[Debug] AI leaving Chang'an`);
                 log(`[電腦] ${player.name} 衡量資金與發展後，離開了長安。`);
+                console.log(`[Debug] Calling endTurn after leave`);
                 endTurn();
             }
         } catch (e) {
