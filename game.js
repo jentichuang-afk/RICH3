@@ -307,6 +307,13 @@ function initGame() {
 let selectedPlayerCount = 1;
 let humanFactions = [];
 
+function updateFactionButtons() {
+    for (let i = 1; i <= 4; i++) {
+        const btn = document.getElementById(`btn-faction-${i}`);
+        if (btn) btn.style.display = humanFactions.includes(i) ? 'none' : 'inline-block';
+    }
+}
+
 // 第一步：選擇遊玩人數
 function selectPlayerCount(count) {
     selectedPlayerCount = count;
@@ -1647,6 +1654,8 @@ function hideModal() {
 // Phase 22: 攻城選陣清單改革
 let currentSiegePlayer = null;
 let currentSiegeCityId = -1;
+let currentSiegeSortKey = 'total';
+let currentSiegeSortOrder = -1;
 
 function showOfficerModal(title, message, player, onConfirm, onCancel, showCancelBtn = false, isSiege = false, defIds = [], allowZero = false, cityId = -1) {
     GAME_STATE.isWaitingForAction = true;
