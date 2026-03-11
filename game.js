@@ -36,19 +36,42 @@ const GAME_STATE = {
 };
 
 // Phase 66: 計算連續領地長度 (相連城池加成)
+// 地圖為環形：1→2→...→11→1（跳過城池0長安，因為長安不可佔領）
 function getCityChainLength(playerId, cityId) {
-    if (cityId <= 0 || cityId > 11 || playerId == null) return 0; // 起點不可佔領
-    let count = 1;
-    // 往左搜尋
-    for (let i = cityId - 1; i >= 1; i--) {
-        if (MAP_DATA[i] && MAP_DATA[i].owner === playerId) count++;
-        else break;
+    if (cityId <= 0 || cityId > 11 || playerId == null) return 0;
+    
+    const visited = new Set();
+    visited.add(cityId);
+    
+    // 往「左」搜尋 (cityId → cityId-1 → ... → 1 → 11 → 10 → ...)
+    let cur = cityId;
+    while (true) {
+        let next = cur - 1;
+        if (next <= 0) next = 11; // 跳過長安(0)，從1繞到11
+        if (visited.has(next)) break; // 已繞一圈
+        if (MAP_DATA[next] && MAP_DATA[next].owner === playerId) {
+            visited.add(next);
+            cur = next;
+        } else {
+            break;
+        }
     }
-    // 往右搜尋
-    for (let i = cityId + 1; i <= 11; i++) {
-        if (MAP_DATA[i] && MAP_DATA[i].owner === playerId) count++;
-        else break;
+    
+    // 往「右」搜尋 (cityId → cityId+1 → ... → 11 → 1 → 2 → ...)
+    cur = cityId;
+    while (true) {
+        let next = cur + 1;
+        if (next > 11) next = 1; // 跳過長安(0)，從11繞到1
+        if (visited.has(next)) break; // 已繞一圈
+        if (MAP_DATA[next] && MAP_DATA[next].owner === playerId) {
+            visited.add(next);
+            cur = next;
+        } else {
+            break;
+        }
     }
+    
+    const count = visited.size;
     // 使用者規定：單獨領地不加成
     return count > 1 ? count : 0;
 }
