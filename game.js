@@ -5,6 +5,20 @@
  * - 增加 parseInt() 確保運算安全，預防 XSS 及型別錯誤
  */
 
+// Fallback: 如果 items.js 未能載入，此處提供備用資料
+if (typeof ITEMS_DATA === 'undefined') {
+    var ITEMS_DATA = {
+        1: { id: 1, name: "瞞天過海", price: 1000, desc: "使用後這個回合可以走兩次", type: "active" },
+        2: { id: 2, name: "以逸待勞", price: 1000, desc: "原地停留一次 (直接觸發事件)", type: "active" },
+        3: { id: 3, name: "暗度陳倉", price: 1000, desc: "到達任意位置", type: "active_target_land" },
+        4: { id: 4, name: "暗箭傷人", price: 1000, desc: "選定一名主公，使其能力前五名的武將中隨機一人受到 99% 傷勢", type: "active_target_player" },
+        5: { id: 5, name: "臨陣磨槍", price: 1000, desc: "下次攻城戰時我方全能力增加 3%", type: "active_buff" },
+        6: { id: 6, name: "無懈可擊", price: 1000, desc: "被動防禦，阻擋敵方的「暗箭傷人」與「臨陣磨槍」", type: "passive" },
+        7: { id: 7, name: "迴光返照", price: 1000, desc: "治療己方任意武將 (傷勢歸零)", type: "active_target_officer" }
+    };
+    console.warn('[Fallback] ITEMS_DATA was not loaded from items.js, using built-in fallback.');
+}
+
 // 遊戲資料模型
 const GAME_STATE = {
     currentPlayer: 1, // 1: 劉備, 2: 曹操, 3: 孫權
@@ -2380,7 +2394,14 @@ if (UI.btnChanganGoRecruit) UI.btnChanganGoRecruit.onclick = () => {
 
 if (UI.btnChanganGoShop) UI.btnChanganGoShop.onclick = () => {
     UI.changanChoiceModal.classList.add('hidden');
-    showChanganShopModal(changanCurrentPlayer);
+    try {
+        showChanganShopModal(changanCurrentPlayer);
+    } catch(e) {
+        console.error('showChanganShopModal error:', e);
+        log(`[系統區] 道具店開啟失敗: ${e.message}`);
+        GAME_STATE.isWaitingForAction = false;
+        endTurn();
+    }
 };
 
 if (UI.btnChanganLeave) UI.btnChanganLeave.onclick = () => {
@@ -2398,6 +2419,14 @@ function showChanganShopModal(player) {
     UI.changanItemCost.textContent = '0';
     UI.btnChanganBuyItem.disabled = true;
     UI.changanItemList.innerHTML = '';
+
+    if (typeof ITEMS_DATA === 'undefined') {
+        log(`[系統區] 道具資料未載入，無法開啟道具店。`);
+        UI.changanItemShopModal.classList.add('hidden');
+        GAME_STATE.isWaitingForAction = false;
+        endTurn();
+        return;
+    }
 
     Object.values(ITEMS_DATA).forEach(item => {
         const div = document.createElement('div');
