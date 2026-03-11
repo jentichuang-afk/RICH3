@@ -1303,8 +1303,12 @@ function executeSiege(attacker, landInfo, attackingIds) {
     if (attacker.isBot && defender.isBot) {
         setTimeout(() => {
             try {
-                const btn = document.getElementById('btn-modal-yes');
-                if (btn) btn.click();
+                // 防呆：確認目前顯示的 Modal 仍然是這場攻城戰報，避免玩家提早按掉後，
+                // 定時器在下一回合剛好命中玩家踩到敵方土地的「繳交軍費」按鈕 (btn-modal-yes)
+                if (!UI.modal.classList.contains('hidden') && UI.modalTitle.textContent.includes('戰報')) {
+                    const btn = document.getElementById('btn-modal-yes');
+                    if (btn) btn.click();
+                }
             } catch (e) {
                 console.error("AI click modal error:", e);
                 endTurn(); // fallback
