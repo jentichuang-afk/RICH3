@@ -36,19 +36,18 @@ const GAME_STATE = {
 };
 
 // Phase 66: 計算連續領地長度 (相連城池加成)
-// 地圖為環形：1→2→...→11→1（跳過城池0長安，因為長安不可佔領）
+// 地圖因為長安(0)與建業(8)的隔斷，不再是完整的環狀，而是被分為左右兩段 (1~7 與 9~15)。
 function getCityChainLength(playerId, cityId) {
-    if (cityId <= 0 || cityId > 11 || playerId == null) return 0;
+    if (cityId === 0 || cityId === 8 || playerId == null) return 0;
     
     const visited = new Set();
     visited.add(cityId);
     
-    // 往「左」搜尋 (cityId → cityId-1 → ... → 1 → 11 → 10 → ...)
+    // 往「左」搜尋 (cityId → cityId-1)
     let cur = cityId;
     while (true) {
         let next = cur - 1;
-        if (next <= 0) next = 11; // 跳過長安(0)，從1繞到11
-        if (visited.has(next)) break; // 已繞一圈
+        if (next === 0 || next === 8) break; // 遇到中立城池阻斷
         if (MAP_DATA[next] && MAP_DATA[next].owner === playerId) {
             visited.add(next);
             cur = next;
@@ -57,12 +56,11 @@ function getCityChainLength(playerId, cityId) {
         }
     }
     
-    // 往「右」搜尋 (cityId → cityId+1 → ... → 11 → 1 → 2 → ...)
+    // 往「右」搜尋 (cityId → cityId+1)
     cur = cityId;
     while (true) {
         let next = cur + 1;
-        if (next > 11) next = 1; // 跳過長安(0)，從11繞到1
-        if (visited.has(next)) break; // 已繞一圈
+        if (next === 16 || next === 0 || next === 8) break; // 遇到中立城池阻斷或出界
         if (MAP_DATA[next] && MAP_DATA[next].owner === playerId) {
             visited.add(next);
             cur = next;
@@ -102,20 +100,24 @@ function formatStatDisplay(base, current, injuryRate = 0) {
     return html;
 }
 
-// 地圖資料 (10格)
+// 地圖資料 (16格)
 const MAP_DATA = [
     { id: 0, name: "長安", type: "START", price: 0, owner: null },
-    { id: 1, name: "洛陽", type: "LAND", price: 2000, toll: 1000, owner: null, defenders: [] }, // 漢家舊都，極度富庶
-    { id: 2, name: "許昌", type: "LAND", price: 1800, toll: 900, owner: null, defenders: [] },  // 曹魏首都，屯田重鎮
-    { id: 3, name: "鄴城", type: "LAND", price: 1600, toll: 800, owner: null, defenders: [] },  // 北方重鎮，袁本初與曹氏根基
-    { id: 4, name: "下邳", type: "LAND", price: 1500, toll: 750, owner: null, defenders: [] },  // 徐州核心，陶謙與呂布根據地
-    { id: 5, name: "臨淄", type: "LAND", price: 1500, toll: 750, owner: null, defenders: [] },  // 青州大城，齊國故都
-    { id: 6, name: "建業", type: "LAND", price: 2200, toll: 1100, owner: null, defenders: [] }, // 孫吳首都，江南經濟中心
-    { id: 7, name: "宛城", type: "LAND", price: 1300, toll: 650, owner: null, defenders: [] },  // 南陽樞紐，人口曾經鼎盛但交戰頻繁
-    { id: 8, name: "襄陽", type: "LAND", price: 1800, toll: 900, owner: null, defenders: [] },  // 荊州中心，劉表苦心經營之富裕地
-    { id: 9, name: "成都", type: "LAND", price: 2000, toll: 1000, owner: null, defenders: [] }, // 蜀漢首都，天府之國
-    { id: 10, name: "江州", type: "LAND", price: 1200, toll: 600, owner: null, defenders: [] }, // 巴蜀門戶，略低於成都
-    { id: 11, name: "漢中", type: "LAND", price: 1100, toll: 550, owner: null, defenders: [] }, // 戰略要衝，人口較少但極具防禦價值
+    { id: 1, name: "洛陽", type: "LAND", price: 2000, toll: 1000, owner: null, defenders: [] },
+    { id: 2, name: "許昌", type: "LAND", price: 1800, toll: 900, owner: null, defenders: [] },
+    { id: 3, name: "宛城", type: "LAND", price: 1300, toll: 650, owner: null, defenders: [] },
+    { id: 4, name: "鄴城", type: "LAND", price: 1600, toll: 800, owner: null, defenders: [] },
+    { id: 5, name: "下邳", type: "LAND", price: 1500, toll: 750, owner: null, defenders: [] },
+    { id: 6, name: "臨淄", type: "LAND", price: 1500, toll: 750, owner: null, defenders: [] },
+    { id: 7, name: "徐州", type: "LAND", price: 1500, toll: 750, owner: null, defenders: [] },
+    { id: 8, name: "建業", type: "ITEM_SHOP", price: 0, owner: null }, // 中立道具店
+    { id: 9, name: "廬江", type: "LAND", price: 1500, toll: 750, owner: null, defenders: [] },
+    { id: 10, name: "江夏", type: "LAND", price: 1300, toll: 650, owner: null, defenders: [] },
+    { id: 11, name: "襄陽", type: "LAND", price: 1800, toll: 900, owner: null, defenders: [] },
+    { id: 12, name: "成都", type: "LAND", price: 2000, toll: 1000, owner: null, defenders: [] },
+    { id: 13, name: "江州", type: "LAND", price: 1200, toll: 600, owner: null, defenders: [] },
+    { id: 14, name: "梓潼", type: "LAND", price: 1200, toll: 600, owner: null, defenders: [] },
+    { id: 15, name: "漢中", type: "LAND", price: 1100, toll: 550, owner: null, defenders: [] },
 ];
 
 const DICE_FACES = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
@@ -389,7 +391,7 @@ function startGame() {
         GAME_STATE.players[i].isBot = !humanFactions.includes(i);
 
         // Phase 55: 開局隨機初始站位
-        GAME_STATE.players[i].position = Math.floor(Math.random() * 12);
+        GAME_STATE.players[i].position = Math.floor(Math.random() * 16);
 
         // 如果電腦玩家（非人類），顯示其 UI 為電腦標記
         if (GAME_STATE.players[i].isBot) {
@@ -561,7 +563,7 @@ function handleRollDice() {
 // 移動玩家格子
 function movePlayer(player, steps) {
     let oldPos = player.position;
-    let newPos = (oldPos + steps) % 12;
+    let newPos = (oldPos + steps) % 16;
 
     // 已依需求取消經過起點發放 $2000 的設定
 
@@ -611,18 +613,31 @@ function triggerLandEvent(player, landInfo) {
             let offeredIds = [...GAME_STATE.changanOfficers].sort(() => 0.5 - Math.random()).slice(0, 3);
             log(`${player.name} 抵達起點長安。行館市集人聲鼎沸，尋訪發現了 ${offeredIds.length} 名在野武將的蹤跡！`);
             if (player.isBot) {
-                // Phase 65: AI 改進入分歧判斷
-                handleChanganChoiceAI(player, offeredIds);
+                // Phase 68: 長安專屬 AI (只招募)
+                handleChanganRecruitAI(player, offeredIds);
             } else {
-                // Phase 65: 人類玩家進入分歧 UI
-                showChanganChoiceModal(player, offeredIds);
+                // Phase 68: 直接進入招募 UI
+                showChanganModal(player, offeredIds);
             }
         } else {
-            log(`${player.name} 抵達起點長安。雖然無在野武將可招募，仍可逛逛市集購買奇珍異寶。`);
-            if (player.isBot) {
-                handleChanganChoiceAI(player, []);
-            } else {
-                showChanganChoiceModal(player, []);
+            log(`${player.name} 抵達起點長安。然而並無在野武將可供招募。`);
+            endTurn();
+        }
+        return;
+    }
+
+    if (landInfo.type === "ITEM_SHOP") {
+        log(`${player.name} 抵達了江南明珠建業，進入了奇珍異寶市集。`);
+        if (player.isBot) {
+            handleJianyeShopAI(player);
+        } else {
+            try {
+                showChanganShopModal(player);
+            } catch(e) {
+                console.error('showChanganShopModal error:', e);
+                log(`[系統區] 道具店開啟失敗: ${e.message}`);
+                GAME_STATE.isWaitingForAction = false;
+                endTurn();
             }
         }
         return;
@@ -2442,6 +2457,7 @@ let shopSelectedItem = null;
 
 function showChanganShopModal(player) {
     GAME_STATE.isWaitingForAction = true;
+    changanCurrentPlayer = player;
     shopSelectedItem = null;
     UI.changanItemCost.textContent = '0';
     UI.btnChanganBuyItem.disabled = true;
@@ -2507,12 +2523,10 @@ if (UI.btnChanganShopCancel) UI.btnChanganShopCancel.onclick = () => {
     endTurn();
 };
 
-function handleChanganChoiceAI(player, offeredIds) {
-    GAME_STATE.isWaitingForAction = true; // 防止 handleRollDice 重入
-    console.log(`[Debug] handleChanganChoiceAI called for ${player.name}, offeredIds: ${offeredIds.length}, money: ${player.money}, items: ${player.items.length}`);
+// Phase 68: 長安專屬 AI (只招募)
+function handleChanganRecruitAI(player, offeredIds) {
+    GAME_STATE.isWaitingForAction = true;
     const reserveFund = 2000;
-
-    // AI 判斷是否招募
     let canRecruit = false;
     let targetOfficer = null;
     let officerCost = 0;
@@ -2536,55 +2550,60 @@ function handleChanganChoiceAI(player, offeredIds) {
         }
     }
 
-    // AI 判斷是否買道具
-    let canBuyItem = false;
-    let targetItem = null;
-    let itemOptions = Object.values(ITEMS_DATA).filter(it => !player.items.some(pi => pi.id === it.id));
-    if (itemOptions.length > 0 && (player.money - 1000) >= 1500) {
-        canBuyItem = true;
-        // 隨機挑個道具
-        targetItem = itemOptions[Math.floor(Math.random() * itemOptions.length)];
-    }
-
-    console.log(`[Debug] canRecruit: ${canRecruit}, canBuyItem: ${canBuyItem}, targetItem: ${targetItem?.name}`);
-
     setTimeout(() => {
         try {
-            if (canRecruit && (!canBuyItem || Math.random() < 0.6)) {
-                // 傾向招募 (60%)
-                console.log(`[Debug] AI recruiting ${targetOfficer.name}`);
+            if (canRecruit) {
                 playRecruitAnimation(targetOfficer.name, player.name);
 
                 setTimeout(() => {
-                    try {
-                        updateMoney(player.id, -officerCost);
-                        player.officers.push(targetOfficer.id);
-                        GAME_STATE.changanOfficers = GAME_STATE.changanOfficers.filter(cid => cid !== targetOfficer.id);
-                        updateOfficerCountUI(player.id);
-                        log(`[電腦] ${player.name} 在長安招募了猛將 ${targetOfficer.name} (花費 $${officerCost})。`);
-                    } catch (e) {
-                        console.error("handleChanganChoiceAI recruit error:", e);
-                        log(`[系統區] AI 招募時發生錯誤: ${e.message}`);
-                    }
-                    console.log(`[Debug] Calling endTurn after recruit`);
+                    updateMoney(player.id, -officerCost);
+                    GAME_STATE.changanOfficers = GAME_STATE.changanOfficers.filter(id => id !== targetOfficer.id);
+                    player.officers.push(targetOfficer.id);
+                    updateOfficerCountUI(player.id);
+                    log(`🎉 ${player.name} 花費了 $${officerCost} 招募了在野武將【${targetOfficer.name}】！`);
+                    GAME_STATE.isWaitingForAction = false;
                     endTurn();
-                }, 1200);
-            } else if (canBuyItem) {
-                console.log(`[Debug] AI buying item ${targetItem.name}`);
-                updateMoney(player.id, -targetItem.price);
-                player.items.push({ ...targetItem });
-                log(`[電腦] ${player.name} 在長安道具店購買了【${targetItem.name}】。`);
-                console.log(`[Debug] Calling endTurn after buy`);
-                endTurn();
+                }, 1000);
             } else {
-                console.log(`[Debug] AI leaving Chang'an`);
-                log(`[電腦] ${player.name} 衡量資金與發展後，離開了長安。`);
-                console.log(`[Debug] Calling endTurn after leave`);
+                log(`${player.name} 視察了長安後，默默離開。`);
+                GAME_STATE.isWaitingForAction = false;
                 endTurn();
             }
         } catch (e) {
-            console.error("handleChanganChoiceAI error:", e);
-            log(`[系統區] AI 長安選擇時發生錯誤: ${e.message}`);
+            console.error(e);
+            endTurn();
+        }
+    }, 1500);
+}
+
+// Phase 68: 建業專屬 AI (只買道具)
+function handleJianyeShopAI(player) {
+    GAME_STATE.isWaitingForAction = true;
+    let canBuyItem = false;
+    let targetItem = null;
+    let itemOptions = Object.values(ITEMS_DATA).filter(it => !player.items.some(pi => pi.id === it.id));
+    
+    // AI 傾向保留資金，建業保留金設為 1000 + item.price(1000) = 2000
+    if (itemOptions.length > 0 && (player.money - 1000) >= 1500) {
+        canBuyItem = true;
+        targetItem = itemOptions[Math.floor(Math.random() * itemOptions.length)];
+    }
+
+    setTimeout(() => {
+        try {
+            if (canBuyItem && Math.random() < 0.7) { // 70% chance to buy if afford
+                updateMoney(player.id, -targetItem.price);
+                player.items.push({ ...targetItem });
+                log(`🎁 奇珍異寶！[電腦] ${player.name} 花費 $${targetItem.price} 購買了道具【${targetItem.name}】！`);
+                GAME_STATE.isWaitingForAction = false;
+                endTurn();
+            } else {
+                log(`${player.name} 逛了逛市集，什麼也沒買就離開了。`);
+                GAME_STATE.isWaitingForAction = false;
+                endTurn();
+            }
+        } catch (e) {
+            console.error(e);
             endTurn();
         }
     }, 1500);
