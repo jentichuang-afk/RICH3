@@ -1687,6 +1687,34 @@ function playRecruitAnimation(officerName, playerName) {
     }, 1200);
 }
 
+// Phase 68: AI 使用道具動畫
+function playItemAnimation(itemName, playerName) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+        background: rgba(0, 0, 0, 0.75); z-index: 10001;
+        display: flex; justify-content: center; align-items: center;
+        flex-direction: column; pointer-events: none; opacity: 0; transition: opacity 0.4s;
+    `;
+    overlay.innerHTML = `
+        <div style="color: #ff5252; font-size: 2.5vw; text-shadow: 0 0 10px #ff5252; margin-bottom: 20px; font-family: 'Noto Serif TC', serif;">✨ 施展奇謀 ✨</div>
+        <div style="color: white; font-size: 4vw; text-shadow: 0 0 20px rgba(255,255,255,0.5); transform: scale(0.6); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+            <span style="color: #64b5f6;">${playerName}</span> 使用了錦囊 <span style="color: #ffeb3b;">【${itemName}】</span>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+
+    requestAnimationFrame(() => {
+        overlay.style.opacity = '1';
+        overlay.querySelector('div:last-child').style.transform = 'scale(1)';
+    });
+
+    setTimeout(() => {
+        overlay.style.opacity = '0';
+        setTimeout(() => overlay.remove(), 500);
+    }, 1200);
+}
+
 function showModal(title, messageHtml, onConfirm, onCancel, confirmText = "確定", cancelText = "取消") {
     GAME_STATE.isWaitingForAction = true;
     UI.modalTitle.textContent = title;
@@ -2228,6 +2256,10 @@ function useItem(player, itemInfo, aiTarget = null) {
     const item = itemInfo;
     const isBot = player.isBot;
     log(`✨ ${player.name} 施展了計謀：【${item.name}】！`);
+    
+    if (isBot) {
+        playItemAnimation(item.name, player.name);
+    }
 
     switch (item.id) {
         case 1: // 瞞天過海: 走兩次
