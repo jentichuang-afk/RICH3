@@ -835,7 +835,7 @@ function triggerLandEvent(player, landInfo) {
                         (selectedIds) => {
                             executeSiege(player, landInfo, selectedIds);
                         },
-                        () => { log(`我軍取消了進攻 ${landInfo.name} 的計畫。`); endTurn(); },
+                        () => { log(`我軍取消了進攻 ${landInfo.name} 的計畫，改為繳交軍費。`); payToll(player, owner, toll); },
                         true, // showCancelBtn
                         true, // isSiege
                         landInfo.defenders,
