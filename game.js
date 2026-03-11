@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 三國大富翁 - 核心邏輯
  * 安全性注意:
  * - 狀態完全存放於記憶體變數中，不依賴 DOM 的 textContent 來計算金額
@@ -201,8 +201,16 @@ function initGame() {
         if (UI.btnModalYes) UI.btnModalYes.addEventListener('click', () => {
             hideModal();
             if (modalConfirmCallback) {
-                modalConfirmCallback();
+                const cb = modalConfirmCallback;
                 modalConfirmCallback = null;
+                try {
+                    cb();
+                } catch (e) {
+                    console.error('modalConfirmCallback error:', e);
+                    log(`[系統區] 確認回調錯誤: ${e.message}`);
+                    GAME_STATE.isWaitingForAction = false;
+                    endTurn();
+                }
             }
         });
 
@@ -393,6 +401,11 @@ function checkTurn() {
         handleAIItemUsage(currentPlayer);
 
         setTimeout(() => {
+            // 防止重入：如果 AI 已經因為傳送等原因觸發了事件，不再重複擲骰
+            if (GAME_STATE.isWaitingForAction) {
+                console.log(`[Debug] Skipping handleRollDice for ${currentPlayer.name} - isWaitingForAction is true`);
+                return;
+            }
             handleRollDice();
         }, 3000); // 增加一點延遲讓玩家看清楚 AI 動作
     }
@@ -459,9 +472,15 @@ function handleRollDice() {
         window.__deadlockCounter++;
         if (window.__deadlockCounter >= 3) {
             log(`[系統區] 偵測到可能卡死，強行解除等待鎖定。`);
-            hideModal();
-            hideOfficerModal();
-            hideChanganModal();
+            console.error('[Deadlock] Force clearing all modals and isWaitingForAction');
+            try { hideModal(); } catch(e) {}
+            try { hideOfficerModal(); } catch(e) {}
+            // 安全關閉所有可能的 Modal
+            try { UI.changanModal.classList.add('hidden'); } catch(e) {}
+            try { UI.changanChoiceModal.classList.add('hidden'); } catch(e) {}
+            try { UI.changanItemShopModal.classList.add('hidden'); } catch(e) {}
+            try { UI.inventoryModal.classList.add('hidden'); } catch(e) {}
+            try { UI.targetSelectModal.classList.add('hidden'); } catch(e) {}
             GAME_STATE.isWaitingForAction = false;
             window.__deadlockCounter = 0;
             enableRollButton(true);
