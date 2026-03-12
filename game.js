@@ -21,6 +21,7 @@ if (typeof ITEMS_DATA === 'undefined') {
 
 // 遊戲資料模型
 const GAME_STATE = {
+    currentRound: 1, // Phase 70: 回合計算
     currentPlayer: 1, // 1: 劉備, 2: 曹操, 3: 孫權
     isWaitingForAction: false,
     gameOver: false,
@@ -669,14 +670,19 @@ function triggerLandEvent(player, landInfo) {
     }
 
     if (landInfo.owner === null) {
+        // Phase 70: 前三回合所有土地免費
+        let currentPrice = GAME_STATE.currentRound <= 3 ? 0 : parseInt(landInfo.price);
+        // 若為 0 元，加註提示
+        let priceText = currentPrice === 0 ? `免費 (前三回合)` : `$${currentPrice}`;
+
         // 無人土地
-        if (player.money < parseInt(landInfo.price)) {
-            log(`${player.name} 停在 ${landInfo.name}，但資金不足無法佔領 (持有 $${player.money}，需要 $${landInfo.price})。`);
+        if (player.money < currentPrice) {
+            log(`${player.name} 停在 ${landInfo.name}，但資金不足無法佔領 (持有 $${player.money}，需要 ${priceText})。`);
             endTurn();
         } else if (player.officers && player.officers.length === 0) {
             log(`${player.name} 停在 ${landInfo.name}，但無可用武將可派駐，放棄佔領。`);
             endTurn();
-        } else if (player.money >= parseInt(landInfo.price) && player.officers.length > 0) {
+        } else if (player.money >= currentPrice && player.officers.length > 0) {
             if (player.isBot) {
                 try {
                     // AI 自動購買邏輯
@@ -698,12 +704,12 @@ function triggerLandEvent(player, landInfo) {
             } else {
                 showModal(
                     `發現無主之地：${landInfo.name}`,
-                    `是否花費 $${landInfo.price} 佔領 ${landInfo.name}？\n需派駐至少1名武將。`,
+                    `是否花費 ${priceText} 佔領 ${landInfo.name}？\n需派駐至少1名武將。`,
                     () => {
                         // 打開選將畫面
                         showOfficerModal(
                             `派駐守將 - ${landInfo.name}`,
-                            `請選擇 1~3 名武將駐防 ${landInfo.name} (佔領需花費 $${landInfo.price})`,
+                            `請選擇 1~3 名武將駐防 ${landInfo.name} (佔領花費 ${priceText})`,
                             player,
                             (selectedIds) => {
                                 executeBuyLand(player, landInfo, selectedIds);
@@ -923,7 +929,8 @@ function triggerLandEvent(player, landInfo) {
 // 買地與派駐守將處理
 function executeBuyLand(player, landInfo, selectedIds) {
     try {
-        updateMoney(player.id, -landInfo.price);
+        let currentPrice = GAME_STATE.currentRound <= 3 ? 0 : parseInt(landInfo.price);
+        updateMoney(player.id, -currentPrice);
         landInfo.owner = player.id;
 
         // 轉移武將
@@ -931,7 +938,8 @@ function executeBuyLand(player, landInfo, selectedIds) {
         player.officers = player.officers.filter(id => id != null && !selectedIds.includes(id));
         updateOfficerCountUI(player.id);
 
-        log(`${player.name} 佔領了 ${landInfo.name}！派駐 ${selectedIds.length} 名武將守城。`);
+        let priceDesc = currentPrice === 0 ? "免費" : `花費 $${currentPrice}`;
+        log(`${player.name} ${priceDesc}佔領了 ${landInfo.name}！派駐 ${selectedIds.length} 名武將守城。`);
 
         // 更新 UI 標示
         const cell = document.getElementById(`cell-${landInfo.id}`);
@@ -1586,6 +1594,10 @@ function endTurn() {
                 currentPlayerObj.actTwice = false;
                 log(`✨ 【瞞天過海】奏效！${currentPlayerObj.name} 獲得連續行動的機會！`);
             } else {
+                if (nextIndex <= currentIndex) {
+                    GAME_STATE.currentRound++;
+                    log(`=== 第 ${GAME_STATE.currentRound} 回圈開始 ===`);
+                }
                 GAME_STATE.currentPlayer = nextPlayerId;
             }
 
