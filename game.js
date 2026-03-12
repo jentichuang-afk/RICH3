@@ -317,7 +317,19 @@ function initGame() {
         setupEncyclopediaSort();
 
         if (UI.useSiegeBuffCheckbox) {
-            UI.useSiegeBuffCheckbox.addEventListener('change', updateWinRateDisplay);
+            UI.useSiegeBuffCheckbox.addEventListener('change', () => {
+                if (currentSiegePlayer && window.currentDefIds) {
+                    const bestTeam = getBestSiegeTeam(currentSiegePlayer.officers, window.currentDefIds, currentSiegeCityId, UI.useSiegeBuffCheckbox.checked, true);
+                    if (bestTeam && bestTeam.length > 0) {
+                        selectedOfficers = [...bestTeam];
+                    } else {
+                        selectedOfficers = [];
+                    }
+                    renderSiegeOfficerList();
+                } else {
+                    updateWinRateDisplay();
+                }
+            });
         }
 
         // 為所有地圖格子加上點擊事件 (查看情報)
@@ -938,10 +950,10 @@ function executeBuyLand(player, landInfo, selectedIds) {
 }
 
 // 計算 AI 最佳攻城陣容 (>50% 勝率)
-function getBestSiegeTeam(attackerOfficerIds, defenderIds, cityId = -1) {
+function getBestSiegeTeam(attackerOfficerIds, defenderIds, cityId = -1, useBuff = false, forUI = false) {
     const landInfo = (cityId !== -1) ? MAP_DATA[cityId] : null;
     let bestTeam = null;
-    let maxWins = 2; // AI 在預估勝率 >= 50%（大於 49%，即贏得至少 3 項屬性）便會發起攻城
+    let maxWins = forUI ? -1 : 2; // AI 在預估勝率 >= 50%（大於 49%，即贏得至少 3 項屬性）便會發起攻城，UI 則始終需要一組最佳陣容
 
     const defStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
     defenderIds.forEach(id => {
@@ -985,6 +997,12 @@ function getBestSiegeTeam(attackerOfficerIds, defenderIds, cityId = -1) {
 
         // 套用攻方團隊特技
         applyTeamSkills(teamIds, atkStats, defenderIds);
+
+        if (useBuff) {
+            for (let i = 1; i <= 6; i++) {
+                atkStats[i] = Math.ceil(atkStats[i] * 1.05);
+            }
+        }
 
         const hasLegend = [...teamIds, ...defenderIds].some(id => {
             const o = getOfficer(id);
@@ -1790,11 +1808,13 @@ function showOfficerModal(title, message, player, onConfirm, onCancel, showCance
             UI.useSiegeBuffCheckbox.checked = false;
         }
 
-        // Phase 22: 智能預設最佳陣容
-        // 取得預設最佳陣容並自動勾選
-        const bestTeam = getBestSiegeTeam(player.officers, defIds, cityId);
+        // Phase 22 & 69: 智能預設最佳陣容 (針對 checkbox 狀態計算)
+        // 取得預設最佳陣容並自動勾選，forUI 傳入 true 確保回傳盡可能最佳的一組
+        const bestTeam = getBestSiegeTeam(player.officers, defIds, cityId, UI.useSiegeBuffCheckbox.checked, true);
         if (bestTeam && bestTeam.length > 0) {
             selectedOfficers = [...bestTeam];
+        } else {
+            selectedOfficers = [];
         }
     } else {
         if (comparePanel) comparePanel.style.display = 'none';
