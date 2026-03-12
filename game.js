@@ -607,38 +607,28 @@ function updatePiecesPosition(initial = false) {
 
 // 土地事件處理
 function triggerLandEvent(player, landInfo) {
-    if (landInfo.type === "START") {
+    if (landInfo.type === "START" || landInfo.type === "ITEM_SHOP") {
+        let offeredIds = [];
         if (GAME_STATE.changanOfficers.length > 0) {
             // Phase 64: 隨機選出至多 3 名在野武將
-            let offeredIds = [...GAME_STATE.changanOfficers].sort(() => 0.5 - Math.random()).slice(0, 3);
-            log(`${player.name} 抵達起點長安。行館市集人聲鼎沸，尋訪發現了 ${offeredIds.length} 名在野武將的蹤跡！`);
-            if (player.isBot) {
-                // Phase 68: 長安專屬 AI (只招募)
-                handleChanganRecruitAI(player, offeredIds);
-            } else {
-                // Phase 68: 直接進入招募 UI
-                showChanganModal(player, offeredIds);
-            }
-        } else {
-            log(`${player.name} 抵達起點長安。然而並無在野武將可供招募。`);
-            endTurn();
+            offeredIds = [...GAME_STATE.changanOfficers].sort(() => 0.5 - Math.random()).slice(0, 3);
         }
-        return;
-    }
-
-    if (landInfo.type === "ITEM_SHOP") {
-        log(`${player.name} 抵達了江南明珠建業，進入了奇珍異寶市集。`);
-        if (player.isBot) {
-            handleJianyeShopAI(player);
+        
+        let cityName = landInfo.type === "START" ? "長安" : "建業";
+        
+        if (offeredIds.length > 0) {
+            log(`${player.name} 抵達了${cityName}。市集人聲鼎沸，發現了 ${offeredIds.length} 名在野武將的蹤跡與各式奇珍異寶！`);
         } else {
-            try {
-                showChanganShopModal(player);
-            } catch(e) {
-                console.error('showChanganShopModal error:', e);
-                log(`[系統區] 道具店開啟失敗: ${e.message}`);
-                GAME_STATE.isWaitingForAction = false;
-                endTurn();
-            }
+            log(`${player.name} 抵達了${cityName}。雖無在野武將可供招募，仍可逛逛市集購買奇珍異寶。`);
+        }
+
+        if (player.isBot) {
+            handleCityMenuAI(player, offeredIds, cityName);
+        } else {
+            // Update modal title to reflect the city
+            const modalTitle = UI.changanChoiceModal.querySelector('h3');
+            if (modalTitle) modalTitle.textContent = `${cityName}行館`;
+            showChanganChoiceModal(player, offeredIds);
         }
         return;
     }
@@ -2555,10 +2545,12 @@ if (UI.btnChanganShopCancel) UI.btnChanganShopCancel.onclick = () => {
     endTurn();
 };
 
-// Phase 68: 長安專屬 AI (只招募)
-function handleChanganRecruitAI(player, offeredIds) {
+// Phase 69: 城池通用 AI (招募與買道具)
+function handleCityMenuAI(player, offeredIds, cityName) {
     GAME_STATE.isWaitingForAction = true;
     const reserveFund = 2000;
+    
+    // AI 判斷是否招募
     let canRecruit = false;
     let targetOfficer = null;
     let officerCost = 0;
@@ -2582,9 +2574,20 @@ function handleChanganRecruitAI(player, offeredIds) {
         }
     }
 
+    // AI 判斷是否買道具
+    let canBuyItem = false;
+    let targetItem = null;
+    let itemOptions = Object.values(ITEMS_DATA).filter(it => !player.items.some(pi => pi.id === it.id));
+    if (itemOptions.length > 0 && (player.money - 1000) >= 1500) {
+        canBuyItem = true;
+        // 隨機挑個道具
+        targetItem = itemOptions[Math.floor(Math.random() * itemOptions.length)];
+    }
+
     setTimeout(() => {
         try {
-            if (canRecruit) {
+            if (canRecruit && (!canBuyItem || Math.random() < 0.6)) {
+                // 傾向招募 (60%)
                 playRecruitAnimation(targetOfficer.name, player.name);
 
                 setTimeout(() => {
@@ -2592,45 +2595,18 @@ function handleChanganRecruitAI(player, offeredIds) {
                     GAME_STATE.changanOfficers = GAME_STATE.changanOfficers.filter(id => id !== targetOfficer.id);
                     player.officers.push(targetOfficer.id);
                     updateOfficerCountUI(player.id);
-                    log(`🎉 ${player.name} 花費了 $${officerCost} 招募了在野武將【${targetOfficer.name}】！`);
+                    log(`🎉 [電腦] ${player.name} 在${cityName}花費了 $${officerCost} 招募了在野武將【${targetOfficer.name}】！`);
                     GAME_STATE.isWaitingForAction = false;
                     endTurn();
                 }, 1000);
-            } else {
-                log(`${player.name} 視察了長安後，默默離開。`);
-                GAME_STATE.isWaitingForAction = false;
-                endTurn();
-            }
-        } catch (e) {
-            console.error(e);
-            endTurn();
-        }
-    }, 1500);
-}
-
-// Phase 68: 建業專屬 AI (只買道具)
-function handleJianyeShopAI(player) {
-    GAME_STATE.isWaitingForAction = true;
-    let canBuyItem = false;
-    let targetItem = null;
-    let itemOptions = Object.values(ITEMS_DATA).filter(it => !player.items.some(pi => pi.id === it.id));
-    
-    // AI 傾向保留資金，建業保留金設為 1000 + item.price(1000) = 2000
-    if (itemOptions.length > 0 && (player.money - 1000) >= 1500) {
-        canBuyItem = true;
-        targetItem = itemOptions[Math.floor(Math.random() * itemOptions.length)];
-    }
-
-    setTimeout(() => {
-        try {
-            if (canBuyItem && Math.random() < 0.7) { // 70% chance to buy if afford
+            } else if (canBuyItem) {
                 updateMoney(player.id, -targetItem.price);
                 player.items.push({ ...targetItem });
-                log(`🎁 奇珍異寶！[電腦] ${player.name} 花費 $${targetItem.price} 購買了道具【${targetItem.name}】！`);
+                log(`🎁 奇珍異寶！[電腦] ${player.name} 在${cityName}花費 $${targetItem.price} 購買了道具【${targetItem.name}】！`);
                 GAME_STATE.isWaitingForAction = false;
                 endTurn();
             } else {
-                log(`${player.name} 逛了逛市集，什麼也沒買就離開了。`);
+                log(`${player.name} 視察了${cityName}後，默默離開。`);
                 GAME_STATE.isWaitingForAction = false;
                 endTurn();
             }
