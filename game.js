@@ -1594,7 +1594,8 @@ function endTurn() {
                 currentPlayerObj.actTwice = false;
                 log(`✨ 【瞞天過海】奏效！${currentPlayerObj.name} 獲得連續行動的機會！`);
             } else {
-                if (nextIndex <= currentIndex) {
+                let finalNextIndex = GAME_STATE.activePlayers.indexOf(nextPlayerId);
+                if (finalNextIndex <= currentIndex) {
                     GAME_STATE.currentRound++;
                     log(`=== 第 ${GAME_STATE.currentRound} 回圈開始 ===`);
                 }
