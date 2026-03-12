@@ -6,8 +6,8 @@
  */
 
 // Fallback: 如果 items.js 未能載入，此處提供備用資料
-if (typeof ITEMS_DATA === 'undefined') {
-    var ITEMS_DATA = {
+if (typeof window.ITEMS_DATA === 'undefined') {
+    window.ITEMS_DATA = {
         1: { id: 1, name: "瞞天過海", price: 1000, desc: "使用後這個回合可以走兩次", type: "active" },
         2: { id: 2, name: "以逸待勞", price: 500, desc: "原地停留一次 (直接觸發事件)", type: "active" },
         3: { id: 3, name: "暗度陳倉", price: 1000, desc: "到達任意位置", type: "active_target_land" },
