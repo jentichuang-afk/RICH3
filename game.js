@@ -200,7 +200,11 @@ const UI = {
     targetSelectMessage: document.getElementById('target-select-message'),
     targetSelectList: document.getElementById('target-select-list'),
     btnTargetConfirm: document.getElementById('btn-target-confirm'),
-    btnTargetCancel: document.getElementById('btn-target-cancel')
+    btnTargetCancel: document.getElementById('btn-target-cancel'),
+    
+    // Phase 69: 臨陣磨槍 Siege checkbox
+    siegeBuffContainer: document.getElementById('siege-buff-container'),
+    useSiegeBuffCheckbox: document.getElementById('use-siege-buff-checkbox')
 };
 
 // Modal 回調函數
@@ -264,8 +268,23 @@ function initGame() {
 
         UI.btnOfficerConfirm.addEventListener('click', () => {
             hideOfficerModal();
+            let consumedBuff = false;
+            
+            // Phase 69: Consume item if checked
+            if (UI.useSiegeBuffCheckbox && UI.useSiegeBuffCheckbox.checked) {
+                if (currentSiegePlayer && currentSiegePlayer.items) {
+                    const itemIdx = currentSiegePlayer.items.findIndex(it => it.id === 5);
+                    if (itemIdx !== -1) {
+                        consumeItem(currentSiegePlayer, itemIdx);
+                        playItemAnimation("臨陣磨槍", currentSiegePlayer.name);
+                        log(`🔥 士氣大振！${currentSiegePlayer.name} 使用了「臨陣磨槍」，全軍能力提升 5%！`);
+                        consumedBuff = true;
+                    }
+                }
+            }
+
             if (officerConfirmCallback) {
-                officerConfirmCallback([...selectedOfficers]);
+                officerConfirmCallback([...selectedOfficers], consumedBuff);
                 officerConfirmCallback = null;
             }
         });
@@ -296,6 +315,10 @@ function initGame() {
         });
 
         setupEncyclopediaSort();
+
+        if (UI.useSiegeBuffCheckbox) {
+            UI.useSiegeBuffCheckbox.addEventListener('change', updateWinRateDisplay);
+        }
 
         // 為所有地圖格子加上點擊事件 (查看情報)
         document.querySelectorAll('.cell').forEach(cell => {
@@ -818,7 +841,15 @@ function triggerLandEvent(player, landInfo) {
             const bestTeam = getBestSiegeTeam(player.officers, landInfo.defenders, landInfo.id);
             if (bestTeam) {
                 log(`[電腦] ${player.name} 評估勝算極高，決定發起攻城！`);
-                setTimeout(() => { executeSiege(player, landInfo, bestTeam); }, 1500);
+                let useBuff = false;
+                const itemIdx = player.items.findIndex(it => it.id === 5);
+                if (itemIdx !== -1) {
+                    consumeItem(player, itemIdx);
+                    playItemAnimation("臨陣磨槍", player.name);
+                    log(`🔥 士氣大振！[電腦] ${player.name} 使用了「臨陣磨槍」，全軍能力提升 5%！`);
+                    useBuff = true;
+                }
+                setTimeout(() => { executeSiege(player, landInfo, bestTeam, useBuff); }, 1500);
             } else {
                 log(`[電腦] ${player.name} 評估軍力不足以攻下 ${landInfo.name}，決定繳交過路費。`);
                 setTimeout(() => { payToll(player, owner, toll); }, 1500);
@@ -860,8 +891,8 @@ function triggerLandEvent(player, landInfo) {
                         `發起攻城 - ${landInfo.name}`,
                         `請選擇 1~3 名武將攻打 ${landInfo.name} (若失敗需付 $${toll * 2})`,
                         player,
-                        (selectedIds) => {
-                            executeSiege(player, landInfo, selectedIds);
+                        (selectedIds, consumedBuff) => {
+                            executeSiege(player, landInfo, selectedIds, consumedBuff);
                         },
                         () => { log(`我軍取消了進攻 ${landInfo.name} 的計畫，改為繳交軍費。`); payToll(player, owner, toll); },
                         true, // showCancelBtn
@@ -999,7 +1030,7 @@ function getBestSiegeTeam(attackerOfficerIds, defenderIds, cityId = -1) {
 }
 
 // 執行攻城結算
-function executeSiege(attacker, landInfo, attackingIds) {
+function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
     const defenderId = landInfo.owner;
     const defender = GAME_STATE.players[defenderId];
     const defendingIds = landInfo.defenders;
@@ -1027,8 +1058,8 @@ function executeSiege(attacker, landInfo, attackingIds) {
     applyTeamSkills(attackingIds, atkTempStats, defendingIds);
     attackerScore = atkTempStats[statRoll];
 
-    // Phase 65: 【臨陣磨槍】 攻城 Buff (3%)
-    if (attacker.siegeBuff) {
+    // Phase 65/69: 【臨陣磨槍】 攻城 Buff (5%)
+    if (attacker.siegeBuff || consumedBuff) {
         attacker.siegeBuff = false; // 無論是否成功觸發都消耗
         // 檢查防守方是否有 【無懈可擊】
         const defenderPlayer = (landInfo.owner) ? GAME_STATE.players[landInfo.owner] : null;
@@ -1038,8 +1069,8 @@ function executeSiege(attacker, landInfo, attackingIds) {
             log(`🛡️ 【無懈可擊】！${defenderPlayer.name} 識破了敵方的臨陣磨槍，加成無效！`);
             consumeItem(defenderPlayer, shieldIndex);
         } else {
-            log(`🔥 【臨陣磨槍】發動！攻城方比拚項目提升 3%！`);
-            attackerScore = Math.floor(attackerScore * 1.03);
+            log(`🔥 【臨陣磨槍】發動！攻城方比拚項目提升 5%！`);
+            attackerScore = Math.floor(attackerScore * 1.05);
         }
     }
 
@@ -1749,6 +1780,16 @@ function showOfficerModal(title, message, player, onConfirm, onCancel, showCance
         if (comparePanel) comparePanel.style.display = 'block';
         window.currentDefIds = defIds;
 
+        // Phase 69: 檢查是否有臨陣磨槍
+        const hasSiegeBuffItem = player.items && player.items.some(item => item.id === 5);
+        if (hasSiegeBuffItem) {
+            UI.siegeBuffContainer.style.display = 'block';
+            UI.useSiegeBuffCheckbox.checked = false;
+        } else {
+            UI.siegeBuffContainer.style.display = 'none';
+            UI.useSiegeBuffCheckbox.checked = false;
+        }
+
         // Phase 22: 智能預設最佳陣容
         // 取得預設最佳陣容並自動勾選
         const bestTeam = getBestSiegeTeam(player.officers, defIds, cityId);
@@ -1758,6 +1799,8 @@ function showOfficerModal(title, message, player, onConfirm, onCancel, showCance
     } else {
         if (comparePanel) comparePanel.style.display = 'none';
         window.currentDefIds = [];
+        UI.siegeBuffContainer.style.display = 'none';
+        UI.useSiegeBuffCheckbox.checked = false;
     }
 
     renderSiegeOfficerList();
@@ -1935,6 +1978,15 @@ function updateWinRateDisplay() {
 
     applyTeamSkills(selectedOfficers, atkStats);
 
+    // Phase 69: 臨陣磨槍加成
+    let siegeBuffHtml = "";
+    if (UI.useSiegeBuffCheckbox && UI.useSiegeBuffCheckbox.checked) {
+        for (let i = 1; i <= 6; i++) {
+            atkStats[i] = Math.ceil(atkStats[i] * 1.05);
+        }
+        siegeBuffHtml = ` <b style="color: #d35400; font-size: 0.9em; background: rgba(211, 84, 0, 0.1); padding: 2px 4px; border-radius: 3px; border: 1px solid #d35400; margin-left: 5px;">🔥 臨陣磨槍 +5%</b>`;
+    }
+
     if (selectedOfficers.length === 0) {
         resetDisplay();
         el.textContent = '預估勝率：請先選擇作戰武將...';
@@ -1977,7 +2029,7 @@ function updateWinRateDisplay() {
     }
 
     const winRate = Math.round((expectedWins / totalOutcomes) * 100);
-    el.innerHTML = `預估勝率：<span style="color: ${winRate >= 50 ? '#27ae60' : '#e67e22'}; font-size: 1.2rem;">${winRate}%</span>${chainHtml} (${expectedWins} / ${totalOutcomes} 預期期望值)`;
+    el.innerHTML = `預估勝率：<span style="color: ${winRate >= 50 ? '#27ae60' : '#e67e22'}; font-size: 1.2rem;">${winRate}%</span>${chainHtml}${siegeBuffHtml} (${expectedWins} / ${totalOutcomes} 預期期望值)`;
 }
 
 // 事件綁定只須執行一次
@@ -2313,10 +2365,15 @@ function useItem(player, itemInfo, aiTarget = null) {
                 });
                 let candidates = targetOfficers.sort((a, b) => b.total - a.total).slice(0, 5);
                 if (candidates.length > 0) {
-                    let victimObj = candidates[Math.floor(Math.random() * candidates.length)];
-                    let victim = getOfficer(victimObj.id);
-                    victim.injuryRate = 99; // 99% 傷勢
-                    log(`🏹 暗箭噴射！${targetPlayer.name} 麾下的 ${victim.name} 遭到伏擊，負傷累累！(健康度僅剩 1%)`);
+                    let shuffled = candidates.sort(() => 0.5 - Math.random());
+                    let victims = shuffled.slice(0, 3);
+                    let victimNames = [];
+                    victims.forEach(v => {
+                        let victim = getOfficer(v.id);
+                        victim.injuryRate = 99; // 99% 傷勢
+                        victimNames.push(victim.name);
+                    });
+                    log(`🏹 暗箭噴射！${targetPlayer.name} 麾下的 ${victimNames.join('、')} 遭到伏擊，負傷累累！(健康度僅剩 1%)`);
                 } else {
                     log(`${targetPlayer.name} 帳下無將，逃過一劫。`);
                 }
@@ -2327,13 +2384,11 @@ function useItem(player, itemInfo, aiTarget = null) {
             else openTargetSelect('player', executeSabotage, player.id);
             break;
         case 5: // 臨陣磨槍: 攻城 Buff
-            player.siegeBuff = true;
-            consumeItem(player, itemInfo.index);
-            log(`士氣激昂！${player.name} 下次攻城戰將獲得 3% 全能力加成。`);
+            log(`[提示] 此錦囊需在「發起攻城」時於武將選擇介面中勾選使用，無法於此處直接施放。`);
             GAME_STATE.isWaitingForAction = false;
             break;
         case 6: // 無懈可擊: 被動使用
-            log(`[提示] 此為被動道具，將在敵方對您使用計謀時自動發動。`);
+            log(`[提示] 此為被動道具，將在敵方對您使用負面計謀時自動發動。`);
             GAME_STATE.isWaitingForAction = false;
             break;
         case 7: // 迴光返照: 治療
