@@ -1,5 +1,6 @@
 import streamlit as st
 import streamlit.components.v1 as components
+import re
 
 # 設定 Streamlit 頁面為寬螢幕模式與標題
 st.set_page_config(
@@ -33,6 +34,8 @@ try:
 
     # 將 CSS 和 JS 直接注入到 HTML
     html_with_css = html_content.replace('</head>', f'<style>{css_content}</style></head>')
+    # 移除原本所有的外部 script 引入 (避免 Streamlit 以自己的 HTML 錯誤回應)
+    html_with_css = re.sub(r'<script[^>]*src=["\'].*?\.js["\'][^>]*></script>', '', html_with_css)
     
     # 注意：officers.js 和 items.js 必須在 game.js 之前載入
     scripts = f'<script>{items_js}</script><script>{officers_js}</script><script>{game_js}</script>'
