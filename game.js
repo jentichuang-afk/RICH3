@@ -11,7 +11,7 @@ if (typeof window.ITEMS_DATA === 'undefined') {
         1: { id: 1, name: "瞞天過海", price: 1000, desc: "使用後這個回合可以走兩次", type: "active" },
         2: { id: 2, name: "以逸待勞", price: 500, desc: "原地停留一次 (直接觸發事件)", type: "active" },
         3: { id: 3, name: "暗度陳倉", price: 1000, desc: "到達任意位置", type: "active_target_land" },
-        4: { id: 4, name: "暗箭傷人", price: 1000, desc: "選定一名主公，使其能力前五名的武將中隨機三人受到 99% 傷勢", type: "active_target_player" },
+        4: { id: 4, name: "暗箭傷人", price: 1000, desc: "選定一名主公，使其有效能力最高的前三名武將受到 99% 重傷", type: "active_target_player" },
         5: { id: 5, name: "臨陣磨槍", price: 1000, desc: "攻城戰時可選用，我方全能力增加 5%", type: "active_buff" },
         6: { id: 6, name: "無懈可擊", price: 500, desc: "被動防禦，抵銷敵方對自己使用的負面計謀", type: "passive" },
         7: { id: 7, name: "迴光返照", price: 300, desc: "治療己方任意武將 (傷勢歸零)", type: "active_target_officer" }
@@ -2615,7 +2615,7 @@ function useItem(player, itemInfo, aiTarget = null) {
             if (isBot && aiTarget) teleportTo(aiTarget);
             else openTargetSelect('land', teleportTo);
             break;
-        case 4: // 暗箭傷人: 隨機重傷敵方前五強
+        case 4: // 暗箭傷人: 使敵方有效能力最高的前三名武將重傷
             const executeSabotage = (targetPlayer) => {
                 // 檢查對手是否有無懈可擊
                 const shieldIndex = targetPlayer.items.findIndex(it => it.id === 6);
@@ -2627,13 +2627,13 @@ function useItem(player, itemInfo, aiTarget = null) {
                     return;
                 }
 
-                // 找出能力最強前五名
+                // 找出目前「有效能力」最強的前三名
                 let targetOfficers = [];
                 // 閒置武將
                 targetPlayer.officers.forEach(id => {
                     let o = getOfficer(id);
                     let sum = 0;
-                    for (let i = 1; i <= 6; i++) sum += o.stats[i];
+                    for (let i = 1; i <= 6; i++) sum += getEffectiveStat(o, i);
                     targetOfficers.push({ id: o.id, name: o.name, total: sum });
                 });
                 // 守城武將
@@ -2642,22 +2642,23 @@ function useItem(player, itemInfo, aiTarget = null) {
                         land.defenders.forEach(id => {
                             let o = getOfficer(id);
                             let sum = 0;
-                            for (let i = 1; i <= 6; i++) sum += o.stats[i];
+                            for (let i = 1; i <= 6; i++) sum += getEffectiveStat(o, i);
                             targetOfficers.push({ id: o.id, name: o.name, total: sum });
                         });
                     }
                 });
-                let candidates = targetOfficers.sort((a, b) => b.total - a.total).slice(0, 5);
-                if (candidates.length > 0) {
-                    let shuffled = candidates.sort(() => 0.5 - Math.random());
-                    let victims = shuffled.slice(0, 3);
+                
+                // 直接抓取最強前三名 (由大到小排序)
+                let victims = targetOfficers.sort((a, b) => b.total - a.total).slice(0, 3);
+
+                if (victims.length > 0) {
                     let victimNames = [];
                     victims.forEach(v => {
                         let victim = getOfficer(v.id);
                         victim.injuryRate = 99; // 99% 傷勢
                         victimNames.push(victim.name);
                     });
-                    log(`🏹 暗箭噴射！${targetPlayer.name} 麾下的 ${victimNames.join('、')} 遭到伏擊，負傷累累！(健康度僅剩 1%)`);
+                    log(`🏹 暗箭噴射！${targetPlayer.name} 麾下最強的 ${victimNames.join('、')} 遭到伏擊，負傷累累！(健康度僅剩 1%)`);
                 } else {
                     log(`${targetPlayer.name} 帳下無將，逃過一劫。`);
                 }
