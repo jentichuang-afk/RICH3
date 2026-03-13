@@ -1065,12 +1065,29 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
     attacker.officers = attacker.officers.filter(id => id != null && !attackingIds.includes(id));
     updateOfficerCountUI(attacker.id);
 
+    let atkStr = 0, defStr = 0;
+    attackingIds.forEach(id => { let o = getOfficer(id); if (o) atkStr += getEffectiveStat(o, 1); });
+    defendingIds.forEach(id => { let o = getOfficer(id); if (o) defStr += getEffectiveStat(o, 1); });
+    
+    // 檢查 101+ 武力
+    const hasSuperStrAtk = attackingIds.some(id => { let o = getOfficer(id); return o && getEffectiveStat(o, 1) >= 101 && o.injuryRate === 0; });
+    const hasSuperStrDef = defendingIds.some(id => { let o = getOfficer(id); return o && getEffectiveStat(o, 1) >= 101 && o.injuryRate === 0; });
+    
+    let useSuperStrPool = (hasSuperStrAtk && atkStr > defStr) || (hasSuperStrDef && defStr > atkStr);
+
     // 電腦擲骰決定比拚項目 (若參戰武將武力 >= 95，武力機率翻倍)
     const hasLegend = [...attackingIds, ...defendingIds].some(id => {
         const o = getOfficer(id);
         return o && getEffectiveStat(o, 1) >= 95;
     });
-    const statPool = hasLegend ? [1, 1, 2, 3, 4, 5, 6] : [1, 2, 3, 4, 5, 6];
+    
+    let statPool = [1, 2, 3, 4, 5, 6];
+    if (useSuperStrPool) {
+        statPool = [1, 1, 1, 2, 3, 4, 5, 6];
+        log(`💪 【萬夫莫敵】戰場出現武力突破極限的猛將，硬碰硬的機率巨幅提升！`);
+    } else if (hasLegend) {
+        statPool = [1, 1, 2, 3, 4, 5, 6];
+    }
     const statRoll = statPool[Math.floor(Math.random() * statPool.length)];
     const statNames = { 1: '武力', 2: '智力', 3: '統率', 4: '政治', 5: '魅力', 6: '運氣' };
     const statName = statNames[statRoll];
@@ -1125,22 +1142,42 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
     // Phase 31: 頂尖智將「絕境逆轉」隱藏被動
     let reversalProc = false;
     let reversalHtml = "";
+    let reversalSacrificeId = null;
     let losingIdsForCheck = isAttackerWin ? defendingIds : attackingIds;
+    
+    let superStrategistId = losingIdsForCheck.find(id => {
+        const o = getOfficer(id);
+        return o && getEffectiveStat(o, 2) >= 101 && o.injuryRate === 0;
+    });
+
     let topStrategistId = losingIdsForCheck.find(id => {
         const o = getOfficer(id);
         return o && getEffectiveStat(o, 2) >= 95; // 智力 >= 95 (包含成長與受傷影響)
     });
 
-    if (topStrategistId && Math.random() < 0.30) {
+    let revChance = superStrategistId ? 0.50 : (topStrategistId ? 0.30 : 0);
+    let actingStrategistId = superStrategistId || topStrategistId;
+
+    if (actingStrategistId && Math.random() < revChance) {
         reversalProc = true;
         isAttackerWin = !isAttackerWin; // 翻轉勝負
         playReversalAnimation(); // 播放 Phase 37 特效動畫
-        const strategistName = getOfficer(topStrategistId).name;
-        reversalHtml = `<div style="margin-top: 15px; padding: 10px; background: rgba(156, 39, 176, 0.2); border: 1px solid #9C27B0; border-radius: 5px;">
-            <div style="color: #9C27B0; font-weight: bold; margin-bottom: 5px;">【神機妙算】絕境逆轉！</div>
-            <div style="font-size: 14px; margin-top: 5px;">✨ <strong>${strategistName}</strong> 在絕境中看破敵陣，雙方兩敗俱傷，攻城瓦解！</div>
-        </div>`;
-        log(`✨ 【神機妙算】${strategistName} 智力超群，在絕境中看破敵陣，雙方兩敗俱傷，攻方無功而返，守方亦未得錢糧！`);
+        const strategistName = getOfficer(actingStrategistId).name;
+        
+        if (superStrategistId) {
+            reversalSacrificeId = superStrategistId;
+            reversalHtml = `<div style="margin-top: 15px; padding: 10px; background: rgba(156, 39, 176, 0.2); border: 2px solid #9C27B0; border-radius: 5px;">
+                <div style="color: #9C27B0; font-weight: bold; margin-bottom: 5px;">【神鬼莫測】絕境逆轉！</div>
+                <div style="font-size: 14px; margin-top: 5px;">✨ <strong>${strategistName}</strong> 犧牲自我發動奇謀，成功扭轉了戰局！隊友毫髮無傷！</div>
+            </div>`;
+            log(`✨ 【神鬼莫測】${strategistName} 智力突破極限，犧牲自我發動奇謀扭轉戰局，且保護了其他隊友！`);
+        } else {
+            reversalHtml = `<div style="margin-top: 15px; padding: 10px; background: rgba(156, 39, 176, 0.2); border: 1px solid #9C27B0; border-radius: 5px;">
+                <div style="color: #9C27B0; font-weight: bold; margin-bottom: 5px;">【神機妙算】絕境逆轉！</div>
+                <div style="font-size: 14px; margin-top: 5px;">✨ <strong>${strategistName}</strong> 在絕境中看破敵陣，雙方兩敗俱傷，攻城瓦解！</div>
+            </div>`;
+            log(`✨ 【神機妙算】${strategistName} 智力超群，在絕境中看破敵陣，雙方兩敗俱傷，攻方無功而返，守方亦未得錢糧！`);
+        }
     }
 
     // Phase 26: 紀錄戰績
@@ -1175,7 +1212,16 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
         loseInjuryRate *= 0.5;
     }
 
-    // Phase 33 & 38: 頂級統帥減傷光環 (統率 >= 95)
+    // Phase 33 & 38: 頂級統帥減傷光環
+    let winnerSuperCommander = winningTeamIds.find(id => {
+        const o = getOfficer(id);
+        return o && getEffectiveStat(o, 3) >= 101 && o.injuryRate === 0;
+    });
+    let loserSuperCommander = losingTeamIds.find(id => {
+        const o = getOfficer(id);
+        return o && getEffectiveStat(o, 3) >= 101 && o.injuryRate === 0;
+    });
+
     let winnerTopCommander = winningTeamIds.find(id => {
         const o = getOfficer(id);
         return o && getEffectiveStat(o, 3) >= 95;
@@ -1184,10 +1230,12 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
         const o = getOfficer(id);
         return o && getEffectiveStat(o, 3) >= 95;
     });
-    let winnerCmdName = winnerTopCommander ? getOfficer(winnerTopCommander).name : "";
-    let loserCmdName = loserTopCommander ? getOfficer(loserTopCommander).name : "";
+    
+    let winnerCmdName = winnerSuperCommander ? getOfficer(winnerSuperCommander).name : (winnerTopCommander ? getOfficer(winnerTopCommander).name : "");
+    let loserCmdName = loserSuperCommander ? getOfficer(loserSuperCommander).name : (loserTopCommander ? getOfficer(loserTopCommander).name : "");
 
-    // Phase 63 (Bugfix): 提前捕捉「吉星高照」發動者，避免戰鬥中的受傷導致其能力下降而無法發動
+    // Phase 63 (Bugfix): 提前捕捉「吉星高照」發動者
+
     const preBattleAttackerLuckHealerId = attackingIds.find(id => {
         const o = getOfficer(id);
         return o && getEffectiveStat(o, 6) >= 95;
@@ -1218,21 +1266,50 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
             // 由於 Phase 31: 若為逆轉勝，勝方需全體承受 80%~99% 絕對重傷代價
             if (reversalProc) {
                 let dmg = Math.floor(Math.random() * 20) + 80; // 80% ~ 99%
-                if (winnerTopCommander) dmg = Math.floor(dmg / 2); // Phase 33
-                o.injuryRate = Math.min(100, o.injuryRate + dmg);
-                let auraStr = winnerTopCommander ? ` 🛡️(受到 ${winnerCmdName} 指揮護衛，降為 ${dmg}%)` : ``;
-                injuryHtml += `<div style="font-size: 14px; margin-top: 5px;">🩸 <strong>${o.name}</strong> 因發動逆轉奇謀透支過度，重創 ${dmg}%！${auraStr}</div>`;
-                log(`🩸 ${o.name} 承受逆轉代價，陷入 ${dmg}% 的絕對重傷！${auraStr}`);
+                let isSacrifice = false;
+                if (reversalSacrificeId) {
+                    if (id === reversalSacrificeId) { dmg = 99; isSacrifice = true; }
+                    else dmg = 0;
+                } else {
+                    if (winnerTopCommander) dmg = Math.floor(dmg / 2); // Phase 33
+                }
+                
+                if (dmg > 0) {
+                    o.injuryRate = Math.min(100, o.injuryRate + dmg);
+                    let auraStr = winnerTopCommander && !reversalSacrificeId ? ` 🛡️(受到 ${winnerCmdName} 指揮護衛，降為 ${dmg}%)` : ``;
+                    if (isSacrifice) auraStr = ' (神鬼莫測代價)';
+                    injuryHtml += `<div style="font-size: 14px; margin-top: 5px;">🩸 <strong>${o.name}</strong> 因逆轉奇謀，重創 ${dmg}%！${auraStr}</div>`;
+                    log(`🩸 ${o.name} 承受逆轉代價，陷入 ${dmg}% 的重傷！${auraStr}`);
+                }
             } else {
                 // 一般勝方受傷判定
                 if (Math.random() < winInjuryRate) {
                     let dmg = Math.floor(Math.random() * 81) + 10; // 10% ~ 90%
-                    if (getEffectiveStat(o, 1) >= 95) dmg = Math.floor(dmg / 2); // 猛將減傷 (武力 >= 95)
-                    if (winnerTopCommander) dmg = Math.floor(dmg / 2); // Phase 33
-                    o.injuryRate = Math.min(100, o.injuryRate + dmg);
-                    let auraStr = winnerTopCommander ? ` 🛡️(${winnerCmdName} 統整降低傷亡)` : ``;
-                    injuryHtml += `<div style="font-size: 14px; margin-top: 5px;">⚠️ <strong>${o.name}</strong> 在激戰中掛彩，能力下降 ${dmg}%！${auraStr}</div>`;
-                    log(`⚠️ ${o.name} 戰勝後掛彩，能力下降 ${dmg}%！`);
+                    
+                    let auraStr = "";
+                    if (winnerSuperCommander) {
+                        if (id !== winnerSuperCommander) { dmg = 0; auraStr = ` 🛡️(${winnerCmdName} 神級指揮，友軍無傷)`; }
+                        else { dmg = Math.floor(dmg / 2); auraStr = ` 🛡️(${winnerCmdName} 神級指揮降傷)`; }
+                    } else {
+                        if (getEffectiveStat(o, 1) >= 95) dmg = Math.floor(dmg / 2); // 猛將減傷 (武力 >= 95)
+                        if (winnerTopCommander) { dmg = Math.floor(dmg / 2); auraStr = ` 🛡️(${winnerCmdName} 統整降低傷亡)`; }
+                    }
+                    
+                    const isSuperCharming = getEffectiveStat(o, 5) >= 101 && o.injuryRate === 0;
+                    const charmChance = isSuperCharming ? 0.75 : 0.30;
+                    const hasCharmingLimit = isSuperCharming || getEffectiveStat(o, 5) >= 95;
+                    
+                    if (dmg > 0 && hasCharmingLimit && Math.random() < charmChance) {
+                        let skillName = isSuperCharming ? '【天選之子】' : '【百折不休】';
+                        dmg = 0;
+                        log(`✨ ${skillName}發動！${o.name} 魅力驚人，麾下將士死命保護，免疫了本次戰役受傷！`);
+                    }
+
+                    if (dmg > 0) {
+                        o.injuryRate = Math.min(100, o.injuryRate + dmg);
+                        injuryHtml += `<div style="font-size: 14px; margin-top: 5px;">⚠️ <strong>${o.name}</strong> 在激戰中掛彩，能力下降 ${dmg}%！${auraStr}</div>`;
+                        log(`⚠️ ${o.name} 戰勝後掛彩，能力下降 ${dmg}%！`);
+                    }
                 }
             }
         }
@@ -1259,12 +1336,31 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
             // 敗方受傷判定
             if (Math.random() < loseInjuryRate) {
                 let dmg = Math.floor(Math.random() * 81) + 10; // 10% ~ 90%
-                if (getEffectiveStat(o, 1) >= 95) dmg = Math.floor(dmg / 2); // 猛將減傷 (武力 >= 95)
-                if (loserTopCommander) dmg = Math.floor(dmg / 2); // Phase 33
-                o.injuryRate = Math.min(100, o.injuryRate + dmg);
-                let auraStr = loserTopCommander ? ` 🛡️(${loserCmdName} 統整降低傷亡)` : ``;
-                injuryHtml += `<div style="font-size: 14px; margin-top: 5px;">💥 <strong>${o.name}</strong> 受到重創，全能力下降 ${dmg}%！${auraStr}</div>`;
-                log(`💥 ${o.name} 在戰局中身受重傷，全能力下降 ${dmg}%！`);
+                
+                let auraStr = "";
+                if (loserSuperCommander) {
+                    if (id !== loserSuperCommander) { dmg = 0; auraStr = ` 🛡️(${loserCmdName} 神級指揮，友軍無傷)`; }
+                    else { dmg = Math.floor(dmg / 2); auraStr = ` 🛡️(${loserCmdName} 神級指揮降傷)`; }
+                } else {
+                    if (getEffectiveStat(o, 1) >= 95) dmg = Math.floor(dmg / 2); // 猛將減傷 (武力 >= 95)
+                    if (loserTopCommander) { dmg = Math.floor(dmg / 2); auraStr = ` 🛡️(${loserCmdName} 統整降低傷亡)`; }
+                }
+
+                const isSuperCharming = getEffectiveStat(o, 5) >= 101 && o.injuryRate === 0;
+                const charmChance = isSuperCharming ? 0.75 : 0.30;
+                const hasCharmingLimit = isSuperCharming || getEffectiveStat(o, 5) >= 95;
+                
+                if (dmg > 0 && hasCharmingLimit && Math.random() < charmChance) {
+                    let skillName = isSuperCharming ? '【天選之子】' : '【百折不休】';
+                    dmg = 0;
+                    log(`✨ ${skillName}發動！${o.name} 魅力驚人，麾下將士死命保護，免疫了本次戰敗受傷！`);
+                }
+
+                if (dmg > 0) {
+                    o.injuryRate = Math.min(100, o.injuryRate + dmg);
+                    injuryHtml += `<div style="font-size: 14px; margin-top: 5px;">💥 <strong>${o.name}</strong> 受到重創，全能力下降 ${dmg}%！${auraStr}</div>`;
+                    log(`💥 ${o.name} 在戰局中身受重傷，全能力下降 ${dmg}%！`);
+                }
             }
         }
     });
@@ -1286,7 +1382,7 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
         </div>`;
     }
 
-    // Phase 41 & 63: 運氣 (95+)「吉星高照」- 戰後隨機治癒己方一人 100% 傷勢
+    // Phase 41 & 63: 運氣 (95+)「吉星高照」- 戰後隨機治癒己方一人 100% 傷勢 / 101+ 治癒全隊
     const teams = [
         { ids: attackingIds, name: attacker.name, healerId: preBattleAttackerLuckHealerId },
         { ids: defendingIds, name: defender.name, healerId: preBattleDefenderLuckHealerId }
@@ -1294,12 +1390,25 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
     teams.forEach(team => {
         if (team.healerId) {
             const healer = getOfficer(team.healerId);
+            const isSuperLucky = healer && getEffectiveStat(healer, 6) >= 101 && healer.injuryRate === 0;
+
             let injuredAllies = team.ids.filter(id => getOfficer(id).injuryRate > 0);
             if (injuredAllies.length > 0) {
-                let targetId = injuredAllies[Math.floor(Math.random() * injuredAllies.length)];
-                let target = getOfficer(targetId);
-                target.injuryRate = 0;
-                let healMsg = `🍀 【吉星高照】${healer.name} 展現奇蹟，使 ${target.name} 的傷勢完全恢復了！`;
+                let healMsg = "";
+                if (isSuperLucky) {
+                    let healedNames = [];
+                    injuredAllies.forEach(targetId => {
+                        let target = getOfficer(targetId);
+                        target.injuryRate = 0;
+                        healedNames.push(target.name);
+                    });
+                    healMsg = `🍀 【天降甘霖】${healer.name} 運氣爆棚！戰後神蹟降臨，讓同隊伍的 ${healedNames.join('、')} 傷勢完全康復！`;
+                } else {
+                    let targetId = injuredAllies[Math.floor(Math.random() * injuredAllies.length)];
+                    let target = getOfficer(targetId);
+                    target.injuryRate = 0;
+                    healMsg = `🍀 【吉星高照】${healer.name} 展現奇蹟，使 ${target.name} 的傷勢完全恢復了！`;
+                }
                 log(healMsg);
                 resultHtml += `<div style="margin-top: 10px; padding: 8px; background: rgba(255, 235, 59, 0.2); border: 1px solid #FBC02D; border-radius: 5px;">
                     <div style="color: #FBC02D; font-weight: bold; margin-bottom: 3px;">【幸運治療】</div>
@@ -1525,12 +1634,20 @@ function processCityTaxesAndInflation(player) {
 
             let cityIncome = Math.floor(land.price * taxRate);
 
-            // Phase 41: 政治 (95+)「經世濟民」- 稅收倍增
+            // Phase 41: 政治 (95+)「經世濟民」- 稅收倍增 / 101+倍增5倍
+            let superPolitician = land.defenders.find(id => {
+                const o = getOfficer(id);
+                return o && getEffectiveStat(o, 4) >= 101 && o.injuryRate === 0;
+            });
             let elitePolitician = land.defenders.find(id => {
                 const o = getOfficer(id);
                 return o && getEffectiveStat(o, 4) >= 95;
             });
-            if (elitePolitician) {
+
+            if (superPolitician) {
+                cityIncome *= 5;
+                eliteTaxCities++;
+            } else if (elitePolitician) {
                 cityIncome *= 2;
                 eliteTaxCities++;
             }
