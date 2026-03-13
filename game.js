@@ -1087,25 +1087,39 @@ function getBestSiegeTeam(attackerOfficerIds, defenderIds, cityId = -1, useBuff 
             }
         }
 
-        const hasLegend = [...teamIds, ...defenderIds].some(id => {
-            const o = getOfficer(id);
-            return o && getEffectiveStat(o, 1) >= 95;
-        });
+        // 動態判斷屬性權重 (Phase 101+ update)
+        let atkStr = atkStats[1], defStr = currentDefStats[1];
+        let hasSuperStr = teamIds.some(id => { let o = getOfficer(id); return o && getEffectiveStat(o, 1) >= 101 && o.injuryRate === 0; }) ||
+                          defenderIds.some(id => { let o = getOfficer(id); return o && getEffectiveStat(o, 1) >= 101 && o.injuryRate === 0; });
+        let hasTopStr = teamIds.some(id => { let o = getOfficer(id); return o && getEffectiveStat(o, 1) >= 95; }) ||
+                        defenderIds.some(id => { let o = getOfficer(id); return o && getEffectiveStat(o, 1) >= 95; });
+
+        let strWeight = 1;
+        if (hasSuperStr && (atkStr > defStr || defStr > atkStr)) strWeight = 3;
+        else if (hasTopStr && (atkStr > defStr || defStr > atkStr)) strWeight = 2;
+
+        const totalOutcomes = 5 + strWeight;
 
         for (let i = 1; i <= 6; i++) {
             if (atkStats[i] > currentDefStats[i]) {
-                expectedWins += (hasLegend && i === 1) ? 2 : 1;
+                expectedWins += (i === 1) ? strWeight : 1;
             }
         }
-        return { wins: expectedWins, totalStats };
+        return { wins: expectedWins, totalStats, totalOutcomes };
     };
 
     let minTotalStats = Infinity;
+    let bestOutcomeDenom = 6;
 
     const checkTeam = (team) => {
         let res = evaluateTeamWinRate(team);
-        if (res.wins > maxWins || (res.wins === maxWins && res.totalStats < minTotalStats)) {
+        // 比較期望值百分比
+        let currentRate = res.wins / res.totalOutcomes;
+        let maxRate = maxWins / bestOutcomeDenom;
+
+        if (currentRate > maxRate || (currentRate === maxRate && res.totalStats < minTotalStats)) {
             maxWins = res.wins;
+            bestOutcomeDenom = res.totalOutcomes;
             minTotalStats = res.totalStats;
             bestTeam = team;
         }
@@ -2248,11 +2262,21 @@ function updateWinRateDisplay() {
     }
 
     let expectedWins = 0;
-    const hasLegend = [...selectedOfficers, ...window.currentDefIds].some(id => {
+    // 動態判斷屬性權重 (Phase 101+ update)
+    const hasSuperStr = [...selectedOfficers, ...window.currentDefIds].some(id => {
+        const o = getOfficer(id);
+        return o && getEffectiveStat(o, 1) >= 101 && o.injuryRate === 0;
+    });
+    const hasTopStr = [...selectedOfficers, ...window.currentDefIds].some(id => {
         const o = getOfficer(id);
         return o && getEffectiveStat(o, 1) >= 95;
     });
-    const totalOutcomes = hasLegend ? 7 : 6;
+
+    let strWeight = 1;
+    if (hasSuperStr && (atkStats[1] > defStats[1] || defStats[1] > atkStats[1])) strWeight = 3;
+    else if (hasTopStr && (atkStats[1] > defStats[1] || defStats[1] > atkStats[1])) strWeight = 2;
+
+    const totalOutcomes = 5 + strWeight;
 
     // 更新個別數字與顏色
     for (let i = 1; i <= 6; i++) {
@@ -2263,7 +2287,7 @@ function updateWinRateDisplay() {
             dEl.textContent = defStats[i];
 
             if (atkStats[i] > defStats[i]) {
-                expectedWins += (hasLegend && i === 1) ? 2 : 1;
+                expectedWins += (i === 1) ? strWeight : 1;
                 aEl.style.color = '#27ae60'; // 勝: 綠色
                 aEl.style.fontWeight = 'bold';
                 dEl.style.color = '#c0392b'; // 敗: 紅色
