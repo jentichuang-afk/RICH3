@@ -1984,13 +1984,13 @@ function showModal(title, messageHtml, onConfirm, onCancel, confirmText = "確�
     UI.modalTitle.textContent = title;
     UI.modalMessage.innerHTML = messageHtml;
 
-    UI.btnModalYes.textContent = confirmText;
-    UI.btnModalNo.style.display = (onCancel || !onExtra) ? 'inline-block' : 'none';
-    if (cancelText) UI.btnModalNo.textContent = cancelText;
+    UI.btnModalYes.textContent = confirmText || "確定";
+    UI.btnModalNo.style.display = onCancel ? 'inline-block' : 'none';
+    UI.btnModalNo.textContent = cancelText || "取消";
 
     if (onExtra) {
         UI.btnModalExtra.style.display = 'inline-block';
-        UI.btnModalExtra.textContent = extraText;
+        UI.btnModalExtra.textContent = extraText || "額外選項";
         modalExtraCallback = onExtra;
     } else {
         UI.btnModalExtra.style.display = 'none';
@@ -1998,7 +1998,7 @@ function showModal(title, messageHtml, onConfirm, onCancel, confirmText = "確�
     }
 
     modalConfirmCallback = onConfirm;
-    modalCancelCallback = onCancel || (() => { });
+    modalCancelCallback = onCancel;
 
     UI.modal.classList.remove('hidden');
 }
