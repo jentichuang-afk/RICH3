@@ -2827,6 +2827,42 @@ window.onload = initGame;
 let currentSortKey = 'id';
 let currentSortOrder = 1; // 1 = ASC, -1 = DESC
 
+function getSuperSkillDescription(o) {
+    let superSkills = [];
+    
+    // 武力 (1)
+    let str = getEffectiveStat(o, 1);
+    if (str >= 101 && o.injuryRate === 0) superSkills.push(`<span style="color:#d32f2f">【萬夫莫敵】</span>優位時武力機率 3 倍`);
+    else if (str >= 95) superSkills.push(`<span style="color:#e67e22">【一夫當關】</span>優位時武力機率 2 倍`);
+
+    // 智力 (2)
+    let int = getEffectiveStat(o, 2);
+    if (int >= 101 && o.injuryRate === 0) superSkills.push(`<span style="color:#d32f2f">【神鬼莫測】</span>50% 逆轉且犧牲保隊`);
+    else if (int >= 95) superSkills.push(`<span style="color:#9b59b6">【神機妙算】</span>30% 機率絕境逆轉`);
+
+    // 統率 (3)
+    let cmd = getEffectiveStat(o, 3);
+    if (cmd >= 101 && o.injuryRate === 0) superSkills.push(`<span style="color:#d32f2f">【神級指揮】</span>全體友軍免疫受傷`);
+    else if (cmd >= 95) superSkills.push(`<span style="color:#3498db">【統兵有方】</span>全體隊友受傷減半`);
+
+    // 政治 (4)
+    let pol = getEffectiveStat(o, 4);
+    if (pol >= 101 && o.injuryRate === 0) superSkills.push(`<span style="color:#d32f2f">【富國強兵】</span>駐守城池稅收 5 倍`);
+    else if (pol >= 95) superSkills.push(`<span style="color:#27ae60">【經世濟民】</span>駐守城池稅收加倍`);
+
+    // 魅力 (5)
+    let cha = getEffectiveStat(o, 5);
+    if (cha >= 101 && o.injuryRate === 0) superSkills.push(`<span style="color:#d32f2f">【天選之子】</span>75% 機率勸退敵軍`);
+    else if (cha >= 95) superSkills.push(`<span style="color:#e91e63">【名德重望】</span>30% 機率勸退敵軍`);
+
+    // 運氣 (6)
+    let luc = getEffectiveStat(o, 6);
+    if (luc >= 101 && o.injuryRate === 0) superSkills.push(`<span style="color:#d32f2f">【天降甘霖】</span>戰後治癒全隊傷勢`);
+    else if (luc >= 95) superSkills.push(`<span style="color:#f1c40f">【吉星高照】</span>戰後隨機治癒一人`);
+
+    return superSkills.join('<br>');
+}
+
 function openEncyclopedia() {
     renderEncyclopedia();
     UI.encyclopediaModal.classList.remove('hidden');
@@ -2913,11 +2949,14 @@ function renderEncyclopedia() {
     sortedOfficers.forEach(o => {
         const tr = document.createElement('tr');
 
-        let skillText = "-";
+        let skillParts = [];
         if (OFFICER_SKILLS[o.id]) {
-            skillText = `<strong style="color:var(--primary-color)">【${OFFICER_SKILLS[o.id].name}】</strong> ${OFFICER_SKILLS[o.id].desc}`;
+            skillParts.push(`<strong style="color:var(--primary-color)">【${OFFICER_SKILLS[o.id].name}】</strong> ${OFFICER_SKILLS[o.id].desc}`);
         }
+        let ssDesc = getSuperSkillDescription(o);
+        if (ssDesc) skillParts.push(ssDesc);
 
+        let skillHtml = skillParts.length > 0 ? skillParts.join('<br>') : "-";
         let winRateStr = o.battleCount > 0 ? Math.round((o.winCount / o.battleCount) * 100) + '%' : '-';
 
         tr.innerHTML = `
@@ -2933,7 +2972,7 @@ function renderEncyclopedia() {
             <td style="font-weight:bold; color:var(--ink-dark);">${o.dynTotal}</td>
             <td style="text-align:center;">${o.battleCount}</td>
             <td style="text-align:center;">${winRateStr}</td>
-            <td class="desc-col">${skillText}</td>
+            <td class="desc-col">${skillHtml}</td>
         `;
         UI.encyclopediaTbody.appendChild(tr);
     });
