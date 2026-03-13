@@ -793,6 +793,12 @@ function triggerLandEvent(player, landInfo) {
         // 自己的土地
         if (player.isBot) {
             log(`${player.name} 回到自己的領地 ${landInfo.name}，軍心大振。`);
+            // AI 建設邏輯：若手頭現金充足 (> $1000)，則自動進行建設
+            if (player.money >= 1000) {
+                updateMoney(player.id, -100);
+                landInfo.development = (landInfo.development || 0) + 1;
+                log(`🏗️ 【城池建設】[電腦] ${player.name} 斥資 $100 建設 ${landInfo.name}，建設等級提升至 Lv ${landInfo.development}！`);
+            }
             endTurn();
         } else {
             const originalDefenders = [...landInfo.defenders];
