@@ -793,19 +793,21 @@ function triggerLandEvent(player, landInfo) {
         // 自己的土地
         if (player.isBot) {
             log(`${player.name} 回到自己的領地 ${landInfo.name}，軍心大振。`);
-            // AI 建設邏輯：若手頭現金充足 (> $1000)，則自動進行建設
-            if (player.money >= 1000) {
-                updateMoney(player.id, -100);
+            // AI 建設邏輯：若手頭現金充足 (目前資金大於 建設費 + $1000)，則自動進行建設
+            const buildCost = ((landInfo.development || 0) + 1) * 100;
+            if (player.money >= 1000 + buildCost) {
+                updateMoney(player.id, -buildCost);
                 landInfo.development = (landInfo.development || 0) + 1;
-                log(`🏗️ 【城池建設】[電腦] ${player.name} 斥資 $100 建設 ${landInfo.name}，建設等級提升至 Lv ${landInfo.development}！`);
+                log(`🏗️ 【城池建設】[電腦] ${player.name} 斥資 $${buildCost} 建設 ${landInfo.name}，建設等級提升至 Lv ${landInfo.development}！`);
             }
             endTurn();
         } else {
             const originalDefenders = [...landInfo.defenders];
+            const buildCost = ((landInfo.development || 0) + 1) * 100;
 
             showModal(
                 `回到領地：${landInfo.name}`,
-                `歡迎來到 ${landInfo.name}，目前建設等級 Lv ${landInfo.development || 0}。<br>您可以選擇更換駐軍武將，或花費 $100 建設城池（使基礎稅率提升 1%）。`,
+                `歡迎來到 ${landInfo.name}，目前建設等級 Lv ${landInfo.development || 0}。<br>您可以選擇更換駐軍武將，或花費 $${buildCost} 建設城池（使基礎稅率提升 1%）。`,
                 () => { // 選擇更換
                     // 將守護武將暫時放回閒置清單
                     player.officers.push(...landInfo.defenders);
@@ -843,18 +845,19 @@ function triggerLandEvent(player, landInfo) {
                 },
                 '更換守將', '不做更動',
                 () => { // 選擇建設
-                    if (player.money >= 100) {
-                        updateMoney(player.id, -100);
+                    const currentBuildCost = ((landInfo.development || 0) + 1) * 100;
+                    if (player.money >= currentBuildCost) {
+                        updateMoney(player.id, -currentBuildCost);
                         landInfo.development = (landInfo.development || 0) + 1;
-                        log(`🏗️ 【城池建設】${player.name} 斥資 $100 建設 ${landInfo.name}，建設等級提升至 Lv ${landInfo.development}！`);
+                        log(`🏗️ 【城池建設】${player.name} 斥資 $${currentBuildCost} 建設 ${landInfo.name}，建設等級提升至 Lv ${landInfo.development}！`);
                         // 建設完後再次提供選項或直接結束？使用者說 "每建設一次"，看起來一次行動建一次
                         endTurn();
                     } else {
-                        log(`[提示] 資金不足，無法進行建設。`);
+                        log(`[提示] 資金不足，無法進行建設 (需要 $${currentBuildCost})。`);
                         endTurn();
                     }
                 },
-                '建設城池 ($100)'
+                `建設城池 ($${buildCost})`
             );
         }
     } else {
