@@ -340,28 +340,54 @@ function initGame() {
                 const landInfo = MAP_DATA[index];
                 if (!landInfo || landInfo.type === 'START') return;
 
-                let info = '';
+                let info = `<div style="border-bottom: 2px solid #8e735b; padding-bottom: 10px; margin-bottom: 10px;">`;
                 if (landInfo.owner) {
                     const owner = GAME_STATE.players[landInfo.owner];
-                    info += `擁有者：${owner.name}\n過路費：$${landInfo.toll}\n\n`;
+                    const tax = getCityTaxIncome(landInfo);
+                    info += `<p><strong>擁有者：</strong>${owner.name}</p>`;
+                    info += `<p><strong>過路費：</strong>$${landInfo.toll}</p>`;
+                    info += `<p><strong>每回合稅收：</strong>$${tax}</p>`;
+                    info += `</div>`;
+
                     if (landInfo.defenders.length > 0) {
-                        info += '【駐軍陣容】';
+                        info += '<p style="font-weight: bold; margin-top: 10px; border-left: 4px solid var(--primary-color); padding-left: 8px;">【駐軍陣容】</p>';
+                        info += '<table style="width:100%; border-collapse: collapse; font-size: 0.9rem; margin-top: 8px; border: 1px solid #ddd;">';
+                        info += '<tr style="background:#f2f2f2; border-bottom: 2px solid #ccc; font-size: 0.8rem;">';
+                        info += '<th style="padding:4px;">姓名</th><th>武</th><th>智</th><th>統</th><th>政</th><th>魅</th><th>運</th><th style="color:var(--primary-color)">總</th></tr>';
+                        
                         landInfo.defenders.forEach(id => {
                             const o = getOfficer(id);
                             if (o) {
-                                let injuryStr = o.injuryRate > 0 ? ` [受傷 -${o.injuryRate}%]` : '';
-                                info += `\n${o.name}${injuryStr} (武:${getEffectiveStat(o, 1)} 智:${getEffectiveStat(o, 2)} 統:${getEffectiveStat(o, 3)} 政:${getEffectiveStat(o, 4)} 魅:${getEffectiveStat(o, 5)} 運:${getEffectiveStat(o, 6)})`;
+                                let sum = 0;
+                                for(let i=1; i<=6; i++) sum += getEffectiveStat(o, i);
+                                let injuryClass = o.injuryRate > 0 ? 'background-color: #fff5f5; color: #c0392b;' : '';
+                                let injuryIcon = o.injuryRate > 0 ? '🤕' : '';
+                                let injuryTip = o.injuryRate > 0 ? ` title="受傷 ${o.injuryRate}%"` : '';
+                                
+                                info += `<tr style="border-bottom: 1px solid #eee; ${injuryClass}" ${injuryTip}>`;
+                                info += `<td style="padding: 6px 4px; font-weight:bold;">${injuryIcon}${o.name}</td>`;
+                                info += `<td style="text-align:center;">${getEffectiveStat(o, 1)}</td>`;
+                                info += `<td style="text-align:center;">${getEffectiveStat(o, 2)}</td>`;
+                                info += `<td style="text-align:center;">${getEffectiveStat(o, 3)}</td>`;
+                                info += `<td style="text-align:center;">${getEffectiveStat(o, 4)}</td>`;
+                                info += `<td style="text-align:center;">${getEffectiveStat(o, 5)}</td>`;
+                                info += `<td style="text-align:center;">${getEffectiveStat(o, 6)}</td>`;
+                                info += `<td style="text-align:center; font-weight:bold; color:var(--primary-color); background: rgba(0,0,0,0.02);">${sum}</td>`;
+                                info += `</tr>`;
                             }
                         });
+                        info += '</table>';
                     } else {
-                        info += '(目前空無一人駐守)';
+                        info += '<p style="color: #999; font-style: italic;">(目前空無一人駐守)</p>';
                     }
                 } else {
-                    info = `此城池尚未被佔領。\n佔領價格：$${landInfo.price}`;
+                    info += `<p style="font-size: 1.1rem; color: #7f8c8d;">此城池尚未被佔領。</p>`;
+                    info += `<p style="margin-top:10px;"><strong>佔領價格：</strong>$${landInfo.price}</p>`;
+                    info += `</div>`;
                 }
 
                 UI.infoModalTitle.textContent = `${landInfo.name} 情報`;
-                UI.infoModalMessage.textContent = info;
+                UI.infoModalMessage.innerHTML = info;
                 UI.infoModal.classList.remove('hidden');
             });
         });
@@ -1590,7 +1616,46 @@ function getOfficer(id) {
     return OFFICERS_DATA.find(o => o.id === id);
 }
 
-// Phase 30: 政治稅收與城池通膨
+// Phase 12+: 城市稅收與通膨系統
+function getCityTaxIncome(land) {
+    if (!land.owner || land.type !== 'LAND') return 0;
+    
+    let totalPolitics = 0;
+    if (land.defenders && land.defenders.length > 0) {
+        let teamStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+        land.defenders.forEach(id => {
+            const o = getOfficer(id);
+            if (o) {
+                for (let i = 1; i <= 6; i++) {
+                    teamStats[i] += getEffectiveStat(o, i);
+                }
+            }
+        });
+        applyTeamSkills(land.defenders, teamStats);
+        totalPolitics = teamStats[4];
+    }
+
+    let taxRate = 0.01;
+    if (totalPolitics > 300) taxRate = 0.03;
+    else if (totalPolitics > 200) taxRate = 0.02;
+
+    let cityIncome = Math.floor(land.price * taxRate);
+
+    let superPolitician = land.defenders.find(id => {
+        const o = getOfficer(id);
+        return o && getEffectiveStat(o, 4) >= 101 && o.injuryRate === 0;
+    });
+    let elitePolitician = land.defenders.find(id => {
+        const o = getOfficer(id);
+        return o && getEffectiveStat(o, 4) >= 95;
+    });
+
+    if (superPolitician) cityIncome *= 5;
+    else if (elitePolitician) cityIncome *= 2;
+
+    return cityIncome;
+}
+
 function processCityTaxesAndInflation(player) {
     let totalTaxIncome = 0;
     let taxedCities = 0;
@@ -1598,40 +1663,15 @@ function processCityTaxesAndInflation(player) {
 
     MAP_DATA.forEach(land => {
         if (land.owner === player.id) {
-            // 1. 每回合該玩家名下城池過路費通膨 1%
+            // 1. 每過一回合該玩家持有的地產過路費增加 1%
             if (land.toll > 0) {
                 land.toll = Math.ceil(land.toll * 1.01);
             }
 
-            // 2. 政治稅收計算
-            let totalPolitics = 0;
-            if (land.defenders && land.defenders.length > 0) {
-                let teamStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
-                land.defenders.forEach(id => {
-                    const o = getOfficer(id);
-                    if (o) {
-                        for (let i = 1; i <= 6; i++) {
-                            teamStats[i] += getEffectiveStat(o, i);
-                        }
-                    }
-                });
-
-                // 加上特技光環影響
-                applyTeamSkills(land.defenders, teamStats);
-                totalPolitics = teamStats[4]; // 政治為 4
-            }
-
-            // 稅收比率判定
-            let taxRate = 0.01; // 基礎 1%
-            if (totalPolitics > 300) {
-                taxRate = 0.03;
-            } else if (totalPolitics > 200) {
-                taxRate = 0.02;
-            }
-
-            let cityIncome = Math.floor(land.price * taxRate);
-
-            // Phase 41: 政治 (95+)「經世濟民」- 稅收倍增 / 101+倍增5倍
+            // 2. 獲取單體稅收
+            let cityIncome = getCityTaxIncome(land);
+            
+            // 檢查是否由精英政治家產生加成
             let superPolitician = land.defenders.find(id => {
                 const o = getOfficer(id);
                 return o && getEffectiveStat(o, 4) >= 101 && o.injuryRate === 0;
@@ -1640,14 +1680,7 @@ function processCityTaxesAndInflation(player) {
                 const o = getOfficer(id);
                 return o && getEffectiveStat(o, 4) >= 95;
             });
-
-            if (superPolitician) {
-                cityIncome *= 5;
-                eliteTaxCities++;
-            } else if (elitePolitician) {
-                cityIncome *= 2;
-                eliteTaxCities++;
-            }
+            if (superPolitician || elitePolitician) eliteTaxCities++;
 
             if (cityIncome > 0) {
                 totalTaxIncome += cityIncome;
@@ -1658,8 +1691,8 @@ function processCityTaxesAndInflation(player) {
 
     if (totalTaxIncome > 0) {
         updateMoney(player.id, totalTaxIncome);
-        let eliteStr = eliteTaxCities > 0 ? ` (含 ${eliteTaxCities} 座「經世濟民」加成)` : "";
-        log(`💰 【政治歲入】${player.name} 從其名下的 ${taxedCities} 座城池，徵收了總計 $${totalTaxIncome} 的發展稅賦！${eliteStr}`);
+        let eliteStr = eliteTaxCities > 0 ? ` (含 ${eliteTaxCities} 座「富國強兵/經世濟民」加成)` : "";
+        log(`💰 【城市稅收】${player.name} 從名下 ${taxedCities} 座城市獲稅 $${totalTaxIncome}！${eliteStr}`);
     }
 }
 
