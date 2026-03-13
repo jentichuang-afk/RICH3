@@ -1078,16 +1078,22 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
     attackingIds.forEach(id => { let o = getOfficer(id); if (o) atkStr += getEffectiveStat(o, 1); });
     defendingIds.forEach(id => { let o = getOfficer(id); if (o) defStr += getEffectiveStat(o, 1); });
     
-    // 檢查 101+ 武力
+    // 檢查武力特技
     const hasSuperStrAtk = attackingIds.some(id => { let o = getOfficer(id); return o && getEffectiveStat(o, 1) >= 101 && o.injuryRate === 0; });
     const hasSuperStrDef = defendingIds.some(id => { let o = getOfficer(id); return o && getEffectiveStat(o, 1) >= 101 && o.injuryRate === 0; });
+    const hasTopStrAtk = attackingIds.some(id => { let o = getOfficer(id); return o && getEffectiveStat(o, 1) >= 95; });
+    const hasTopStrDef = defendingIds.some(id => { let o = getOfficer(id); return o && getEffectiveStat(o, 1) >= 95; });
     
     let useSuperStrPool = (hasSuperStrAtk && atkStr > defStr) || (hasSuperStrDef && defStr > atkStr);
+    let useTopStrPool = (hasTopStrAtk && atkStr > defStr) || (hasTopStrDef && defStr > atkStr);
 
     let statPool = [1, 2, 3, 4, 5, 6];
     if (useSuperStrPool) {
         statPool = [1, 1, 1, 2, 3, 4, 5, 6];
         log(`💪 【萬夫莫敵】戰場出現武力突破極限的猛將，硬碰硬的機率巨幅提升！`);
+    } else if (useTopStrPool) {
+        statPool = [1, 1, 2, 3, 4, 5, 6];
+        log(`💪 【一夫當關】戰場出現驍勇虎將，硬碰硬的機率提升！`);
     }
     const statRoll = statPool[Math.floor(Math.random() * statPool.length)];
     const statNames = { 1: '武力', 2: '智力', 3: '統率', 4: '政治', 5: '魅力', 6: '運氣' };
@@ -1292,7 +1298,6 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
                         if (id !== winnerSuperCommander) { dmg = 0; auraStr = ` 🛡️(${winnerCmdName} 神級指揮，友軍無傷)`; }
                         else { dmg = Math.floor(dmg / 2); auraStr = ` 🛡️(${winnerCmdName} 神級指揮降傷)`; }
                     } else {
-                        if (getEffectiveStat(o, 1) >= 95) dmg = Math.floor(dmg / 2); // 猛將減傷 (武力 >= 95)
                         if (winnerTopCommander) { dmg = Math.floor(dmg / 2); auraStr = ` 🛡️(${winnerCmdName} 統整降低傷亡)`; }
                     }
                     
@@ -1339,7 +1344,6 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
                     if (id !== loserSuperCommander) { dmg = 0; auraStr = ` 🛡️(${loserCmdName} 神級指揮，友軍無傷)`; }
                     else { dmg = Math.floor(dmg / 2); auraStr = ` 🛡️(${loserCmdName} 神級指揮降傷)`; }
                 } else {
-                    if (getEffectiveStat(o, 1) >= 95) dmg = Math.floor(dmg / 2); // 猛將減傷 (武力 >= 95)
                     if (loserTopCommander) { dmg = Math.floor(dmg / 2); auraStr = ` 🛡️(${loserCmdName} 統整降低傷亡)`; }
                 }
 
