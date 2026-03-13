@@ -104,21 +104,21 @@ function formatStatDisplay(base, current, injuryRate = 0) {
 // 地圖資料 (16格)
 const MAP_DATA = [
     { id: 0, name: "長安", type: "START", price: 0, owner: null },
-    { id: 1, name: "洛陽", type: "LAND", price: 2000, toll: 1000, owner: null, defenders: [] },
-    { id: 2, name: "許昌", type: "LAND", price: 1800, toll: 900, owner: null, defenders: [] },
-    { id: 3, name: "宛城", type: "LAND", price: 1300, toll: 650, owner: null, defenders: [] },
-    { id: 4, name: "鄴城", type: "LAND", price: 1600, toll: 800, owner: null, defenders: [] },
-    { id: 5, name: "下邳", type: "LAND", price: 1500, toll: 750, owner: null, defenders: [] },
-    { id: 6, name: "臨淄", type: "LAND", price: 1500, toll: 750, owner: null, defenders: [] },
-    { id: 7, name: "徐州", type: "LAND", price: 1500, toll: 750, owner: null, defenders: [] },
+    { id: 1, name: "洛陽", type: "LAND", price: 2000, toll: 1000, owner: null, defenders: [], development: 0 },
+    { id: 2, name: "許昌", type: "LAND", price: 1800, toll: 900, owner: null, defenders: [], development: 0 },
+    { id: 3, name: "宛城", type: "LAND", price: 1300, toll: 650, owner: null, defenders: [], development: 0 },
+    { id: 4, name: "鄴城", type: "LAND", price: 1600, toll: 800, owner: null, defenders: [], development: 0 },
+    { id: 5, name: "下邳", type: "LAND", price: 1500, toll: 750, owner: null, defenders: [], development: 0 },
+    { id: 6, name: "臨淄", type: "LAND", price: 1500, toll: 750, owner: null, defenders: [], development: 0 },
+    { id: 7, name: "徐州", type: "LAND", price: 1500, toll: 750, owner: null, defenders: [], development: 0 },
     { id: 8, name: "建業", type: "ITEM_SHOP", price: 0, owner: null }, // 中立道具店
-    { id: 9, name: "廬江", type: "LAND", price: 1500, toll: 750, owner: null, defenders: [] },
-    { id: 10, name: "江夏", type: "LAND", price: 1300, toll: 650, owner: null, defenders: [] },
-    { id: 11, name: "襄陽", type: "LAND", price: 1800, toll: 900, owner: null, defenders: [] },
-    { id: 12, name: "成都", type: "LAND", price: 2000, toll: 1000, owner: null, defenders: [] },
-    { id: 13, name: "江州", type: "LAND", price: 1200, toll: 600, owner: null, defenders: [] },
-    { id: 14, name: "梓潼", type: "LAND", price: 1200, toll: 600, owner: null, defenders: [] },
-    { id: 15, name: "漢中", type: "LAND", price: 1100, toll: 550, owner: null, defenders: [] },
+    { id: 9, name: "廬江", type: "LAND", price: 1500, toll: 750, owner: null, defenders: [], development: 0 },
+    { id: 10, name: "江夏", type: "LAND", price: 1300, toll: 650, owner: null, defenders: [], development: 0 },
+    { id: 11, name: "襄陽", type: "LAND", price: 1800, toll: 900, owner: null, defenders: [], development: 0 },
+    { id: 12, name: "成都", type: "LAND", price: 2000, toll: 1000, owner: null, defenders: [], development: 0 },
+    { id: 13, name: "江州", type: "LAND", price: 1200, toll: 600, owner: null, defenders: [], development: 0 },
+    { id: 14, name: "梓潼", type: "LAND", price: 1200, toll: 600, owner: null, defenders: [], development: 0 },
+    { id: 15, name: "漢中", type: "LAND", price: 1100, toll: 550, owner: null, defenders: [], development: 0 },
 ];
 
 const DICE_FACES = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
@@ -152,6 +152,7 @@ const UI = {
     modalTitle: document.getElementById('modal-title'),
     modalMessage: document.getElementById('modal-message'),
     btnModalYes: document.getElementById('btn-modal-yes'),
+    btnModalExtra: document.getElementById('btn-modal-extra'),
     btnModalNo: document.getElementById('btn-modal-no'),
     officerModal: document.getElementById('officer-modal'),
     officerModalTitle: document.getElementById('officer-modal-title'),
@@ -210,6 +211,7 @@ const UI = {
 
 // Modal 回調函數
 let modalConfirmCallback = null;
+let modalExtraCallback = null;
 let modalCancelCallback = null;
 let officerConfirmCallback = null;
 let officerCancelCallback = null;
@@ -258,6 +260,15 @@ function initGame() {
             }
         });
 
+
+        if (UI.btnModalExtra) UI.btnModalExtra.addEventListener('click', () => {
+            hideModal();
+            if (modalExtraCallback) {
+                const cb = modalExtraCallback;
+                modalExtraCallback = null;
+                cb();
+            }
+        });
 
         UI.btnModalNo.addEventListener('click', () => {
             hideModal();
@@ -347,6 +358,9 @@ function initGame() {
                     info += `<p><strong>擁有者：</strong>${owner.name}</p>`;
                     info += `<p><strong>過路費：</strong>$${landInfo.toll}</p>`;
                     info += `<p><strong>每回合稅收：</strong>$${tax}</p>`;
+                    if (landInfo.development > 0) {
+                        info += `<p><strong>建設等級：</strong><span style="color:#e67e22; font-weight:bold;">Lv ${landInfo.development}</span> (+${landInfo.development}%)</p>`;
+                    }
                     info += `</div>`;
 
                     if (landInfo.defenders.length > 0) {
@@ -785,7 +799,7 @@ function triggerLandEvent(player, landInfo) {
 
             showModal(
                 `回到領地：${landInfo.name}`,
-                `${player.name} 回到自己的領地 ${landInfo.name}，軍心大振。<br>目前有 ${originalDefenders.length} 名武將駐守。<br>是否更換守城武將？`,
+                `歡迎來到 ${landInfo.name}，目前建設等級 Lv ${landInfo.development || 0}。<br>您可以選擇更換駐軍武將，或花費 $100 建設城池（使基礎稅率提升 1%）。`,
                 () => { // 選擇更換
                     // 將守護武將暫時放回閒置清單
                     player.officers.push(...landInfo.defenders);
@@ -817,11 +831,24 @@ function triggerLandEvent(player, landInfo) {
                         landInfo.id
                     );
                 },
-                () => { // 選擇不更換
-                    log(`${player.name} 決定維持 ${landInfo.name} 原有的防守佈局。`);
+                () => { // 選擇不更換/不建設
+                    log(`${player.name} 決定維持 ${landInfo.name} 原有的佈局。`);
                     endTurn();
                 },
-                '更換', '不更換'
+                '更換守將', '不做更動',
+                () => { // 選擇建設
+                    if (player.money >= 100) {
+                        updateMoney(player.id, -100);
+                        landInfo.development = (landInfo.development || 0) + 1;
+                        log(`🏗️ 【城池建設】${player.name} 斥資 $100 建設 ${landInfo.name}，建設等級提升至 Lv ${landInfo.development}！`);
+                        // 建設完後再次提供選項或直接結束？使用者說 "每建設一次"，看起來一次行動建一次
+                        endTurn();
+                    } else {
+                        log(`[提示] 資金不足，無法進行建設。`);
+                        endTurn();
+                    }
+                },
+                '建設城池 ($100)'
             );
         }
     } else {
@@ -1674,6 +1701,9 @@ function getCityTaxIncome(land) {
     if (totalPolitics > 300) taxRate = 0.03;
     else if (totalPolitics > 200) taxRate = 0.02;
 
+    // Phase: 建設城池加成
+    taxRate += (land.development || 0) * 0.01;
+
     let cityIncome = Math.floor(land.price * taxRate);
 
     let superPolitician = land.defenders.find(id => {
@@ -1949,14 +1979,23 @@ function playItemAnimation(itemName, playerName) {
     }, 1200);
 }
 
-function showModal(title, messageHtml, onConfirm, onCancel, confirmText = "確定", cancelText = "取消") {
+function showModal(title, messageHtml, onConfirm, onCancel, confirmText = "確定", cancelText = "取消", onExtra = null, extraText = "") {
     GAME_STATE.isWaitingForAction = true;
     UI.modalTitle.textContent = title;
     UI.modalMessage.innerHTML = messageHtml;
 
     UI.btnModalYes.textContent = confirmText;
-    UI.btnModalNo.style.display = onCancel ? 'inline-block' : 'none';
+    UI.btnModalNo.style.display = (onCancel || !onExtra) ? 'inline-block' : 'none';
     if (cancelText) UI.btnModalNo.textContent = cancelText;
+
+    if (onExtra) {
+        UI.btnModalExtra.style.display = 'inline-block';
+        UI.btnModalExtra.textContent = extraText;
+        modalExtraCallback = onExtra;
+    } else {
+        UI.btnModalExtra.style.display = 'none';
+        modalExtraCallback = null;
+    }
 
     modalConfirmCallback = onConfirm;
     modalCancelCallback = onCancel || (() => { });
