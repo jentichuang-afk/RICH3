@@ -1084,18 +1084,10 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
     
     let useSuperStrPool = (hasSuperStrAtk && atkStr > defStr) || (hasSuperStrDef && defStr > atkStr);
 
-    // 電腦擲骰決定比拚項目 (若參戰武將武力 >= 95，武力機率翻倍)
-    const hasLegend = [...attackingIds, ...defendingIds].some(id => {
-        const o = getOfficer(id);
-        return o && getEffectiveStat(o, 1) >= 95;
-    });
-    
     let statPool = [1, 2, 3, 4, 5, 6];
     if (useSuperStrPool) {
         statPool = [1, 1, 1, 2, 3, 4, 5, 6];
         log(`💪 【萬夫莫敵】戰場出現武力突破極限的猛將，硬碰硬的機率巨幅提升！`);
-    } else if (hasLegend) {
-        statPool = [1, 1, 2, 3, 4, 5, 6];
     }
     const statRoll = statPool[Math.floor(Math.random() * statPool.length)];
     const statNames = { 1: '武力', 2: '智力', 3: '統率', 4: '政治', 5: '魅力', 6: '運氣' };

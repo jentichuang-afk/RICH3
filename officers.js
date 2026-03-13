@@ -1,4 +1,4 @@
-﻿// Phase 58, 59, 61: 定義女性武將 ID，用於專有特技判定
+// Phase 58, 59, 61: 定義女性武將 ID，用於專有特技判定
 const FEMALE_OFFICER_IDS = [115, 215, 219, 311, 315, 316, 402, 416, 418];
 
 // 武將特技定義
@@ -51,10 +51,6 @@ const OFFICER_SKILLS = {
     416: { name: "悲歌", desc: "若敵方無女性對手，團隊全能力+2%", effect: (stats, enemyIds = []) => { const hasFemale = enemyIds.some(id => FEMALE_OFFICER_IDS.includes(id)); if (!hasFemale) { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.02); } } }, // 蔡文姬
     418: { name: "戰姬", desc: "若敵方無女性對手，團隊全能力+2%", effect: (stats, enemyIds = []) => { const hasFemale = enemyIds.some(id => FEMALE_OFFICER_IDS.includes(id)); if (!hasFemale) { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.02); } } }, // 呂玲綺
 };
-
-// Phase 25 隱藏被動定義：這十位超一線猛將出場時，骰出武力的機率自帶翻倍
-const LEGENDARY_WARRIORS = [101, 102, 103, 104, 211, 212, 320, 401, 404, 405];
-
 
 const OFFICERS_DATA = [
     // 蜀國 (1)
