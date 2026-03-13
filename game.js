@@ -1296,23 +1296,45 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
                     log(`🎊 【覺醒】${o.name} 突破極限，領悟了新的隱藏特技！`);
                 }
             }
-            // 由於 Phase 31: 若為逆轉勝，勝方需全體承受 80%~99% 絕對重傷代價
+            // Phase 31: 若為逆轉勝，勝方需全體承受 80%~99% 絕對重傷代價
             if (reversalProc) {
                 let dmg = Math.floor(Math.random() * 20) + 80; // 80% ~ 99%
-                let isSacrifice = false;
+                let auraStr = "";
+                let isSacrifice = (reversalSacrificeId && id === reversalSacrificeId);
+
                 if (reversalSacrificeId) {
-                    if (id === reversalSacrificeId) { dmg = 99; isSacrifice = true; }
-                    else dmg = 0;
+                    if (id === reversalSacrificeId) {
+                        dmg = 99;
+                        // 101+ 智力逆轉代價，可受隊友 95+/101+ 統率減免
+                        if (winnerSuperCommander) {
+                            if (id !== winnerSuperCommander) { dmg = 0; auraStr = ` 🛡️(${winnerCmdName} 神級指揮，代價免疫)`; }
+                            else { dmg = Math.floor(dmg / 2); auraStr = ` 🛡️(${winnerCmdName} 神級指揮，代價減半)`; }
+                        } else if (winnerTopCommander) {
+                            dmg = Math.floor(dmg / 2); auraStr = ` 🛡️(${winnerCmdName} 統整，代價減半)`;
+                        } else {
+                            auraStr = ' (神鬼莫測代價)';
+                        }
+                    } else {
+                        dmg = 0; // 隊友因神鬼莫測豁免
+                    }
                 } else {
-                    if (winnerTopCommander) dmg = Math.floor(dmg / 2); // Phase 33
+                    // 95+ 智力逆轉代價，全體受 95+/101+ 統率減免
+                    if (winnerSuperCommander) {
+                        if (id !== winnerSuperCommander) { dmg = 0; auraStr = ` 🛡️(${winnerCmdName} 神級指揮，友軍免疫受傷)`; }
+                        else { dmg = Math.floor(dmg / 2); auraStr = ` 🛡️(${winnerCmdName} 神級指揮，傷害減半)`; }
+                    } else if (winnerTopCommander) {
+                        dmg = Math.floor(dmg / 2); auraStr = ` 🛡️(${winnerCmdName} 統整，傷害減半)`;
+                    }
                 }
                 
                 if (dmg > 0) {
                     o.injuryRate = Math.min(100, o.injuryRate + dmg);
-                    let auraStr = winnerTopCommander && !reversalSacrificeId ? ` 🛡️(受到 ${winnerCmdName} 指揮護衛，降為 ${dmg}%)` : ``;
-                    if (isSacrifice) auraStr = ' (神鬼莫測代價)';
                     injuryHtml += `<div style="font-size: 14px; margin-top: 5px;">🩸 <strong>${o.name}</strong> 因逆轉奇謀，重創 ${dmg}%！${auraStr}</div>`;
                     log(`🩸 ${o.name} 承受逆轉代價，陷入 ${dmg}% 的重傷！${auraStr}`);
+                } else if (auraStr && (isSacrifice || !reversalSacrificeId)) {
+                    // 只有當統率光環真的「救了」原本該受傷的人才顯示
+                    injuryHtml += `<div style="font-size: 14px; margin-top: 5px;">🛡️ <strong>${o.name}</strong> 在 ${winnerCmdName} 保護下，免於逆轉重創！</div>`;
+                    log(`🛡️ ${o.name} 在 ${winnerCmdName} 保護下，免於逆轉重創！`);
                 }
             } else {
                 // 一般勝方受傷判定
