@@ -351,31 +351,44 @@ function initGame() {
 
                     if (landInfo.defenders.length > 0) {
                         info += '<p style="font-weight: bold; margin-top: 10px; border-left: 4px solid var(--primary-color); padding-left: 8px;">【駐軍陣容】</p>';
-                        info += '<table style="width:100%; border-collapse: collapse; font-size: 0.9rem; margin-top: 8px; border: 1px solid #ddd;">';
-                        info += '<tr style="background:#f2f2f2; border-bottom: 2px solid #ccc; font-size: 0.8rem;">';
-                        info += '<th style="padding:4px;">姓名</th><th>武</th><th>智</th><th>統</th><th>政</th><th>魅</th><th>運</th><th style="color:var(--primary-color)">總</th></tr>';
+                        info += '<table style="width:100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 8px; border: 1px solid #ddd;">';
+                        info += '<tr style="background:#f2f2f2; border-bottom: 2px solid #ccc; font-size: 0.75rem;">';
+                        info += '<th style="padding:4px; width:15%;">姓名</th><th>武</th><th>智</th><th>統</th><th>政</th><th>魅</th><th>運</th><th style="width:35%;">特技</th></tr>';
                         
+                        let totalStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
                         landInfo.defenders.forEach(id => {
                             const o = getOfficer(id);
                             if (o) {
-                                let sum = 0;
-                                for(let i=1; i<=6; i++) sum += getEffectiveStat(o, i);
                                 let injuryClass = o.injuryRate > 0 ? 'background-color: #fff5f5; color: #c0392b;' : '';
                                 let injuryIcon = o.injuryRate > 0 ? '🤕' : '';
-                                let injuryTip = o.injuryRate > 0 ? ` title="受傷 ${o.injuryRate}%"` : '';
                                 
-                                info += `<tr style="border-bottom: 1px solid #eee; ${injuryClass}" ${injuryTip}>`;
+                                let skills = [];
+                                if (OFFICER_SKILLS[id]) {
+                                    skills.push(`<strong style="color:var(--primary-color)">【${OFFICER_SKILLS[id].name}】</strong>`);
+                                }
+                                let ss = getSuperSkillDescription(o);
+                                if (ss) skills.push(ss);
+
+                                info += `<tr style="border-bottom: 1px solid #eee; ${injuryClass}">`;
                                 info += `<td style="padding: 6px 4px; font-weight:bold;">${injuryIcon}${o.name}</td>`;
-                                info += `<td style="text-align:center;">${getEffectiveStat(o, 1)}</td>`;
-                                info += `<td style="text-align:center;">${getEffectiveStat(o, 2)}</td>`;
-                                info += `<td style="text-align:center;">${getEffectiveStat(o, 3)}</td>`;
-                                info += `<td style="text-align:center;">${getEffectiveStat(o, 4)}</td>`;
-                                info += `<td style="text-align:center;">${getEffectiveStat(o, 5)}</td>`;
-                                info += `<td style="text-align:center;">${getEffectiveStat(o, 6)}</td>`;
-                                info += `<td style="text-align:center; font-weight:bold; color:var(--primary-color); background: rgba(0,0,0,0.02);">${sum}</td>`;
+                                for (let i = 1; i <= 6; i++) {
+                                    let val = getEffectiveStat(o, i);
+                                    totalStats[i] += val;
+                                    info += `<td style="text-align:center;">${val}</td>`;
+                                }
+                                info += `<td style="font-size: 0.75rem; padding: 4px; line-height: 1.3;">${skills.join('<br>')}</td>`;
                                 info += `</tr>`;
                             }
                         });
+
+                        // 總合列
+                        info += '<tr style="background: #f9f9f9; font-weight: bold; border-top: 2px solid #8e735b;">';
+                        info += '<td style="padding: 6px 4px; text-align: right;">團隊總合</td>';
+                        for (let i = 1; i <= 6; i++) {
+                            info += `<td style="text-align:center; color: var(--primary-color);">${totalStats[i]}</td>`;
+                        }
+                        info += '<td></td></tr>';
+
                         info += '</table>';
                     } else {
                         info += '<p style="color: #999; font-style: italic;">(目前空無一人駐守)</p>';
