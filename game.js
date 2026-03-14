@@ -2401,6 +2401,7 @@ function showChanganModal(player, offeredIds) {
 
         const div = document.createElement('div');
         div.className = 'officer-item';
+        div.style.textAlign = 'left';
         div.innerHTML = `
             <strong>${o.name}</strong> 
             <div class="officer-stats">
