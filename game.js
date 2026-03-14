@@ -872,7 +872,7 @@ function triggerLandEvent(player, landInfo) {
             return;
         }
 
-        // Phase 41 & 45: 魅力 (95+)「名德重望」- 30% 機率不戰而退
+        // Phase 41 & 45: 魅力 (95+)「名德重望」- 50% 機率不戰而退
         let superCharismaId = landInfo.defenders.find(id => {
             const o = getOfficer(id);
             return o && getEffectiveStat(o, 5) >= 101 && o.injuryRate === 0;
@@ -883,7 +883,7 @@ function triggerLandEvent(player, landInfo) {
         });
 
         let charmId = superCharismaId || topCharismaId;
-        let charmChance = superCharismaId ? 0.75 : 0.30;
+        let charmChance = superCharismaId ? 0.75 : 0.50;
 
         if (charmId && Math.random() < charmChance) {
             const charmer = getOfficer(charmId);
@@ -1251,7 +1251,7 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
         return o && getEffectiveStat(o, 2) >= 95; // 智力 >= 95 (包含成長與受傷影響)
     });
 
-    let revChance = superStrategistId ? 0.50 : (topStrategistId ? 0.30 : 0);
+    let revChance = superStrategistId ? 0.75 : (topStrategistId ? 0.50 : 0);
     let actingStrategistId = superStrategistId || topStrategistId;
 
     if (actingStrategistId && Math.random() < revChance) {
@@ -2984,8 +2984,8 @@ function getSuperSkillDescription(o) {
 
     // 智力 (2)
     let int = getEffectiveStat(o, 2);
-    if (int >= 101 && o.injuryRate === 0) superSkills.push(`<span style="color:#d32f2f">【神鬼莫測】</span>50% 逆轉且犧牲保隊`);
-    else if (int >= 95) superSkills.push(`<span style="color:#9b59b6">【神機妙算】</span>30% 機率絕境逆轉`);
+    if (int >= 101 && o.injuryRate === 0) superSkills.push(`<span style="color:#d32f2f">【神鬼莫測】</span>75% 逆轉且犧牲保隊`);
+    else if (int >= 95) superSkills.push(`<span style="color:#9b59b6">【神機妙算】</span>50% 機率絕境逆轉`);
 
     // 統率 (3)
     let cmd = getEffectiveStat(o, 3);
@@ -3000,7 +3000,7 @@ function getSuperSkillDescription(o) {
     // 魅力 (5)
     let cha = getEffectiveStat(o, 5);
     if (cha >= 101 && o.injuryRate === 0) superSkills.push(`<span style="color:#d32f2f">【天選之子】</span>75% 機率勸退敵軍`);
-    else if (cha >= 95) superSkills.push(`<span style="color:#e91e63">【名德重望】</span>30% 機率勸退敵軍`);
+    else if (cha >= 95) superSkills.push(`<span style="color:#e91e63">【名德重望】</span>50% 機率勸退敵軍`);
 
     // 運氣 (6)
     let luc = getEffectiveStat(o, 6);
