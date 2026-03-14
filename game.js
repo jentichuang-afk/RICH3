@@ -1553,6 +1553,12 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
                 landInfo.owner = attacker.id;
                 landInfo.defenders = attackingIds;
 
+                // Phase: 城池易主，等級減少 1 (戰火破壞)
+                if (landInfo.development && landInfo.development > 0) {
+                    landInfo.development -= 1;
+                    log(`🏚️ 由於飽受戰火洗禮，${landInfo.name} 的建設等級下降為 Lv ${landInfo.development}。`);
+                }
+
                 // 更新 UI 標示
                 const cell = document.getElementById(`cell-${landInfo.id}`);
                 const ownerMarker = cell.querySelector('.owner-marker');
