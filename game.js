@@ -1352,8 +1352,8 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
     winningTeamIds.forEach(id => {
         const o = getOfficer(id);
         if (o) {
-            // 勝方：50% 機率獲得能力提升
-            if (Math.random() < 0.5) {
+            // 勝方：75% 機率獲得能力提升
+            if (Math.random() < 0.75) {
                 const oldVal = o.stats[statRoll];
                 o.stats[statRoll] += 1;
                 const newVal = o.stats[statRoll];
@@ -1439,8 +1439,8 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
     losingTeamIds.forEach(id => {
         const o = getOfficer(id);
         if (o) {
-            // Phase 27 擴充：敗方也有 20% 機率從失敗中淬鍊成長
-            if (Math.random() < 0.2) {
+            // Phase 27 擴充：敗方也有 25% 機率從失敗中淬鍊成長
+            if (Math.random() < 0.25) {
                 const oldVal = o.stats[statRoll];
                 o.stats[statRoll] += 1;
                 const newVal = o.stats[statRoll];
