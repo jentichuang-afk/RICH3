@@ -422,7 +422,10 @@ function initGame() {
         });
 
         // 等待玩家選擇人數與勢力...
-        console.log("Game initialization completed successfully.");
+        // 初始化地圖顯示
+        updateBoardUI();
+
+        console.log("Game initialized successfully.");
     } catch (e) {
         console.error("Critical error in initGame:", e);
         // 若日誌尚未準備好，嘗試在 body 頂端警告
@@ -800,6 +803,7 @@ function triggerLandEvent(player, landInfo) {
             if (player.money >= 1000 + buildCost) {
                 updateMoney(player.id, -buildCost);
                 landInfo.development = (landInfo.development || 0) + 1;
+                updateBoardUI(); // 更新地標顯示
                 log(`🏗️ 【城池建設】[電腦] ${player.name} 斥資 $${buildCost} 建設 ${landInfo.name}，建設等級提升至 Lv ${landInfo.development}！`);
             }
             endTurn();
@@ -851,6 +855,7 @@ function triggerLandEvent(player, landInfo) {
                     if (player.money >= currentBuildCost) {
                         updateMoney(player.id, -currentBuildCost);
                         landInfo.development = (landInfo.development || 0) + 1;
+                        updateBoardUI(); // 更新地標顯示
                         log(`🏗️ 【城池建設】${player.name} 斥資 $${currentBuildCost} 建設 ${landInfo.name}，建設等級提升至 Lv ${landInfo.development}！`);
                         // 建設完後再次提供選項或直接結束？使用者說 "每建設一次"，看起來一次行動建一次
                         endTurn();
@@ -1564,6 +1569,7 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
                 // Phase: 城池易主，等級減少 1 (戰火破壞)
                 if (landInfo.development && landInfo.development > 0) {
                     landInfo.development -= 1;
+                    updateBoardUI(); // 更新地標顯示
                     log(`🏚️ 由於飽受戰火洗禮，${landInfo.name} 的建設等級下降為 Lv ${landInfo.development}。`);
                 }
 
@@ -1729,6 +1735,25 @@ function getCityValue(land) {
 function getCityToll(land) {
     if (!land || land.type !== 'LAND') return 0;
     return Math.floor(getCityValue(land) * 0.5);
+}
+
+/**
+ * 更新主畫面地圖上的城池外觀 (等級與價值)
+ */
+function updateBoardUI() {
+    MAP_DATA.forEach(land => {
+        if (land.type === 'LAND') {
+            const cell = document.getElementById(`cell-${land.id}`);
+            if (cell) {
+                const nameSpan = cell.querySelector('.city-name');
+                if (nameSpan) {
+                    const cityValue = getCityValue(land);
+                    let lvText = (land.development && land.development > 0) ? `<br><span style="color:#e67e22; font-weight:bold;">Lv ${land.development}</span>` : "";
+                    nameSpan.innerHTML = `${land.name}<br><small>$${cityValue}</small>${lvText}`;
+                }
+            }
+        }
+    });
 }
 
 // Phase 12+: 城市稅收與通膨系統
