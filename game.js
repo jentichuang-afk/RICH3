@@ -104,21 +104,21 @@ function formatStatDisplay(base, current, injuryRate = 0) {
 // 地圖資料 (16格)
 const MAP_DATA = [
     { id: 0, name: "長安", type: "START", price: 0, owner: null },
-    { id: 1, name: "洛陽", type: "LAND", price: 2000, toll: 1000, owner: null, defenders: [], development: 0 },
-    { id: 2, name: "許昌", type: "LAND", price: 1800, toll: 900, owner: null, defenders: [], development: 0 },
-    { id: 3, name: "宛城", type: "LAND", price: 1300, toll: 650, owner: null, defenders: [], development: 0 },
-    { id: 4, name: "鄴城", type: "LAND", price: 1600, toll: 800, owner: null, defenders: [], development: 0 },
-    { id: 5, name: "下邳", type: "LAND", price: 1500, toll: 750, owner: null, defenders: [], development: 0 },
-    { id: 6, name: "臨淄", type: "LAND", price: 1500, toll: 750, owner: null, defenders: [], development: 0 },
-    { id: 7, name: "徐州", type: "LAND", price: 1500, toll: 750, owner: null, defenders: [], development: 0 },
+    { id: 1, name: "洛陽", type: "LAND", price: 2000, owner: null, defenders: [], development: 0 },
+    { id: 2, name: "許昌", type: "LAND", price: 1800, owner: null, defenders: [], development: 0 },
+    { id: 3, name: "宛城", type: "LAND", price: 1300, owner: null, defenders: [], development: 0 },
+    { id: 4, name: "鄴城", type: "LAND", price: 1600, owner: null, defenders: [], development: 0 },
+    { id: 5, name: "下邳", type: "LAND", price: 1500, owner: null, defenders: [], development: 0 },
+    { id: 6, name: "臨淄", type: "LAND", price: 1500, owner: null, defenders: [], development: 0 },
+    { id: 7, name: "徐州", type: "LAND", price: 1500, owner: null, defenders: [], development: 0 },
     { id: 8, name: "建業", type: "ITEM_SHOP", price: 0, owner: null }, // 中立道具店
-    { id: 9, name: "廬江", type: "LAND", price: 1500, toll: 750, owner: null, defenders: [], development: 0 },
-    { id: 10, name: "江夏", type: "LAND", price: 1300, toll: 650, owner: null, defenders: [], development: 0 },
-    { id: 11, name: "襄陽", type: "LAND", price: 1800, toll: 900, owner: null, defenders: [], development: 0 },
-    { id: 12, name: "成都", type: "LAND", price: 2000, toll: 1000, owner: null, defenders: [], development: 0 },
-    { id: 13, name: "江州", type: "LAND", price: 1200, toll: 600, owner: null, defenders: [], development: 0 },
-    { id: 14, name: "梓潼", type: "LAND", price: 1200, toll: 600, owner: null, defenders: [], development: 0 },
-    { id: 15, name: "漢中", type: "LAND", price: 1100, toll: 550, owner: null, defenders: [], development: 0 },
+    { id: 9, name: "廬江", type: "LAND", price: 1500, owner: null, defenders: [], development: 0 },
+    { id: 10, name: "江夏", type: "LAND", price: 1300, owner: null, defenders: [], development: 0 },
+    { id: 11, name: "襄陽", type: "LAND", price: 1800, owner: null, defenders: [], development: 0 },
+    { id: 12, name: "成都", type: "LAND", price: 2000, owner: null, defenders: [], development: 0 },
+    { id: 13, name: "江州", type: "LAND", price: 1200, owner: null, defenders: [], development: 0 },
+    { id: 14, name: "梓潼", type: "LAND", price: 1200, owner: null, defenders: [], development: 0 },
+    { id: 15, name: "漢中", type: "LAND", price: 1100, owner: null, defenders: [], development: 0 },
 ];
 
 const DICE_FACES = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
@@ -358,7 +358,7 @@ function initGame() {
                     const tax = getCityTaxIncome(landInfo);
                     info += `<p><strong>擁有者：</strong>${owner.name}</p>`;
                     info += `<p><strong>城池價值：</strong><span style="color:#d35400; font-weight:bold;">$${cityValue}</span> (Lv.${landInfo.development || 0})</p>`;
-                    info += `<p><strong>過路費：</strong>$${landInfo.toll}</p>`;
+                    info += `<p><strong>過路費：</strong>$${getCityToll(landInfo)}</p>`;
                     info += `<p><strong>每回合稅收：</strong>$${tax}</p>`;
                     if (landInfo.development > 0) {
                         info += `<p><strong>建設加成：</strong>價值 +${landInfo.development * 10}% / 地利 +${landInfo.development}%</p>`;
@@ -865,7 +865,7 @@ function triggerLandEvent(player, landInfo) {
     } else {
         // 別人的土地
         const owner = GAME_STATE.players[landInfo.owner];
-        const toll = landInfo.toll;
+        const toll = getCityToll(landInfo);
 
         // 若對方已破產則免付費並成為無主地
         if (owner.isBankrupt) {
@@ -988,7 +988,7 @@ function triggerLandEvent(player, landInfo) {
 
             showModal(
                 `抵達 ${landInfo.name} (擁有者: ${owner.name})`,
-                `過路費: $${landInfo.toll}。<br>您要支付過路費，還是發起攻城？<br>${defInfoHtml}<br>(若攻城失敗需支付雙倍 $${toll * 2})`,
+                `過路費: $${getCityToll(landInfo)}。<br>您要支付過路費，還是發起攻城？<br>${defInfoHtml}<br>(若攻城失敗需支付雙倍 $${getCityToll(landInfo) * 2})`,
                 () => { payToll(player, owner, toll); },
                 canSiege ? () => {
                     showOfficerModal(
@@ -1579,7 +1579,7 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
                 endTurn();
             } else {
                 // 攻佔失敗
-                const penalty = landInfo.toll * 2;
+                const penalty = getCityToll(landInfo) * 2;
                 log(`❌ 攻城失敗！${attacker.name} 損失慘重，支付雙倍過路費 $${penalty}！`);
 
                 // 攻方武將退回給攻方
@@ -1715,12 +1715,28 @@ function getOfficer(id) {
     return OFFICERS_DATA.find(o => o.id === id);
 }
 
+/**
+ * 計算城池當前價值 (基礎價格 + 等級加成)
+ */
+function getCityValue(land) {
+    if (!land || land.type !== 'LAND') return 0;
+    return Math.floor(land.price * (1 + (land.development || 0) * 0.1));
+}
+
+/**
+ * 計算城池當前過路費 (目前定義為價值的 50%)
+ */
+function getCityToll(land) {
+    if (!land || land.type !== 'LAND') return 0;
+    return Math.floor(getCityValue(land) * 0.5);
+}
+
 // Phase 12+: 城市稅收與通膨系統
 function getCityTaxIncome(land) {
     if (!land.owner || land.type !== 'LAND') return 0;
     
-    // 1. 計算城池價值：基礎價格 * (1 + 等級 * 10%)
-    const cityValue = Math.floor(land.price * (1 + (land.development || 0) * 0.1));
+    // 1. 計算城池價值
+    const cityValue = getCityValue(land);
     
     // 2. 計算基礎稅收：價值 * 1%
     const baseTax = cityValue * 0.01;
@@ -1767,10 +1783,7 @@ function processCityTaxesAndInflation(player) {
 
     MAP_DATA.forEach(land => {
         if (land.owner === player.id) {
-            // 1. 每過一回合該玩家持有的地產過路費增加 1%
-            if (land.toll > 0) {
-                land.toll = Math.ceil(land.toll * 1.01);
-            }
+            // 1. 每過一回合的處理 (原本的過路費通膨邏輯已移除，現在連動價值)
 
             // 2. 獲取單體稅收
             let cityIncome = getCityTaxIncome(land);
