@@ -12,7 +12,7 @@ if (typeof window.ITEMS_DATA === 'undefined') {
         2: { id: 2, name: "以逸待勞", price: 500, desc: "原地停留一次 (直接觸發事件)", type: "active" },
         3: { id: 3, name: "暗度陳倉", price: 1000, desc: "到達任意位置", type: "active_target_land" },
         4: { id: 4, name: "暗箭傷人", price: 1000, desc: "選定一名主公，使其有效能力最高的前三名武將受到 99% 重傷", type: "active_target_player" },
-        5: { id: 5, name: "臨陣磨槍", price: 1000, desc: "攻城戰時可選用，我方全能力增加 5%", type: "active_buff" },
+        5: { id: 5, name: "臨陣磨槍", price: 1000, desc: "攻城戰時可選用，我方全能力增加 10%", type: "active_buff" },
         6: { id: 6, name: "無懈可擊", price: 500, desc: "被動防禦，抵銷敵方對自己使用的負面計謀", type: "passive" },
         7: { id: 7, name: "迴光返照", price: 300, desc: "治療己方任意武將 (傷勢歸零)", type: "active_target_officer" }
     };
@@ -289,7 +289,7 @@ function initGame() {
                     if (itemIdx !== -1) {
                         consumeItem(currentSiegePlayer, itemIdx);
                         playItemAnimation("臨陣磨槍", currentSiegePlayer.name);
-                        log(`🔥 士氣大振！${currentSiegePlayer.name} 使用了「臨陣磨槍」，全軍能力提升 5%！`);
+                        log(`🔥 士氣大振！${currentSiegePlayer.name} 使用了「臨陣磨槍」，全軍能力提升 10%！`);
                         consumedBuff = true;
                     }
                 }
@@ -948,7 +948,7 @@ function triggerLandEvent(player, landInfo) {
                 if (itemIdx !== -1) {
                     consumeItem(player, itemIdx);
                     playItemAnimation("臨陣磨槍", player.name);
-                    log(`🔥 士氣大振！[電腦] ${player.name} 使用了「臨陣磨槍」，全軍能力提升 5%！`);
+                    log(`🔥 士氣大振！[電腦] ${player.name} 使用了「臨陣磨槍」，全軍能力提升 10%！`);
                     useBuff = true;
                 }
                 setTimeout(() => { executeSiege(player, landInfo, bestTeam, useBuff); }, 1500);
@@ -1092,7 +1092,7 @@ function getBestSiegeTeam(attackerOfficerIds, defenderIds, cityId = -1, useBuff 
 
         if (useBuff) {
             for (let i = 1; i <= 6; i++) {
-                atkStats[i] = Math.ceil(atkStats[i] * 1.05);
+                atkStats[i] = Math.ceil(atkStats[i] * 1.10);
             }
         }
 
@@ -1208,8 +1208,8 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
             log(`🛡️ 【無懈可擊】！${defenderPlayer.name} 識破了敵方的臨陣磨槍，加成無效！`);
             consumeItem(defenderPlayer, shieldIndex);
         } else {
-            log(`🔥 【臨陣磨槍】發動！攻城方比拚項目提升 5%！`);
-            attackerScore = Math.floor(attackerScore * 1.05);
+            log(`🔥 【臨陣磨槍】發動！攻城方比拚項目提升 10%！`);
+            attackerScore = Math.floor(attackerScore * 1.10);
         }
     }
 
@@ -2265,9 +2265,9 @@ function updateWinRateDisplay() {
     let siegeBuffHtml = "";
     if (UI.useSiegeBuffCheckbox && UI.useSiegeBuffCheckbox.checked) {
         for (let i = 1; i <= 6; i++) {
-            atkStats[i] = Math.ceil(atkStats[i] * 1.05);
+            atkStats[i] = Math.ceil(atkStats[i] * 1.10);
         }
-        siegeBuffHtml = ` <b style="color: #d35400; font-size: 0.9em; background: rgba(211, 84, 0, 0.1); padding: 2px 4px; border-radius: 3px; border: 1px solid #d35400; margin-left: 5px;">🔥 臨陣磨槍 +5%</b>`;
+        siegeBuffHtml = ` <b style="color: #d35400; font-size: 0.9em; background: rgba(211, 84, 0, 0.1); padding: 2px 4px; border-radius: 3px; border: 1px solid #d35400; margin-left: 5px;">🔥 臨陣磨槍 +10%</b>`;
     }
 
     if (selectedOfficers.length === 0) {
