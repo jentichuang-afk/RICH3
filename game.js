@@ -2375,7 +2375,13 @@ function updateWinRateDisplay() {
     }
 
     const winRate = Math.round((expectedWins / totalOutcomes) * 100);
-    el.innerHTML = `預估勝率：<span style="color: ${winRate >= 50 ? '#27ae60' : '#e67e22'}; font-size: 1.2rem;">${winRate}%</span>${chainHtml}${siegeBuffHtml} (${expectedWins} / ${totalOutcomes} 預期期望值)`;
+    // 統合顯示：城池等級 + 連橫加成 = 總地利
+    const totalGeoBonus = geoBonus + chainBonus;
+    let combinedGeoHtml = "";
+    if (totalGeoBonus > 0) {
+        combinedGeoHtml = ` <b style="color: #6d4c41; font-size: 0.9em; background: rgba(109, 76, 65, 0.1); padding: 2px 4px; border-radius: 3px; border: 1px solid #6d4c41; margin-left: 5px;">⛰️ 地利 +${totalGeoBonus}%</b>`;
+    }
+    el.innerHTML = `預估勝率：<span style="color: ${winRate >= 50 ? '#27ae60' : '#e67e22'}; font-size: 1.2rem;">${winRate}%</span>${combinedGeoHtml}${siegeBuffHtml} (${expectedWins} / ${totalOutcomes} 預期期望值)`;
 }
 
 // 事件綁定只須執行一次
