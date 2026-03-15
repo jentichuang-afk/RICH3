@@ -27,6 +27,7 @@ const GAME_STATE = {
     gameOver: false,
     activePlayers: [1, 2, 3, 4], // 記錄存活玩家的 ID
     changanOfficers: [], // 流亡長安的在野武將 (Phase 15)
+    logs: [], // 記錄最近的日誌語句 (存檔用)
     // Phase 65: 擴充 items 陣列與相關 flag (actTwice, stayInPlace, siegeBuff, blockScheme)
     players: {
         1: { id: 1, name: "劉備", money: 10000, position: 0, colorClass: 'p1', nameClass: 'p1-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false },
@@ -215,7 +216,12 @@ const UI = {
     
     // Phase 69: 臨陣磨槍 Siege checkbox
     siegeBuffContainer: document.getElementById('siege-buff-container'),
-    useSiegeBuffCheckbox: document.getElementById('use-siege-buff-checkbox')
+    useSiegeBuffCheckbox: document.getElementById('use-siege-buff-checkbox'),
+
+    // Save/Load
+    btnSaveGame: document.getElementById('btn-save-game'),
+    btnLoadGame: document.getElementById('btn-load-game'),
+    btnRestartGame: document.getElementById('btn-restart-game')
 };
 
 // Modal 回調函數
@@ -238,6 +244,15 @@ function initGame() {
         if (UI.btnUseItem) UI.btnUseItem.addEventListener('click', openInventory);
         if (UI.btnShowEncyclopedia) UI.btnShowEncyclopedia.addEventListener('click', openEncyclopedia);
         if (UI.btnEncyclopediaClose) UI.btnEncyclopediaClose.addEventListener('click', () => UI.encyclopediaModal.classList.add('hidden'));
+
+        // Save/Load bindings
+        if (UI.btnSaveGame) UI.btnSaveGame.addEventListener('click', saveGame);
+        if (UI.btnLoadGame) UI.btnLoadGame.addEventListener('click', loadGame);
+        if (UI.btnRestartGame) UI.btnRestartGame.addEventListener('click', () => {
+            if (confirm("確定要重新開始遊戲嗎？目前的進度將會遺失。")) {
+                location.reload();
+            }
+        });
 
         // 分配初始武將 (強化錯誤處理)
         if (typeof OFFICERS_DATA === 'undefined') {
@@ -528,6 +543,10 @@ function log(message) {
     const p = document.createElement('p');
     p.textContent = message; // 防止 XSS
     UI.logPanel.prepend(p);
+    
+    // 存入狀態以供存檔使用 (保留最近 50 條)
+    GAME_STATE.logs.unshift(message);
+    if (GAME_STATE.logs.length > 50) GAME_STATE.logs.pop();
 }
 
 
@@ -3266,4 +3285,109 @@ function setupEncyclopediaSort() {
             renderEncyclopedia();
         });
     });
+}
+
+/**
+ * 存檔系統 (Phase: Persistence)
+ */
+function saveGame() {
+    try {
+        const saveData = {
+            GAME_STATE: GAME_STATE,
+            MAP_DATA: MAP_DATA,
+            OFFICERS_DATA: OFFICERS_DATA,
+            timestamp: new Date().toISOString()
+        };
+        localStorage.setItem('TR_RICH_SAVE', JSON.stringify(saveData));
+        log(`📂 [系統] 存檔成功！(${new Date().toLocaleTimeString()})`);
+        alert("存檔成功！");
+    } catch (e) {
+        console.error("Save error:", e);
+        alert("存檔失敗: " + e.message);
+    }
+}
+
+function loadGame() {
+    try {
+        const raw = localStorage.getItem('TR_RICH_SAVE');
+        if (!raw) {
+            alert("找不到任何存檔紀錄！");
+            return;
+        }
+        const data = JSON.parse(raw);
+        
+        // 恢復數據 (Object.assign 保持引用或直接覆蓋)
+        Object.assign(GAME_STATE, data.GAME_STATE);
+        
+        // MAP_DATA 和 OFFICERS_DATA 是陣列，直接覆蓋
+        data.MAP_DATA.forEach((land, idx) => {
+            if (MAP_DATA[idx]) Object.assign(MAP_DATA[idx], land);
+        });
+        
+        data.OFFICERS_DATA.forEach((officer, idx) => {
+            if (OFFICERS_DATA[idx]) Object.assign(OFFICERS_DATA[idx], officer);
+        });
+
+        // 恢復 UI
+        restoreUI();
+        
+        // 隱藏開始畫面 (如果還在的話)
+        UI.startScreen.classList.add('hidden');
+        
+        log(`📂 [系統] 讀檔成功！載入自 ${new Date(data.timestamp).toLocaleString()}`);
+        alert("讀檔成功！");
+    } catch (e) {
+        console.error("Load error:", e);
+        alert("讀檔失敗: " + e.message);
+    }
+}
+
+function restoreUI() {
+    // 1. 金額更新
+    for (let i = 1; i <= 4; i++) {
+        updateMoney(i, 0); 
+        updateOfficerCountUI(i);
+    }
+    
+    // 2. 棋子位置更新
+    updatePiecesPosition();
+    
+    // 3. 地圖格子與擁有者標記更新
+    MAP_DATA.forEach(land => {
+        const cell = document.getElementById(`cell-${land.id}`);
+        if (cell) {
+            const ownerMarker = cell.querySelector('.owner-marker');
+            if (ownerMarker) {
+                ownerMarker.className = 'owner-marker';
+                if (land.owner === 1) ownerMarker.classList.add('owner-p1');
+                else if (land.owner === 2) ownerMarker.classList.add('owner-p2');
+                else if (land.owner === 3) ownerMarker.classList.add('owner-p3');
+                else if (land.owner === 4) ownerMarker.classList.add('owner-p4');
+            }
+        }
+    });
+    updateBoardUI(); // 更新價值與等級文字
+
+    // 4. 重建日誌
+    UI.logPanel.innerHTML = '';
+    if (GAME_STATE.logs) {
+        // logs 是 unshift 進去的，所以最新的在前面
+        GAME_STATE.logs.forEach(msg => {
+            const p = document.createElement('p');
+            p.textContent = msg;
+            UI.logPanel.appendChild(p);
+        });
+    }
+
+    // 5. 輪次指示器
+    const currentPlayer = GAME_STATE.players[GAME_STATE.currentPlayer];
+    UI.currentTurnName.textContent = currentPlayer.name;
+    UI.currentTurnName.className = currentPlayer.nameClass;
+    
+    // 6. 啟用/禁用 動作按鈕 (根據狀態)
+    if (!GAME_STATE.gameOver && !GAME_STATE.isWaitingForAction) {
+        enableRollButton(true);
+    } else {
+        enableRollButton(false);
+    }
 }
