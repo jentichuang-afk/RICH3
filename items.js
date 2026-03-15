@@ -8,5 +8,6 @@ const ITEMS_DATA = {
     4: { id: 4, name: "暗箭傷人", price: 1000, desc: "選定一名主公，隨機使其強大的三名「未受傷」武將（前五強中隨機三人）受到 99% 重傷", type: "active_target_player" },
     5: { id: 5, name: "臨陣磨槍", price: 1000, desc: "攻城戰時可選用，我方全能力增加 10%", type: "active_buff" },
     6: { id: 6, name: "無懈可擊", price: 500, desc: "被動防禦，抵銷敵方對自己使用的負面計謀", type: "passive" },
-    7: { id: 7, name: "迴光返照", price: 300, desc: "治療己方任意武將 (傷勢歸零)", type: "active_target_officer" }
+    7: { id: 7, name: "迴光返照", price: 300, desc: "治療己方任意武將 (傷勢歸零)", type: "active_target_officer" },
+    8: { id: 8, name: "殺人放火", price: 1000, desc: "選定一座敵方城池，降低其一半建設等級，且守將有 50% 機率受傷 (20%-80%)", type: "active_target_land" }
 };

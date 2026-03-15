@@ -37,34 +37,43 @@ const GAME_STATE = {
 };
 
 // Phase 66: 計算連續領地長度 (相連城池加成)
-// 地圖因為長安(0)與建業(8)的隔斷，不再是完整的環狀，而是被分為左右兩段 (1~7 與 9~15)。
+// 更新：現在可以跨過長安(0)與建業(8)計算，將地圖視為完整的環狀領土。
 function getCityChainLength(playerId, cityId) {
     if (cityId === 0 || cityId === 8 || playerId == null) return 0;
     
     const visited = new Set();
     visited.add(cityId);
     
-    // 往「左」搜尋 (cityId → cityId-1)
-    let cur = cityId;
+    // 獲取下一個「領地」索引 (自動跳過 0 與 8)
+    const getNextLandIndex = (cur, step) => {
+        let next = (cur + step + 16) % 16;
+        while (next === 0 || next === 8) {
+            next = (next + step + 16) % 16;
+        }
+        return next;
+    };
+
+    // 往「左」搜尋
+    let curL = cityId;
     while (true) {
-        let next = cur - 1;
-        if (next === 0 || next === 8) break; // 遇到中立城池阻斷
+        let next = getNextLandIndex(curL, -1);
+        if (visited.has(next)) break; // 繞回原點
         if (MAP_DATA[next] && MAP_DATA[next].owner === playerId) {
             visited.add(next);
-            cur = next;
+            curL = next;
         } else {
             break;
         }
     }
     
-    // 往「右」搜尋 (cityId → cityId+1)
-    cur = cityId;
+    // 往「右」搜尋
+    let curR = cityId;
     while (true) {
-        let next = cur + 1;
-        if (next === 16 || next === 0 || next === 8) break; // 遇到中立城池阻斷或出界
+        let next = getNextLandIndex(curR, 1);
+        if (visited.has(next)) break; // 繞回原點
         if (MAP_DATA[next] && MAP_DATA[next].owner === playerId) {
             visited.add(next);
-            cur = next;
+            curR = next;
         } else {
             break;
         }
@@ -2756,6 +2765,58 @@ function useItem(player, itemInfo, aiTarget = null) {
             if (isBot && aiTarget) executeHeal(aiTarget);
             else openTargetSelect('officer', executeHeal, player);
             break;
+        case 8: // 殺人放火: 毀人建設，傷人武將
+            const executeArson = (targetLand) => {
+                if (!targetLand || targetLand.type !== 'LAND' || !targetLand.owner || targetLand.owner === player.id) {
+                    log(`[提示] 無法對此地使用【殺人放火】。請選擇敵方的城池。`);
+                    GAME_STATE.isWaitingForAction = false;
+                    return;
+                }
+                const targetPlayer = GAME_STATE.players[targetLand.owner];
+                
+                // 檢查對手是否有無懈可擊
+                const shieldIndex = targetPlayer.items.findIndex(it => it.id === 6);
+                if (shieldIndex !== -1) {
+                    log(`🛡️ 【無懈可擊】！${targetPlayer.name} 識破了計謀，道具抵消！`);
+                    consumeItem(targetPlayer, shieldIndex);
+                    consumeItem(player, itemInfo.index);
+                    GAME_STATE.isWaitingForAction = false;
+                    return;
+                }
+
+                log(`🔥 【殺人放火】！${player.name} 在 ${targetLand.name} 點燃了熊熊大火！`);
+                
+                // 1. 降低城池一半 Lv
+                const oldLv = targetLand.development || 0;
+                const newLv = Math.floor(oldLv / 2);
+                targetLand.development = newLv;
+                if (oldLv > newLv) {
+                    log(`🏚️ ${targetLand.name} 的建設在火光中毀於一旦，等級從 Lv ${oldLv} 降為 Lv ${newLv}！`);
+                } else if (oldLv === 1 && newLv === 0) {
+                    log(`🏚️ ${targetLand.name} 的建設在火光中毀於一旦，等級從 Lv 1 降為 Lv 0！`);
+                }
+                updateBoardUI();
+
+                // 2. 守將 50% 機率受傷
+                if (targetLand.defenders && targetLand.defenders.length > 0) {
+                    targetLand.defenders.forEach(id => {
+                        if (Math.random() < 0.5) {
+                            const o = getOfficer(id);
+                            if (o) {
+                                const dmg = Math.floor(Math.random() * 61) + 20; // 20% - 80%
+                                o.injuryRate = Math.min(100, (o.injuryRate || 0) + dmg);
+                                log(`🩸 ${o.name} 在混亂中遭到重創，負傷 ${dmg}%！`);
+                            }
+                        }
+                    });
+                }
+                
+                consumeItem(player, itemInfo.index);
+                GAME_STATE.isWaitingForAction = false;
+            };
+            if (isBot && aiTarget) executeArson(aiTarget);
+            else openTargetSelect('land', executeArson);
+            break;
     }
 }
 
@@ -2776,7 +2837,12 @@ function openTargetSelect(type, callback, extra) {
         MAP_DATA.forEach(land => {
             const div = document.createElement('div');
             div.className = 'officer-item';
-            div.innerHTML = `<strong>${land.name}</strong> (${land.id === 0 ? '起點' : land.id + '號地'})`;
+            let ownerName = "";
+            if (land.owner) {
+                const owner = GAME_STATE.players[land.owner];
+                ownerName = ` <span style="color:var(--primary-color)">[${owner.name}]</span>`;
+            }
+            div.innerHTML = `<strong>${land.name}</strong> (${land.id === 0 ? '起點' : land.id + '號地'})${ownerName}`;
             div.onclick = () => {
                 document.querySelectorAll('#target-select-list .officer-item').forEach(el => el.classList.remove('selected'));
                 div.classList.add('selected');
