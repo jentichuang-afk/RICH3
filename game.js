@@ -827,7 +827,7 @@ function triggerLandEvent(player, landInfo) {
         if (player.isBot) {
             log(`${player.name} 回到自己的領地 ${landInfo.name}，軍心大振。`);
             // AI 建設邏輯：若手頭現金充足 (目前資金大於 建設費 + $1000)，則自動進行建設
-            const buildCost = ((landInfo.development || 0) + 1) * 100;
+            const buildCost = ((landInfo.development || 0) + 1) * 200;
             if (player.money >= 1000 + buildCost) {
                 updateMoney(player.id, -buildCost);
                 landInfo.development = (landInfo.development || 0) + 1;
@@ -837,7 +837,7 @@ function triggerLandEvent(player, landInfo) {
             endTurn();
         } else {
             const originalDefenders = [...landInfo.defenders];
-            const buildCost = ((landInfo.development || 0) + 1) * 100;
+            const buildCost = ((landInfo.development || 0) + 1) * 200;
 
             showModal(
                 `回到領地：${landInfo.name}`,
@@ -879,7 +879,7 @@ function triggerLandEvent(player, landInfo) {
                 },
                 '更換守將', '不做更動',
                 () => { // 選擇建設
-                    const currentBuildCost = ((landInfo.development || 0) + 1) * 100;
+                    const currentBuildCost = ((landInfo.development || 0) + 1) * 200;
                     if (player.money >= currentBuildCost) {
                         updateMoney(player.id, -currentBuildCost);
                         landInfo.development = (landInfo.development || 0) + 1;
