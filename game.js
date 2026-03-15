@@ -354,12 +354,14 @@ function initGame() {
                 let info = `<div style="border-bottom: 2px solid #8e735b; padding-bottom: 10px; margin-bottom: 10px;">`;
                 if (landInfo.owner) {
                     const owner = GAME_STATE.players[landInfo.owner];
+                    const cityValue = Math.floor(landInfo.price * (1 + (landInfo.development || 0) * 0.1));
                     const tax = getCityTaxIncome(landInfo);
                     info += `<p><strong>擁有者：</strong>${owner.name}</p>`;
+                    info += `<p><strong>城池價值：</strong><span style="color:#d35400; font-weight:bold;">$${cityValue}</span> (Lv.${landInfo.development || 0})</p>`;
                     info += `<p><strong>過路費：</strong>$${landInfo.toll}</p>`;
                     info += `<p><strong>每回合稅收：</strong>$${tax}</p>`;
                     if (landInfo.development > 0) {
-                        info += `<p><strong>建設等級：</strong><span style="color:#e67e22; font-weight:bold;">Lv ${landInfo.development}</span> (+${landInfo.development}%)</p>`;
+                        info += `<p><strong>建設加成：</strong>價值 +${landInfo.development * 10}% / 地利 +${landInfo.development}%</p>`;
                     }
                     info += `</div>`;
 
@@ -1078,8 +1080,11 @@ function getBestSiegeTeam(attackerOfficerIds, defenderIds, cityId = -1, useBuff 
         for (let i = 1; i <= 6; i++) currentDefStats[i] = defStats[i];
         applyTeamSkills(defenderIds, currentDefStats, teamIds);
 
-        // 防守方 3% 能力加成 (套用完武將特技後再疊加地理優勢)
-        for (let i = 1; i <= 6; i++) currentDefStats[i] = Math.ceil(currentDefStats[i] * 1.03);
+        // Level-based Geographical Advantage (1% per Lv)
+        const geoBonus = (landInfo && landInfo.development) ? landInfo.development : 0;
+        if (geoBonus > 0) {
+            for (let i = 1; i <= 6; i++) currentDefStats[i] = Math.ceil(currentDefStats[i] * (1 + geoBonus / 100));
+        }
 
         // Phase 66: 連續封地加成 (n%)
         const chainBonus = (landInfo) ? getCityChainLength(landInfo.owner, landInfo.id) : 0;
@@ -1222,8 +1227,11 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
     applyTeamSkills(defendingIds, defTempStats, attackingIds);
     defenderScore = defTempStats[statRoll];
 
-    // 防守方 3% 加成 (特技加成後再算地理優勢)
-    defenderScore = Math.ceil(defenderScore * 1.03);
+    // Level-based Geographical Advantage (1% per Lv) (特技加成後再算地理優勢)
+    const geoBonus = (landInfo && landInfo.development) ? landInfo.development : 0;
+    if (geoBonus > 0) {
+        defenderScore = Math.ceil(defenderScore * (1 + geoBonus / 100));
+    }
 
     // Phase 66: 連續封地加成 (n%)
     const chainBonus = getCityChainLength(landInfo.owner, landInfo.id);
@@ -1711,7 +1719,14 @@ function getOfficer(id) {
 function getCityTaxIncome(land) {
     if (!land.owner || land.type !== 'LAND') return 0;
     
-    let totalPolitics = 0;
+    // 1. 計算城池價值：基礎價格 * (1 + 等級 * 10%)
+    const cityValue = Math.floor(land.price * (1 + (land.development || 0) * 0.1));
+    
+    // 2. 計算基礎稅收：價值 * 1%
+    const baseTax = cityValue * 0.01;
+    
+    // 3. 計算守將政治力總和
+    let totalPolitics = 100; // 預設 100% 效率 (即便無將也有一點基礎稅收)
     if (land.defenders && land.defenders.length > 0) {
         let teamStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
         land.defenders.forEach(id => {
@@ -1726,15 +1741,10 @@ function getCityTaxIncome(land) {
         totalPolitics = teamStats[4];
     }
 
-    let taxRate = 0.01;
-    if (totalPolitics > 300) taxRate = 0.03;
-    else if (totalPolitics > 200) taxRate = 0.02;
+    // 4. 計算稅收金額：(政治力/100) * 基礎稅收
+    let cityIncome = Math.floor((totalPolitics / 100) * baseTax);
 
-    // Phase: 建設城池加成
-    taxRate += (land.development || 0) * 0.01;
-
-    let cityIncome = Math.floor(land.price * taxRate);
-
+    // 5. 政治特技加倍
     let superPolitician = land.defenders.find(id => {
         const o = getOfficer(id);
         return o && getEffectiveStat(o, 4) >= 101 && o.injuryRate === 0;
@@ -1744,8 +1754,8 @@ function getCityTaxIncome(land) {
         return o && getEffectiveStat(o, 4) >= 95;
     });
 
-    if (superPolitician) cityIncome *= 5;
-    else if (elitePolitician) cityIncome *= 2;
+    if (superPolitician) cityIncome *= 5; // 富國強兵
+    else if (elitePolitician) cityIncome *= 2; // 經世濟民
 
     return cityIncome;
 }
@@ -2235,9 +2245,14 @@ function updateWinRateDisplay() {
 
     applyTeamSkills(window.currentDefIds, defStats);
 
-    // 防守方 3% 加成
-    for (let i = 1; i <= 6; i++) {
-        defStats[i] = Math.ceil(defStats[i] * 1.03);
+    // Level-based Geographical Advantage (1% per Lv)
+    const geoBonus = MAP_DATA[currentSiegeCityId]?.development || 0;
+    let geoHtml = "";
+    if (geoBonus > 0) {
+        for (let i = 1; i <= 6; i++) {
+            defStats[i] = Math.ceil(defStats[i] * (1 + geoBonus / 100));
+        }
+        geoHtml = ` <b style="color: #6d4c41; font-size: 0.9em; background: rgba(109, 76, 65, 0.1); padding: 2px 4px; border-radius: 3px; border: 1px solid #6d4c41; margin-left: 5px;">⛰️ 地利 +${geoBonus}%</b>`;
     }
 
     // Phase 66: 連續封地加成 (n%)
@@ -2248,7 +2263,7 @@ function updateWinRateDisplay() {
         for (let i = 1; i <= 6; i++) {
             defStats[i] = Math.ceil(defStats[i] * (1 + chainBonus / 100));
         }
-        chainHtml = ` <b style="color: #2e7d32; font-size: 0.9em; background: rgba(76, 175, 80, 0.1); padding: 2px 4px; border-radius: 3px; border: 1px solid #4caf50; margin-left: 5px;">🏰 地利 +${chainBonus}%</b>`;
+        chainHtml = ` <b style="color: #2e7d32; font-size: 0.9em; background: rgba(76, 175, 80, 0.1); padding: 2px 4px; border-radius: 3px; border: 1px solid #4caf50; margin-left: 5px;">🏰 連橫 +${chainBonus}%</b>`;
     }
 
     const atkStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
