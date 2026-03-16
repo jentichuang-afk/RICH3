@@ -3090,7 +3090,7 @@ function handleCityMenuAI(player, offeredIds, cityName) {
 
     // AI 判斷是否買道具 (改為可購買多個)
     let boughtItemsList = [];
-    let reserveFundForItems = 2000;
+    let reserveThreshold = 10000;
     let itemOptions = Object.values(ITEMS_DATA).filter(it => !player.items.some(pi => pi.id === it.id));
     
     // AI 隨機挑選 1~3 個不同道具嘗試購買
@@ -3100,12 +3100,23 @@ function handleCityMenuAI(player, offeredIds, cityName) {
         let count = 0;
         for (let item of shuffle) {
             if (count >= 3) break; // 一次最多買 3 個
-            if (tempBudget - item.price >= reserveFundForItems) {
-                if (Math.random() < 0.7) { // 70% 機率真的買下它
-                    tempBudget -= item.price;
+            let afterPrice = tempBudget - item.price;
+            
+            // 邏輯：扣除後仍大於 10000 則可繼續買(上限3)；若會低於 10000 則最多只能買這 1 個
+            if (afterPrice >= reserveThreshold) {
+                if (Math.random() < 0.7) {
+                    tempBudget = afterPrice;
                     boughtItemsList.push(item);
                     count++;
                 }
+            } else if (count === 0 && afterPrice > 0) { 
+                // 低於 10000 仍可購買，但僅限第 1 個
+                if (Math.random() < 0.7) {
+                    tempBudget = afterPrice;
+                    boughtItemsList.push(item);
+                    count++;
+                }
+                break; // 買完這一個(或機率沒中)就結束，因為低於 10000 了
             }
         }
     }
