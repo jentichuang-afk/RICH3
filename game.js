@@ -632,7 +632,7 @@ function handleAIItemUsage(player) {
                 land.type === 'LAND' && 
                 land.owner && 
                 land.owner !== player.id && 
-                land.development > 0
+                land.development >= 5
             );
             
             if (enemyLands.length > 0 && Math.random() < 0.3) {
@@ -3045,17 +3045,19 @@ if (UI.btnChanganBuyItem) UI.btnChanganBuyItem.onclick = () => {
     changanCurrentPlayer.items.push({ ...shopSelectedItem });
     log(`🎁 奇珍異寶！${changanCurrentPlayer.name} 花費了 $${shopSelectedItem.price} 購買了道具【${shopSelectedItem.name}】！`);
 
-    UI.changanItemShopModal.classList.add('hidden');
-    GAME_STATE.isWaitingForAction = false;
-    endTurn();
+    // 重新渲染列表以更新狀態 (顯示已擁有)
+    showChanganShopModal(changanCurrentPlayer);
 };
 
-if (UI.btnChanganShopCancel) UI.btnChanganShopCancel.onclick = () => {
-    UI.changanItemShopModal.classList.add('hidden');
-    log(`${changanCurrentPlayer.name} 逛了逛市集，什麼也沒買就離開了。`);
-    GAME_STATE.isWaitingForAction = false;
-    endTurn();
-};
+if (UI.btnChanganShopCancel) {
+    UI.btnChanganShopCancel.textContent = "離開市集";
+    UI.btnChanganShopCancel.onclick = () => {
+        UI.changanItemShopModal.classList.add('hidden');
+        log(`${changanCurrentPlayer.name} 整理了一下行囊，離開了市集。`);
+        GAME_STATE.isWaitingForAction = false;
+        endTurn();
+    };
+}
 
 // Phase 69: 城池通用 AI (招募與買道具)
 function handleCityMenuAI(player, offeredIds, cityName) {
@@ -3086,19 +3088,31 @@ function handleCityMenuAI(player, offeredIds, cityName) {
         }
     }
 
-    // AI 判斷是否買道具
-    let canBuyItem = false;
-    let targetItem = null;
+    // AI 判斷是否買道具 (改為可購買多個)
+    let boughtItemsList = [];
+    let reserveFundForItems = 2000;
     let itemOptions = Object.values(ITEMS_DATA).filter(it => !player.items.some(pi => pi.id === it.id));
-    if (itemOptions.length > 0 && (player.money - 1000) >= 1500) {
-        canBuyItem = true;
-        // 隨機挑個道具
-        targetItem = itemOptions[Math.floor(Math.random() * itemOptions.length)];
+    
+    // AI 隨機挑選 1~3 個不同道具嘗試購買
+    if (itemOptions.length > 0) {
+        let tempBudget = player.money;
+        let shuffle = [...itemOptions].sort(() => 0.5 - Math.random());
+        let count = 0;
+        for (let item of shuffle) {
+            if (count >= 3) break; // 一次最多買 3 個
+            if (tempBudget - item.price >= reserveFundForItems) {
+                if (Math.random() < 0.7) { // 70% 機率真的買下它
+                    tempBudget -= item.price;
+                    boughtItemsList.push(item);
+                    count++;
+                }
+            }
+        }
     }
 
     setTimeout(() => {
         try {
-            if (canRecruit && (!canBuyItem || Math.random() < 0.6)) {
+            if (canRecruit && (boughtItemsList.length === 0 || Math.random() < 0.6)) {
                 // 傾向招募 (60%)
                 playRecruitAnimation(targetOfficer.name, player.name);
 
@@ -3111,10 +3125,12 @@ function handleCityMenuAI(player, offeredIds, cityName) {
                     GAME_STATE.isWaitingForAction = false;
                     endTurn();
                 }, 1000);
-            } else if (canBuyItem) {
-                updateMoney(player.id, -targetItem.price);
-                player.items.push({ ...targetItem });
-                log(`🎁 奇珍異寶！[電腦] ${player.name} 在${cityName}花費 $${targetItem.price} 購買了道具【${targetItem.name}】！`);
+            } else if (boughtItemsList.length > 0) {
+                boughtItemsList.forEach(item => {
+                    updateMoney(player.id, -item.price);
+                    player.items.push({ ...item });
+                    log(`🎁 奇珍異寶！[電腦] ${player.name} 在${cityName}挑選了道具【${item.name}】！`);
+                });
                 GAME_STATE.isWaitingForAction = false;
                 endTurn();
             } else {
