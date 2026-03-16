@@ -625,6 +625,24 @@ function handleAIItemUsage(player) {
                 return;
             }
         }
+
+        if (item.id === 8) { // 殺人放火
+            // 找出等級最高且屬於敵方的土地
+            let enemyLands = MAP_DATA.filter(land => 
+                land.type === 'LAND' && 
+                land.owner && 
+                land.owner !== player.id && 
+                land.development > 0
+            );
+            
+            if (enemyLands.length > 0 && Math.random() < 0.3) {
+                // 優先選擇等級最高的城市
+                enemyLands.sort((a, b) => b.development - a.development);
+                let targetLand = enemyLands[0];
+                useItem(player, { ...item, index: idx }, targetLand);
+                return;
+            }
+        }
     }
 }
 
