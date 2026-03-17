@@ -114,7 +114,7 @@ function formatStatDisplay(base, current, injuryRate = 0) {
 // 地圖資料 (16格)
 const MAP_DATA = [
     { id: 0, name: "長安", type: "START", price: 0, owner: null },
-    { id: 1, name: "洛陽", type: "LAND", price: 2000, owner: null, defenders: [], development: 0 },
+    { id: 1, name: "洛陽", type: "LAND", price: 2500, owner: null, defenders: [], development: 0 },
     { id: 2, name: "許昌", type: "LAND", price: 1800, owner: null, defenders: [], development: 0 },
     { id: 3, name: "宛城", type: "LAND", price: 1300, owner: null, defenders: [], development: 0 },
     { id: 4, name: "鄴城", type: "LAND", price: 1600, owner: null, defenders: [], development: 0 },
