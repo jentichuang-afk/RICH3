@@ -1644,8 +1644,8 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
                 landInfo.owner = attacker.id;
                 landInfo.defenders = attackingIds;
 
-                // Phase: 城池易主，等級減少 1 (戰火破壞)
-                if (landInfo.development && landInfo.development > 0) {
+                // Phase: 城池易主，有 50% 機率等級減少 1 (戰火破壞)
+                if (landInfo.development && landInfo.development > 0 && Math.random() < 0.5) {
                     landInfo.development -= 1;
                     updateBoardUI(); // 更新地標顯示
                     log(`🏚️ 由於飽受戰火洗禮，${landInfo.name} 的建設等級下降為 Lv ${landInfo.development}。`);
