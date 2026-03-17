@@ -355,7 +355,8 @@ function initGame() {
         if (UI.useSiegeBuffCheckbox) {
             UI.useSiegeBuffCheckbox.addEventListener('change', () => {
                 if (currentSiegePlayer && window.currentDefIds) {
-                    const bestTeam = getBestSiegeTeam(currentSiegePlayer.officers, window.currentDefIds, currentSiegeCityId, UI.useSiegeBuffCheckbox.checked, true);
+                    const result = getBestSiegeTeam(currentSiegePlayer.officers, window.currentDefIds, currentSiegeCityId, UI.useSiegeBuffCheckbox.checked, true);
+                    const bestTeam = result.team;
                     if (bestTeam && bestTeam.length > 0) {
                         selectedOfficers = [...bestTeam];
                     } else {
@@ -611,18 +612,47 @@ function handleAIItemUsage(player) {
             }
         }
 
-        if (item.id === 1 || item.id === 2 || item.id === 5) { // 瞞天過海, 以逸待勞, 臨陣磨槍
+        if (item.id === 1 || item.id === 5) { // 瞞天過海, 臨陣磨槍
             if (Math.random() < 0.2) {
                 useItem(player, { ...item, index: idx });
                 return;
             }
         }
 
-        if (item.id === 3) { // 暗度陳倉: 傳送
-            if (player.money > 4000 && Math.random() < 0.1) {
-                let targetCell = MAP_DATA[Math.floor(Math.random() * MAP_DATA.length)];
-                useItem(player, { ...item, index: idx }, targetCell);
+        if (item.id === 2) { // 以逸待勞
+            const currentLand = MAP_DATA[player.position];
+            let shouldStay = false;
+            // 停留在自己的城池，或是攻城勝率 >= 80% 的城池
+            if (currentLand.owner === player.id) {
+                shouldStay = true;
+            } else if (currentLand.type === 'LAND' && currentLand.owner) {
+                const res = getBestSiegeTeam(player.officers, currentLand.defenders, currentLand.id);
+                if (res.rate >= 0.8) shouldStay = true;
+            }
+
+            if (shouldStay && Math.random() < 0.4) {
+                useItem(player, { ...item, index: idx });
                 return;
+            }
+        }
+
+        if (item.id === 3) { // 暗度陳倉: 傳送
+            if (player.money > 4000) {
+                // 只會移動到自己的城池，或是攻城勝率高於 80% 的城池
+                let targets = MAP_DATA.filter(land => {
+                    if (land.owner === player.id) return true;
+                    if (land.type === 'LAND' && land.owner && land.owner !== player.id) {
+                        const res = getBestSiegeTeam(player.officers, land.defenders, land.id);
+                        return res.rate > 0.8;
+                    }
+                    return false;
+                });
+
+                if (targets.length > 0 && Math.random() < 0.3) {
+                    let targetLand = targets[Math.floor(Math.random() * targets.length)];
+                    useItem(player, { ...item, index: idx }, targetLand);
+                    return;
+                }
             }
         }
 
@@ -993,7 +1023,8 @@ function triggerLandEvent(player, landInfo) {
         if (player.isBot) {
             // AI 自動抉擇：計算所有可能派出的 1~3 名武將組合
             // 如果有一組陣容能在 6 個屬性中贏過對手至少 4 項 (>50% 勝率)，則發起攻城
-            const bestTeam = getBestSiegeTeam(player.officers, landInfo.defenders, landInfo.id);
+            const result = getBestSiegeTeam(player.officers, landInfo.defenders, landInfo.id);
+            const bestTeam = result.team;
             if (bestTeam) {
                 log(`[電腦] ${player.name} 評估勝算極高，決定發起攻城！`);
                 let useBuff = false;
@@ -1206,7 +1237,7 @@ function getBestSiegeTeam(attackerOfficerIds, defenderIds, cityId = -1, useBuff 
         }
     }
 
-    return bestTeam;
+    return { team: bestTeam, rate: maxWins / bestOutcomeDenom };
 }
 
 // 執行攻城結算
@@ -2167,7 +2198,8 @@ function showOfficerModal(title, message, player, onConfirm, onCancel, showCance
 
         // Phase 22 & 69: 智能預設最佳陣容 (針對 checkbox 狀態計算)
         // 取得預設最佳陣容並自動勾選，forUI 傳入 true 確保回傳盡可能最佳的一組
-        const bestTeam = getBestSiegeTeam(player.officers, defIds, cityId, UI.useSiegeBuffCheckbox.checked, true);
+        const result = getBestSiegeTeam(player.officers, defIds, cityId, UI.useSiegeBuffCheckbox.checked, true);
+        const bestTeam = result.team;
         if (bestTeam && bestTeam.length > 0) {
             selectedOfficers = [...bestTeam];
         } else {
