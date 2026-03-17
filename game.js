@@ -385,9 +385,8 @@ function initGame() {
                     info += `<p><strong>城池價值：</strong><span style="color:#d35400; font-weight:bold;">$${cityValue}</span> (Lv.${landInfo.development || 0})</p>`;
                     info += `<p><strong>過路費：</strong>$${getCityToll(landInfo)}</p>`;
                     info += `<p><strong>每回合稅收：</strong>$${tax}</p>`;
-                    if (landInfo.development > 0) {
-                        info += `<p><strong>建設加成：</strong>價值 +${landInfo.development * 10}% / 地利 +${landInfo.development}%</p>`;
-                    }
+                    const geoBonus = getDevelopmentGeoBonus(landInfo.development || 0);
+                    info += `<p><strong>屬性加成：</strong>價值 +${(landInfo.development || 0) * 10}% / 地利 +${geoBonus}%</p>`;
                     info += `</div>`;
 
                     if (landInfo.defenders.length > 0) {
@@ -1163,7 +1162,8 @@ function getBestSiegeTeam(attackerOfficerIds, defenderIds, cityId = -1, useBuff 
         applyTeamSkills(defenderIds, currentDefStats, teamIds);
 
         // Level-based Geographical Advantage (1% per Lv)
-        const geoBonus = (landInfo && landInfo.development) ? landInfo.development : 0;
+        // Level-based Geographical Advantage (Lv0-3: 3%, Lv4+: n%)
+        const geoBonus = (landInfo) ? getDevelopmentGeoBonus(landInfo.development || 0) : 0;
         if (geoBonus > 0) {
             for (let i = 1; i <= 6; i++) currentDefStats[i] = Math.ceil(currentDefStats[i] * (1 + geoBonus / 100));
         }
@@ -1310,7 +1310,8 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
     defenderScore = defTempStats[statRoll];
 
     // Level-based Geographical Advantage (1% per Lv) (特技加成後再算地理優勢)
-    const geoBonus = (landInfo && landInfo.development) ? landInfo.development : 0;
+    // Level-based Geographical Advantage (Lv0-3: 3%, Lv4+: n%)
+    const geoBonus = (landInfo) ? getDevelopmentGeoBonus(landInfo.development || 0) : 0;
     if (geoBonus > 0) {
         defenderScore = Math.ceil(defenderScore * (1 + geoBonus / 100));
     }
@@ -1804,6 +1805,15 @@ function getOfficer(id) {
 function getCityValue(land) {
     if (!land || land.type !== 'LAND') return 0;
     return Math.floor(land.price * (1 + (land.development || 0) * 0.1));
+}
+
+/**
+ * 計算開發等級所帶來的地利加成
+ */
+function getDevelopmentGeoBonus(development) {
+    const lv = development || 0;
+    if (lv <= 3) return 3;
+    return lv;
 }
 
 /**
@@ -2362,7 +2372,8 @@ function updateWinRateDisplay() {
     applyTeamSkills(window.currentDefIds, defStats);
 
     // Level-based Geographical Advantage (1% per Lv)
-    const geoBonus = MAP_DATA[currentSiegeCityId]?.development || 0;
+    // Level-based Geographical Advantage (Lv0-3: 3%, Lv4+: n%)
+    const geoBonus = getDevelopmentGeoBonus(MAP_DATA[currentSiegeCityId]?.development || 0);
     let geoHtml = "";
     if (geoBonus > 0) {
         for (let i = 1; i <= 6; i++) {
