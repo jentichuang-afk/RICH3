@@ -39,14 +39,14 @@ const GAME_STATE = {
 };
 
 // Phase 66: 計算連續領地長度 (相連城池加成)
-// 更新：現在可以跨過長安(0)與建業(8)計算，將地圖視為完整的環狀領土。
+// 更新：現在可以跨過長安(0)與江夏(10)計算，將地圖視為完整的環狀領土。
 function getCityChainLength(playerId, cityId) {
     if (cityId === 0 || cityId === 10 || playerId == null) return 0;
     
     const visited = new Set();
     visited.add(cityId);
     
-    // 獲取下一個「領地」索引 (自動跳過 0 與 8)
+    // 獲取下一個「領地」索引 (自動跳過 0 與 10)
     const getNextLandIndex = (cur, step) => {
         let next = (cur + step + 20) % 20;
         while (next === 0 || next === 10) {
@@ -122,7 +122,7 @@ const MAP_DATA = [
     { id: 5, name: "下邳", type: "LAND", price: 1500, owner: null, defenders: [], development: 0 },
     { id: 6, name: "臨淄", type: "LAND", price: 1500, owner: null, defenders: [], development: 0 },
     { id: 7, name: "徐州", type: "LAND", price: 1500, owner: null, defenders: [], development: 0 },
-    { id: 8, name: "建業", type: "LAND", price: 1500, owner: null, defenders: [], development: 0 },
+    { id: 8, name: "建業", type: "LAND", price: 2000, owner: null, defenders: [], development: 0 },
     { id: 9, name: "廬江", type: "LAND", price: 1500, owner: null, defenders: [], development: 0 },
     { id: 10, name: "江夏", type: "ITEM_SHOP", price: 0, owner: null }, // 招募與道具店
     { id: 11, name: "襄陽", type: "LAND", price: 1800, owner: null, defenders: [], development: 0 },
