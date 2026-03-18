@@ -51,16 +51,13 @@ const OFFICER_SKILLS = {
     416: { name: "悲歌", desc: "若敵方無女性對手，團隊全能力+2%", effect: (stats, enemyIds = []) => { const hasFemale = enemyIds.some(id => FEMALE_OFFICER_IDS.includes(id)); if (!hasFemale) { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.02); } } }, // 蔡文姬
     418: { name: "戰姬", desc: "若敵方無女性對手，團隊全能力+2%", effect: (stats, enemyIds = []) => { const hasFemale = enemyIds.some(id => FEMALE_OFFICER_IDS.includes(id)); if (!hasFemale) { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.02); } } }, // 呂玲綺
     // 戰國 (日本)
-    500: { name: "天下布武", desc: "團隊全能力+4%", effect: (stats) => { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.04); } }, // 織田信長
-    501: { name: "墨俁一夜城", desc: "所在地地利額外+5%", effect: (stats, enemyIds, isDefense, landInfo) => { if (landInfo) { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.05); } } }, // 豐臣秀吉
-    502: { name: "三方原之悟", desc: "團隊運氣+10%，防守時全能力+3%", effect: (stats, enemyIds, isDefense) => { stats[6] = Math.ceil(stats[6] * 1.10); if (isDefense) { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.03); } } }, // 德川家康
+    500: { name: "天下布武", desc: "團隊全能力+3%", effect: (stats) => { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.03); } }, // 織田信長
+    502: { name: "三方原之悟", desc: "團隊運氣+10%", effect: (stats) => { stats[6] = Math.ceil(stats[6] * 1.10); } }, // 德川家康
     503: { name: "風林火山", desc: "團隊武力+5%、統率+5%", effect: (stats) => { stats[1] = Math.ceil(stats[1] * 1.05); stats[3] = Math.ceil(stats[3] * 1.05); } }, // 武田信玄
     504: { name: "軍神", desc: "團隊武力+10%", effect: (stats) => { stats[1] = Math.ceil(stats[1] * 1.10); } }, // 上杉謙信
-    505: { name: "獨眼龍", desc: "團隊智力+5%、武力+5%", effect: (stats) => { stats[2] = Math.ceil(stats[2] * 1.05); stats[1] = Math.ceil(stats[1] * 1.05); } }, // 伊達政宗
-    506: { name: "日本第一兵", desc: "團隊武力+8%、運氣+2%", effect: (stats) => { stats[1] = Math.ceil(stats[1] * 1.08); stats[6] = Math.ceil(stats[6] * 1.02); } }, // 真田幸村
-    512: { name: "如水", desc: "團隊智力+8%、政治+2%", effect: (stats) => { stats[2] = Math.ceil(stats[2] * 1.08); stats[4] = Math.ceil(stats[4] * 1.02); } }, // 黑田官兵衛
-    513: { name: "今孔明", desc: "團隊智力+10%", effect: (stats) => { stats[2] = Math.ceil(stats[2] * 1.10); } }, // 竹中半兵衛
-    520: { name: "戰國第一美女", desc: "若敵方無女性對手，團隊魅力+10%", effect: (stats, enemyIds = []) => { const hasFemale = enemyIds.some(id => FEMALE_OFFICER_IDS.includes(id)); if (!hasFemale) { stats[5] = Math.ceil(stats[5] * 1.10); } } }, // お市
+    506: { name: "日本第一兵", desc: "團隊武力+5%", effect: (stats) => { stats[1] = Math.ceil(stats[1] * 1.05); } }, // 真田幸村
+    507: { name: "謀將", desc: "團隊智力+5%", effect: (stats) => { stats[2] = Math.ceil(stats[2] * 1.05); } }, // 毛利元就
+    520: { name: "戰國第一美女", desc: "若敵方無女性對手，團隊全能力+2%", effect: (stats, enemyIds = []) => { const hasFemale = enemyIds.some(id => FEMALE_OFFICER_IDS.includes(id)); if (!hasFemale) { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.02); } } }, // お市
 };
 
 const OFFICERS_DATA = [

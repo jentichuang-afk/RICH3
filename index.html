@@ -15,10 +15,11 @@
             <h1>三國大富翁</h1>
             <p>請選擇遊玩人數：</p>
             <div class="player-count-btns">
-                <button class="btn" onclick="selectPlayerCount(1)">單人 (與電腦對戰)</button>
+                <button class="btn" onclick="selectPlayerCount(1)">單人 (與電腦對抗)</button>
                 <button class="btn" onclick="selectPlayerCount(2)">雙人對戰</button>
                 <button class="btn" onclick="selectPlayerCount(3)">3 人遊玩</button>
                 <button class="btn" onclick="selectPlayerCount(4)">4 人大亂鬥</button>
+                <button class="btn" onclick="selectPlayerCount(5)">5 人終極大亂鬥</button>
             </div>
         </div>
         <div class="start-content hidden" id="start-screen-stage2">
@@ -29,6 +30,7 @@
                 <button id="btn-faction-2" class="btn btn-faction-2" onclick="selectFaction(2)">魏 (曹操)</button>
                 <button id="btn-faction-3" class="btn btn-faction-3" onclick="selectFaction(3)">吳 (孫權)</button>
                 <button id="btn-faction-4" class="btn btn-faction-4" onclick="selectFaction(4)">群雄 (董卓)</button>
+                <button id="btn-faction-5" class="btn btn-faction-5" onclick="selectFaction(5)">戰國 (信長)</button>
             </div>
         </div>
     </div>
@@ -77,6 +79,15 @@
                             <h2>董卓 (紫方)</h2>
                             <p>資金: <span id="p4-money" class="money">10000</span></p>
                             <p class="officer-count">閒置武將: <span id="p4-officers">0</span></p>
+                        </div>
+                    </div>
+                    <!-- 玩家 5 -->
+                    <div class="player-card p5-card" id="p5-card">
+                        <div class="avatar p5-avatar">信</div>
+                        <div class="info">
+                            <h2>信長 (橘方)</h2>
+                            <p>資金: <span id="p5-money" class="money">10000</span></p>
+                            <p class="officer-count">閒置武將: <span id="p5-officers">0</span></p>
                         </div>
                     </div>
                 </div>
@@ -137,63 +148,63 @@
                         <span class="city-name">鄴城<br><small>$1600</small></span>
                         <div class="owner-marker"></div>
                     </div>
-                    <div class="cell" id="cell-16" data-index="16" style="grid-area: 1 / 6;">
-                        <span class="city-name">京都<br><small>$2200</small></span>
-                        <div class="owner-marker"></div>
-                    </div>
-                    <!-- 右側 -->
-                    <div class="cell" id="cell-5" data-index="5" style="grid-area: 2 / 6;">
+                    <div class="cell" id="cell-5" data-index="5" style="grid-area: 1 / 6;">
                         <span class="city-name">下邳<br><small>$1500</small></span>
                         <div class="owner-marker"></div>
                     </div>
-                    <div class="cell" id="cell-6" data-index="6" style="grid-area: 3 / 6;">
+                    <!-- 右側 -->
+                    <div class="cell" id="cell-6" data-index="6" style="grid-area: 2 / 6;">
                         <span class="city-name">臨淄<br><small>$1500</small></span>
                         <div class="owner-marker"></div>
                     </div>
-                    <div class="cell" id="cell-7" data-index="7" style="grid-area: 4 / 6;">
+                    <div class="cell" id="cell-7" data-index="7" style="grid-area: 3 / 6;">
                         <span class="city-name">徐州<br><small>$1500</small></span>
                         <div class="owner-marker"></div>
                     </div>
-                    <div class="cell" id="cell-17" data-index="17" style="grid-area: 5 / 6;">
-                        <span class="city-name">大阪<br><small>$1800</small></span>
-                        <div class="owner-marker"></div>
-                    </div>
-                    <!-- 下排 (由右向左走) -->
-                    <div class="cell" id="cell-8" data-index="8" style="grid-area: 6 / 6;">
+                    <div class="cell" id="cell-8" data-index="8" style="grid-area: 4 / 6;">
                         <span class="city-name">建業<br><small>道具</small></span>
                         <div class="owner-marker"></div>
                     </div>
-                    <div class="cell" id="cell-9" data-index="9" style="grid-area: 6 / 5;">
+                    <div class="cell" id="cell-9" data-index="9" style="grid-area: 5 / 6;">
                         <span class="city-name">廬江<br><small>$1500</small></span>
                         <div class="owner-marker"></div>
                     </div>
-                    <div class="cell" id="cell-10" data-index="10" style="grid-area: 6 / 4;">
+                    <!-- 下排 -->
+                    <div class="cell" id="cell-10" data-index="10" style="grid-area: 6 / 6;">
                         <span class="city-name">江夏<br><small>$1300</small></span>
                         <div class="owner-marker"></div>
                     </div>
-                    <div class="cell" id="cell-11" data-index="11" style="grid-area: 6 / 3;">
+                    <div class="cell" id="cell-11" data-index="11" style="grid-area: 6 / 5;">
                         <span class="city-name">襄陽<br><small>$1800</small></span>
                         <div class="owner-marker"></div>
                     </div>
-                    <div class="cell" id="cell-12" data-index="12" style="grid-area: 6 / 2;">
+                    <div class="cell" id="cell-12" data-index="12" style="grid-area: 6 / 4;">
                         <span class="city-name">成都<br><small>$2000</small></span>
                         <div class="owner-marker"></div>
                     </div>
-                    <div class="cell" id="cell-18" data-index="18" style="grid-area: 6 / 1;">
-                        <span class="city-name">江戶<br><small>$2000</small></span>
-                        <div class="owner-marker"></div>
-                    </div>
-                    <!-- 左側 (由下向上走) -->
-                    <div class="cell" id="cell-13" data-index="13" style="grid-area: 5 / 1;">
+                    <div class="cell" id="cell-13" data-index="13" style="grid-area: 6 / 3;">
                         <span class="city-name">江州<br><small>$1200</small></span>
                         <div class="owner-marker"></div>
                     </div>
-                    <div class="cell" id="cell-14" data-index="14" style="grid-area: 4 / 1;">
+                    <div class="cell" id="cell-14" data-index="14" style="grid-area: 6 / 2;">
                         <span class="city-name">梓潼<br><small>$1200</small></span>
                         <div class="owner-marker"></div>
                     </div>
-                    <div class="cell" id="cell-15" data-index="15" style="grid-area: 3 / 1;">
+                    <div class="cell" id="cell-15" data-index="15" style="grid-area: 6 / 1;">
                         <span class="city-name">漢中<br><small>$1100</small></span>
+                        <div class="owner-marker"></div>
+                    </div>
+                    <!-- 左側 (日本區域) -->
+                    <div class="cell" id="cell-16" data-index="16" style="grid-area: 5 / 1;">
+                        <span class="city-name">京都<br><small>$2200</small></span>
+                        <div class="owner-marker"></div>
+                    </div>
+                    <div class="cell" id="cell-17" data-index="17" style="grid-area: 4 / 1;">
+                        <span class="city-name">大阪<br><small>$1800</small></span>
+                        <div class="owner-marker"></div>
+                    </div>
+                    <div class="cell" id="cell-18" data-index="18" style="grid-area: 3 / 1;">
+                        <span class="city-name">江戶<br><small>$2000</small></span>
                         <div class="owner-marker"></div>
                     </div>
                     <div class="cell" id="cell-19" data-index="19" style="grid-area: 2 / 1;">
@@ -211,6 +222,7 @@
                     <div id="piece-p2" class="piece piece-p2">曹</div>
                     <div id="piece-p3" class="piece piece-p3">孫</div>
                     <div id="piece-p4" class="piece piece-p4">董</div>
+                    <div id="piece-p5" class="piece piece-p5">信</div>
                 </div>
             </div>
         </div>

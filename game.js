@@ -25,15 +25,16 @@ const GAME_STATE = {
     currentPlayer: 1, // 1: 劉備, 2: 曹操, 3: 孫權
     isWaitingForAction: false,
     gameOver: false,
-    activePlayers: [1, 2, 3, 4], // 記錄存活玩家的 ID
+    activePlayers: [1, 2, 3, 4, 5], // 記錄存活玩家的 ID
     changanOfficers: [], // 流亡長安的在野武將 (Phase 15)
-    logs: [], // 記錄最近的日誌語句 (存檔用)
+    logs: [], // 記錄最近的日誌語記 (存檔用)
     // Phase 65: 擴充 items 陣列與相關 flag (actTwice, stayInPlace, siegeBuff, blockScheme)
     players: {
         1: { id: 1, name: "劉備", money: 10000, position: 0, colorClass: 'p1', nameClass: 'p1-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false },
         2: { id: 2, name: "曹操", money: 10000, position: 0, colorClass: 'p2', nameClass: 'p2-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false },
         3: { id: 3, name: "孫權", money: 10000, position: 0, colorClass: 'p3', nameClass: 'p3-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false },
-        4: { id: 4, name: "董卓", money: 10000, position: 0, colorClass: 'p4', nameClass: 'p4-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false }
+        4: { id: 4, name: "董卓", money: 10000, position: 0, colorClass: 'p4', nameClass: 'p4-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false },
+        5: { id: 5, name: "信長", money: 10000, position: 0, colorClass: 'p5', nameClass: 'p5-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false }
     }
 };
 
@@ -150,17 +151,20 @@ const UI = {
     p2Card: document.getElementById('p2-card'),
     p3Card: document.getElementById('p3-card'),
     p4Card: document.getElementById('p4-card'),
+    p5Card: document.getElementById('p5-card'),
     p1Money: document.getElementById('p1-money'),
     p2Money: document.getElementById('p2-money'),
     p3Money: document.getElementById('p3-money'),
     p4Money: document.getElementById('p4-money'),
+    p5Money: document.getElementById('p5-money'),
     currentTurnName: document.getElementById('current-turn-name'),
     logPanel: document.getElementById('log-panel'),
     pieces: {
         1: document.getElementById('piece-p1'),
         2: document.getElementById('piece-p2'),
         3: document.getElementById('piece-p3'),
-        4: document.getElementById('piece-p4')
+        4: document.getElementById('piece-p4'),
+        5: document.getElementById('piece-p5')
     },
     modal: document.getElementById('modal'),
     modalTitle: document.getElementById('modal-title'),
@@ -469,7 +473,7 @@ let selectedPlayerCount = 1;
 let humanFactions = [];
 
 function updateFactionButtons() {
-    for (let i = 1; i <= 4; i++) {
+    for (let i = 1; i <= 5; i++) {
         const btn = document.getElementById(`btn-faction-${i}`);
         if (btn) btn.style.display = humanFactions.includes(i) ? 'none' : 'inline-block';
     }
@@ -481,9 +485,9 @@ function selectPlayerCount(count) {
     UI.startScreenStage1.classList.add('hidden');
     UI.startScreenStage2.classList.remove('hidden');
 
-    if (count === 4) {
-        // 如果選 4 人，不需選陣營，直接 1=蜀, 2=魏, 3=吳, 4=群
-        humanFactions = [1, 2, 3, 4];
+    if (count === 5) {
+        // 如果選 5 人，不需選陣營
+        humanFactions = [1, 2, 3, 4, 5];
         startGame();
     } else {
         UI.currentSelectingPlayer.textContent = humanFactions.length + 1;
@@ -508,8 +512,8 @@ function selectFaction(factionId) {
 function startGame() {
     UI.startScreen.classList.add('hidden');
 
-    // 沒被人類選走的陣營，給電腦設定 (最多 4 人)
-    for (let i = 1; i <= 4; i++) {
+    // 沒被人類選走的陣營，給電腦設定
+    for (let i = 1; i <= 5; i++) {
         GAME_STATE.players[i].isBot = !humanFactions.includes(i);
 
         // Phase 55: 開局隨機初始站位
@@ -518,7 +522,7 @@ function startGame() {
         // 如果電腦玩家（非人類），顯示其 UI 為電腦標記
         if (GAME_STATE.players[i].isBot) {
             const card = UI[`p${i}Card`];
-            const strongElement = card.querySelector('.info strong');
+            const strongElement = card.querySelector('.info h2'); // 原為 strong, 檢查 index.html 發現是 h2
             if (strongElement && !strongElement.textContent.includes('(電腦)')) {
                 strongElement.textContent += " (電腦)";
             }
@@ -526,7 +530,7 @@ function startGame() {
     }
 
     // Phase 55: 隨機決定起手順序
-    GAME_STATE.activePlayers = [1, 2, 3, 4].sort(() => Math.random() - 0.5);
+    GAME_STATE.activePlayers = [1, 2, 3, 4, 5].sort(() => Math.random() - 0.5);
     GAME_STATE.currentPlayer = GAME_STATE.activePlayers[0];
 
     // 更新 UI 指示燈
@@ -534,6 +538,7 @@ function startGame() {
     UI.p2Card.classList.toggle('active', GAME_STATE.currentPlayer === 2);
     UI.p3Card.classList.toggle('active', GAME_STATE.currentPlayer === 3);
     if (UI.p4Card) UI.p4Card.classList.toggle('active', GAME_STATE.currentPlayer === 4);
+    if (UI.p5Card) UI.p5Card.classList.toggle('active', GAME_STATE.currentPlayer === 5);
 
     log(`遊戲開始！玩家操作：${humanFactions.map(id => GAME_STATE.players[id].name).join('、')}。`);
 
@@ -3255,7 +3260,7 @@ function openEncyclopedia() {
 function renderEncyclopedia() {
     UI.encyclopediaTbody.innerHTML = '';
 
-    const factionMap = { 1: "蜀國", 2: "魏國", 3: "吳國", 4: "群雄" };
+    const factionMap = { 1: "蜀國", 2: "魏國", 3: "吳國", 4: "群雄", 5: "戰國" };
 
     // 計算動態總和與即時陣營 (Phase 23)
     let displayData = OFFICERS_DATA.map(o => {
@@ -3436,7 +3441,7 @@ function loadGame() {
 
 function restoreUI() {
     // 1. 金額更新
-    for (let i = 1; i <= 4; i++) {
+    for (let i = 1; i <= 5; i++) {
         updateMoney(i, 0); 
         updateOfficerCountUI(i);
     }

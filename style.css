@@ -15,6 +15,8 @@
     /* 吳紅 */
     --faction-4: #9c27b0;
     /* 群紫 */
+    --faction-5: #e67e22;
+    /* 戰國橘金 */
 
     --p1-color: var(--faction-1);
     /* 蜀漢綠 */
@@ -31,6 +33,10 @@
     --p4-color: var(--faction-4);
     /* 群雄紫 */
     --p4-light: rgba(156, 39, 176, 0.1);
+
+    --p5-color: var(--faction-5);
+    /* 戰國橘金 */
+    --p5-light: rgba(230, 126, 34, 0.1);
 
     --gold: #b89849;
     /* 古典金 */
@@ -185,6 +191,11 @@ h1 {
     background-color: var(--p4-light);
 }
 
+.p5-card.active {
+    border-color: var(--p5-color);
+    background-color: var(--p5-light);
+}
+
 .avatar {
     width: 50px;
     height: 50px;
@@ -214,6 +225,10 @@ h1 {
 
 .p4-avatar {
     background: var(--p4-color);
+}
+
+.p5-avatar {
+    background: var(--p5-color);
 }
 
 .info h2 {
@@ -264,6 +279,10 @@ h1 {
 
 .p4-text {
     color: var(--p4-color);
+}
+
+.p5-text {
+    color: var(--p5-color);
 }
 
 .p2-text {
@@ -367,6 +386,11 @@ h1 {
     color: white;
 }
 
+.p5 {
+    background: var(--faction-5);
+    color: white;
+}
+
 .btn-faction-1 {
     background-color: var(--faction-1);
     color: white;
@@ -389,6 +413,12 @@ h1 {
     background-color: var(--faction-4);
     color: white;
     border-color: #3b1e66;
+}
+
+.btn-faction-5 {
+    background-color: var(--faction-5);
+    color: white;
+    border-color: #8c4c1a;
 }
 
 /* Log Panel */
@@ -554,6 +584,13 @@ h1 {
     background: var(--p4-color);
     margin-top: 15px;
     margin-left: -15px;
+    z-index: 11;
+}
+
+.piece-p5 {
+    background: var(--p5-color);
+    margin-top: 15px;
+    margin-left: 15px;
     z-index: 11;
 }
 
