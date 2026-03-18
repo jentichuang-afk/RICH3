@@ -47,9 +47,9 @@ function getCityChainLength(playerId, cityId) {
     
     // 獲取下一個「領地」索引 (自動跳過 0 與 8)
     const getNextLandIndex = (cur, step) => {
-        let next = (cur + step + 20) % 20;
+        let next = (cur + step + 16) % 16;
         while (next === 0 || next === 8) {
-            next = (next + step + 20) % 20;
+            next = (next + step + 16) % 16;
         }
         return next;
     };
@@ -111,7 +111,7 @@ function formatStatDisplay(base, current, injuryRate = 0) {
     return html;
 }
 
-// 地圖資料 (20格)
+// 地圖資料 (16格)
 const MAP_DATA = [
     { id: 0, name: "長安", type: "START", price: 0, owner: null },
     { id: 1, name: "洛陽", type: "LAND", price: 2500, owner: null, defenders: [], development: 0 },
@@ -129,10 +129,6 @@ const MAP_DATA = [
     { id: 13, name: "江州", type: "LAND", price: 1200, owner: null, defenders: [], development: 0 },
     { id: 14, name: "梓潼", type: "LAND", price: 1200, owner: null, defenders: [], development: 0 },
     { id: 15, name: "漢中", type: "LAND", price: 1100, owner: null, defenders: [], development: 0 },
-    { id: 16, name: "京都", type: "LAND", price: 2200, owner: null, defenders: [], development: 0 },
-    { id: 17, name: "大阪", type: "LAND", price: 1800, owner: null, defenders: [], development: 0 },
-    { id: 18, name: "江戶", type: "LAND", price: 2000, owner: null, defenders: [], development: 0 },
-    { id: 19, name: "名古屋", type: "LAND", price: 1500, owner: null, defenders: [], development: 0 },
 ];
 
 const DICE_FACES = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
@@ -513,7 +509,7 @@ function startGame() {
         GAME_STATE.players[i].isBot = !humanFactions.includes(i);
 
         // Phase 55: 開局隨機初始站位
-        GAME_STATE.players[i].position = Math.floor(Math.random() * 20);
+        GAME_STATE.players[i].position = Math.floor(Math.random() * 16);
 
         // 如果電腦玩家（非人類），顯示其 UI 為電腦標記
         if (GAME_STATE.players[i].isBot) {
@@ -736,7 +732,7 @@ function handleRollDice() {
 // 移動玩家格子
 function movePlayer(player, steps) {
     let oldPos = player.position;
-    let newPos = (oldPos + steps) % 20;
+    let newPos = (oldPos + steps) % 16;
 
     // 已依需求取消經過起點發放 $2000 的設定
 
@@ -1163,7 +1159,7 @@ function getBestSiegeTeam(attackerOfficerIds, defenderIds, cityId = -1, useBuff 
         // 動態計算防守方的能力 (因為特技可能跟攻方有關)
         let currentDefStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
         for (let i = 1; i <= 6; i++) currentDefStats[i] = defStats[i];
-        applyTeamSkills(defenderIds, currentDefStats, teamIds, true, landInfo);
+        applyTeamSkills(defenderIds, currentDefStats, teamIds);
 
         // Level-based Geographical Advantage (1% per Lv)
         // Level-based Geographical Advantage (Lv0-3: 3%, Lv4+: n%)
@@ -1179,7 +1175,7 @@ function getBestSiegeTeam(attackerOfficerIds, defenderIds, cityId = -1, useBuff 
         }
 
         // 套用攻方團隊特技
-        applyTeamSkills(teamIds, atkStats, defenderIds, false, landInfo);
+        applyTeamSkills(teamIds, atkStats, defenderIds);
 
         if (useBuff) {
             for (let i = 1; i <= 6; i++) {
@@ -1285,7 +1281,7 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
         const o = getOfficer(id);
         if (o) { for (let i = 1; i <= 6; i++) atkTempStats[i] += getEffectiveStat(o, i); }
     });
-    applyTeamSkills(attackingIds, atkTempStats, defendingIds, false, landInfo);
+    applyTeamSkills(attackingIds, atkTempStats, defendingIds);
     attackerScore = atkTempStats[statRoll];
 
     // Phase 65/69: 【臨陣磨槍】 攻城 Buff (5%)
@@ -1310,7 +1306,7 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
         const o = getOfficer(id);
         if (o) { for (let i = 1; i <= 6; i++) defTempStats[i] += getEffectiveStat(o, i); }
     });
-    applyTeamSkills(defendingIds, defTempStats, attackingIds, true, landInfo);
+    applyTeamSkills(defendingIds, defTempStats, attackingIds);
     defenderScore = defTempStats[statRoll];
 
     // Level-based Geographical Advantage (1% per Lv) (特技加成後再算地理優勢)
@@ -1869,7 +1865,7 @@ function getCityTaxIncome(land) {
                 }
             }
         });
-        applyTeamSkills(land.defenders, teamStats, [], true, land);
+        applyTeamSkills(land.defenders, teamStats);
         totalPolitics = teamStats[4];
     }
 
@@ -1930,10 +1926,10 @@ function processCityTaxesAndInflation(player) {
 }
 
 // 處理團隊特技光環加成
-function applyTeamSkills(teamIds, teamStats, enemyIds = [], isDefense = false, landInfo = null) {
+function applyTeamSkills(teamIds, teamStats, enemyIds = []) {
     teamIds.forEach(id => {
         if (OFFICER_SKILLS[id]) {
-            OFFICER_SKILLS[id].effect(teamStats, enemyIds, isDefense, landInfo);
+            OFFICER_SKILLS[id].effect(teamStats, enemyIds);
         }
     });
 }
@@ -2373,7 +2369,7 @@ function updateWinRateDisplay() {
         }
     });
 
-    applyTeamSkills(window.currentDefIds, defStats, selectedOfficers, true, MAP_DATA[currentSiegeCityId]);
+    applyTeamSkills(window.currentDefIds, defStats);
 
     // Level-based Geographical Advantage (1% per Lv)
     // Level-based Geographical Advantage (Lv0-3: 3%, Lv4+: n%)
@@ -2405,7 +2401,7 @@ function updateWinRateDisplay() {
         }
     });
 
-    applyTeamSkills(selectedOfficers, atkStats, window.currentDefIds, false, MAP_DATA[currentSiegeCityId]);
+    applyTeamSkills(selectedOfficers, atkStats);
 
     // Phase 69: 臨陣磨槍加成
     let siegeBuffHtml = "";

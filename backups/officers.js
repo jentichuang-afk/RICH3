@@ -1,5 +1,5 @@
 // Phase 58, 59, 61: 定義女性武將 ID，用於專有特技判定
-const FEMALE_OFFICER_IDS = [115, 215, 219, 311, 315, 316, 402, 416, 418, 520];
+const FEMALE_OFFICER_IDS = [115, 215, 219, 311, 315, 316, 402, 416, 418];
 
 // 武將特技定義
 const OFFICER_SKILLS = {
@@ -50,17 +50,6 @@ const OFFICER_SKILLS = {
     // Phase 59: 新增女性武將群雄特技
     416: { name: "悲歌", desc: "若敵方無女性對手，團隊全能力+2%", effect: (stats, enemyIds = []) => { const hasFemale = enemyIds.some(id => FEMALE_OFFICER_IDS.includes(id)); if (!hasFemale) { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.02); } } }, // 蔡文姬
     418: { name: "戰姬", desc: "若敵方無女性對手，團隊全能力+2%", effect: (stats, enemyIds = []) => { const hasFemale = enemyIds.some(id => FEMALE_OFFICER_IDS.includes(id)); if (!hasFemale) { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.02); } } }, // 呂玲綺
-    // 戰國 (日本)
-    500: { name: "天下布武", desc: "團隊全能力+4%", effect: (stats) => { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.04); } }, // 織田信長
-    501: { name: "墨俁一夜城", desc: "所在地地利額外+5%", effect: (stats, enemyIds, isDefense, landInfo) => { if (landInfo) { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.05); } } }, // 豐臣秀吉
-    502: { name: "三方原之悟", desc: "團隊運氣+10%，防守時全能力+3%", effect: (stats, enemyIds, isDefense) => { stats[6] = Math.ceil(stats[6] * 1.10); if (isDefense) { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.03); } } }, // 德川家康
-    503: { name: "風林火山", desc: "團隊武力+5%、統率+5%", effect: (stats) => { stats[1] = Math.ceil(stats[1] * 1.05); stats[3] = Math.ceil(stats[3] * 1.05); } }, // 武田信玄
-    504: { name: "軍神", desc: "團隊武力+10%", effect: (stats) => { stats[1] = Math.ceil(stats[1] * 1.10); } }, // 上杉謙信
-    505: { name: "獨眼龍", desc: "團隊智力+5%、武力+5%", effect: (stats) => { stats[2] = Math.ceil(stats[2] * 1.05); stats[1] = Math.ceil(stats[1] * 1.05); } }, // 伊達政宗
-    506: { name: "日本第一兵", desc: "團隊武力+8%、運氣+2%", effect: (stats) => { stats[1] = Math.ceil(stats[1] * 1.08); stats[6] = Math.ceil(stats[6] * 1.02); } }, // 真田幸村
-    512: { name: "如水", desc: "團隊智力+8%、政治+2%", effect: (stats) => { stats[2] = Math.ceil(stats[2] * 1.08); stats[4] = Math.ceil(stats[4] * 1.02); } }, // 黑田官兵衛
-    513: { name: "今孔明", desc: "團隊智力+10%", effect: (stats) => { stats[2] = Math.ceil(stats[2] * 1.10); } }, // 竹中半兵衛
-    520: { name: "戰國第一美女", desc: "若敵方無女性對手，團隊魅力+10%", effect: (stats, enemyIds = []) => { const hasFemale = enemyIds.some(id => FEMALE_OFFICER_IDS.includes(id)); if (!hasFemale) { stats[5] = Math.ceil(stats[5] * 1.10); } } }, // お市
 };
 
 const OFFICERS_DATA = [
@@ -156,28 +145,6 @@ const OFFICERS_DATA = [
     { id: 418, name: "呂玲綺", faction: 4, stats: { 1: 93, 2: 40, 3: 82, 4: 28, 5: 76, 6: 60 } },
     { id: 419, name: "高順", faction: 4, stats: { 1: 86, 2: 62, 3: 87, 4: 57, 5: 80, 6: 64 } },
     { id: 420, name: "陳宮", faction: 4, stats: { 1: 37, 2: 91, 3: 73, 4: 85, 5: 72, 6: 57 } },
-    // 戰國 (日本) (5)
-    { id: 500, name: "織田信長", faction: 5, stats: { 1: 72, 2: 88, 3: 93, 4: 91, 5: 95, 6: 45 } },
-    { id: 501, name: "豐臣秀吉", faction: 5, stats: { 1: 55, 2: 84, 3: 78, 4: 93, 5: 87, 6: 91 } },
-    { id: 502, name: "德川家康", faction: 5, stats: { 1: 62, 2: 82, 3: 84, 4: 95, 5: 80, 6: 96 } },
-    { id: 503, name: "武田信玄", faction: 5, stats: { 1: 83, 2: 91, 3: 96, 4: 75, 5: 87, 6: 40 } },
-    { id: 504, name: "上杉謙信", faction: 5, stats: { 1: 94, 2: 80, 3: 95, 4: 55, 5: 91, 6: 49 } },
-    { id: 505, name: "伊達政宗", faction: 5, stats: { 1: 81, 2: 83, 3: 85, 4: 72, 5: 86, 6: 65 } },
-    { id: 506, name: "真田幸村", faction: 5, stats: { 1: 95, 2: 75, 3: 90, 4: 35, 5: 91, 6: 25 } },
-    { id: 507, name: "毛利元就", faction: 5, stats: { 1: 52, 2: 96, 3: 86, 4: 89, 5: 83, 6: 70 } },
-    { id: 508, name: "明智光秀", faction: 5, stats: { 1: 68, 2: 87, 3: 84, 4: 83, 5: 80, 6: 15 } },
-    { id: 509, name: "本多忠勝", faction: 5, stats: { 1: 96, 2: 35, 3: 87, 4: 30, 5: 77, 6: 86 } },
-    { id: 510, name: "井伊直政", faction: 5, stats: { 1: 87, 2: 60, 3: 80, 4: 50, 5: 83, 6: 60 } },
-    { id: 511, name: "石田三成", faction: 5, stats: { 1: 30, 2: 84, 3: 65, 4: 91, 5: 55, 6: 30 } },
-    { id: 512, name: "黑田官兵衛", faction: 5, stats: { 1: 35, 2: 94, 3: 83, 4: 80, 5: 65, 6: 57 } },
-    { id: 513, name: "竹中半兵衛", faction: 5, stats: { 1: 25, 2: 96, 3: 77, 4: 75, 5: 70, 6: 27 } },
-    { id: 514, name: "前田利家", faction: 5, stats: { 1: 77, 2: 55, 3: 75, 4: 70, 5: 80, 6: 65 } },
-    { id: 515, name: "柴田勝家", faction: 5, stats: { 1: 86, 2: 45, 3: 83, 4: 40, 5: 73, 6: 40 } },
-    { id: 516, name: "島津義弘", faction: 5, stats: { 1: 89, 2: 67, 3: 81, 4: 45, 5: 67, 6: 43 } },
-    { id: 517, name: "長宗我部元親", faction: 5, stats: { 1: 75, 2: 73, 3: 79, 4: 67, 5: 76, 6: 55 } },
-    { id: 518, name: "北條氏康", faction: 5, stats: { 1: 65, 2: 83, 3: 86, 4: 87, 5: 80, 6: 73 } },
-    { id: 519, name: "直江兼續", faction: 5, stats: { 1: 60, 2: 86, 3: 80, 4: 83, 5: 88, 6: 61 } },
-    { id: 520, name: "お市", faction: 5, stats: { 1: 15, 2: 75, 3: 45, 4: 65, 5: 96, 6: 37 } },
 ];
 
 // 替每位武將註冊不可變的 baseStats (Phase 17)，作為成長計算基準

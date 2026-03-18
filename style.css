@@ -424,8 +424,8 @@ h1 {
 
 .board {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    grid-template-rows: repeat(5, 1fr);
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: repeat(6, 1fr);
     gap: 4px;
     background: #bdbdbd;
     padding: 8px;
@@ -493,7 +493,7 @@ h1 {
     background: rgba(255, 255, 255, 0.8);
     border-radius: 8px;
     z-index: 10;
-    grid-area: 2 / 2 / 3 / 4;
+    grid-area: 2 / 2 / 6 / 6;
     display: flex;
     justify-content: center;
     align-items: center;
