@@ -756,7 +756,7 @@ function movePlayer(player, steps) {
 
 // 根據玩家位置更新棋子座標 (相對於對應 cell)
 function updatePiecesPosition(initial = false) {
-    for (let i = 1; i <= 4; i++) {
+    for (let i = 1; i <= 5; i++) {
         const p = GAME_STATE.players[i];
         const piece = UI.pieces[i];
 
@@ -1124,6 +1124,7 @@ function executeBuyLand(player, landInfo, selectedIds) {
         if (player.id === 2) ownerMarker.classList.add('owner-p2');
         if (player.id === 3) ownerMarker.classList.add('owner-p3');
         if (player.id === 4) ownerMarker.classList.add('owner-p4');
+        if (player.id === 5) ownerMarker.classList.add('owner-p5');
 
         endTurn();
     } catch (e) {
@@ -1668,6 +1669,7 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
                 if (attacker.id === 2) ownerMarker.classList.add('owner-p2');
                 if (attacker.id === 3) ownerMarker.classList.add('owner-p3');
                 if (attacker.id === 4) ownerMarker.classList.add('owner-p4');
+                if (attacker.id === 5) ownerMarker.classList.add('owner-p5');
 
                 endTurn();
             } else {
@@ -1794,6 +1796,7 @@ function updateMoney(playerId, amount) {
     if (playerId === 2) UI.p2Money.textContent = p.money;
     if (playerId === 3) UI.p3Money.textContent = p.money;
     if (playerId === 4 && UI.p4Money) UI.p4Money.textContent = p.money;
+    if (playerId === 5 && UI.p5Money) UI.p5Money.textContent = p.money;
 }
 
 // 更新閒置武將 UI
@@ -1994,6 +1997,7 @@ function endTurn() {
             UI.p2Card.classList.toggle('active', GAME_STATE.currentPlayer === 2);
             UI.p3Card.classList.toggle('active', GAME_STATE.currentPlayer === 3);
             if (UI.p4Card) UI.p4Card.classList.toggle('active', GAME_STATE.currentPlayer === 4);
+            if (UI.p5Card) UI.p5Card.classList.toggle('active', GAME_STATE.currentPlayer === 5);
 
             UI.currentTurnName.textContent = nextPlayer.name;
             UI.currentTurnName.className = nextPlayer.nameClass;
@@ -3460,6 +3464,7 @@ function restoreUI() {
                 else if (land.owner === 2) ownerMarker.classList.add('owner-p2');
                 else if (land.owner === 3) ownerMarker.classList.add('owner-p3');
                 else if (land.owner === 4) ownerMarker.classList.add('owner-p4');
+                else if (land.owner === 5) ownerMarker.classList.add('owner-p5');
             }
         }
     });

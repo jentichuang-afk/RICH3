@@ -64,26 +64,30 @@ body {
 }
 
 .container {
-    width: 1000px;
-    max-width: 95vw;
+    width: 900px;
+    max-width: 98vw;
     background: rgba(255, 255, 255, 0.7);
     border: 2px solid var(--ink-dark);
     box-shadow: 10px 10px 20px rgba(0, 0, 0, 0.1),
         inset 0 0 20px rgba(0, 0, 0, 0.05);
-    padding: 20px;
+    padding: 15px;
     border-radius: 4px;
     position: relative;
+    max-height: 98vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 header {
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
     border-bottom: 2px solid var(--ink-dark);
-    padding-bottom: 10px;
+    padding-bottom: 5px;
 }
 
 h1 {
-    font-size: 2.5rem;
+    font-size: 2rem;
     font-weight: 900;
     letter-spacing: 5px;
     color: var(--ink-dark);
@@ -142,21 +146,25 @@ h1 {
 
 .game-area {
     display: flex;
-    gap: 30px;
+    gap: 15px;
+    flex: 1;
+    overflow: hidden;
 }
 
 /* Sidebar & Stats */
 .sidebar {
-    flex: 1;
+    width: 250px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 8px;
+    overflow-y: auto;
+    padding-right: 5px;
 }
 
 .player-card {
     display: flex;
     align-items: center;
-    padding: 15px;
+    padding: 8px;
     border: 1px solid var(--border-color);
     border-radius: 4px;
     background: #fff;
@@ -197,17 +205,17 @@ h1 {
 }
 
 .avatar {
-    width: 50px;
-    height: 50px;
+    width: 35px;
+    height: 35px;
     border-radius: 50%;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 1.5rem;
+    font-size: 1.1rem;
     font-weight: bold;
     color: white;
-    margin-right: 15px;
-    border: 2px solid var(--ink-dark);
+    margin-right: 10px;
+    border: 1.5px solid var(--ink-dark);
     font-family: "KaiTi", "楷體", serif;
 }
 
@@ -232,8 +240,8 @@ h1 {
 }
 
 .info h2 {
-    font-size: 1.2rem;
-    margin-bottom: 5px;
+    font-size: 0.95rem;
+    margin-bottom: 2px;
 }
 
 .money {
@@ -252,12 +260,12 @@ h1 {
 /* Control Panel */
 .control-panel {
     border: 1px solid var(--border-color);
-    padding: 20px;
+    padding: 12px;
     background: #fff;
     text-align: center;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 10px;
 }
 
 .turn-indicator {
@@ -423,11 +431,11 @@ h1 {
 
 /* Log Panel */
 .log-panel {
-    height: 120px;
+    height: 100px;
     overflow-y: auto;
     text-align: left;
     border-top: 1px dashed var(--border-color);
-    padding-top: 10px;
+    padding-top: 8px;
     font-size: 0.9rem;
     line-height: 1.5;
     color: var(--ink-light);
@@ -450,6 +458,7 @@ h1 {
     display: flex;
     justify-content: center;
     align-items: center;
+    height: 100%;
 }
 
 .board {
@@ -458,9 +467,13 @@ h1 {
     grid-template-rows: repeat(6, 1fr);
     gap: 4px;
     background: #bdbdbd;
-    padding: 8px;
+    padding: 6px;
     border: 3px solid #666;
-    height: 100%;
+    height: 600px;
+    width: 600px;
+    max-width: 100%;
+    max-height: 100%;
+    aspect-ratio: 1 / 1;
     position: relative;
     box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.1);
 }
@@ -483,9 +496,9 @@ h1 {
 }
 
 .city-name {
-    font-size: 1.2rem;
+    font-size: 1.05rem;
     font-weight: 700;
-    line-height: 1.2;
+    line-height: 1.1;
 }
 
 .city-name small {
@@ -517,6 +530,10 @@ h1 {
 
 .owner-p4 {
     background-color: var(--p4-color);
+}
+
+.owner-p5 {
+    background-color: var(--p5-color);
 }
 
 .board-center {
@@ -776,6 +793,11 @@ h1 {
 .owner-p4 {
     background-color: var(--p4-color);
     box-shadow: 0 0 5px var(--p4-color);
+}
+
+.owner-p5 {
+    background-color: var(--p5-color);
+    box-shadow: 0 0 5px var(--p5-color);
 }
 
 /* --- Phase 37: 絕境逆轉動畫 --- */
