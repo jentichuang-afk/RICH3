@@ -52,6 +52,7 @@ const OFFICER_SKILLS = {
     418: { name: "戰姬", desc: "若敵方無女性對手，團隊全能力+2%", effect: (stats, enemyIds = []) => { const hasFemale = enemyIds.some(id => FEMALE_OFFICER_IDS.includes(id)); if (!hasFemale) { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.02); } } }, // 呂玲綺
     // 戰國 (日本)
     500: { name: "天下布武", desc: "團隊全能力+3%", effect: (stats) => { for (let i = 1; i <= 6; i++) stats[i] = Math.ceil(stats[i] * 1.03); } }, // 織田信長
+    501: { name: "身分向上", desc: "團隊政治+10%", effect: (stats) => { stats[4] = Math.ceil(stats[4] * 1.10); } }, // 豐臣秀吉
     502: { name: "三方原之悟", desc: "團隊運氣+10%", effect: (stats) => { stats[6] = Math.ceil(stats[6] * 1.10); } }, // 德川家康
     503: { name: "風林火山", desc: "團隊武力+5%、統率+5%", effect: (stats) => { stats[1] = Math.ceil(stats[1] * 1.05); stats[3] = Math.ceil(stats[3] * 1.05); } }, // 武田信玄
     504: { name: "軍神", desc: "團隊武力+10%", effect: (stats) => { stats[1] = Math.ceil(stats[1] * 1.10); } }, // 上杉謙信
