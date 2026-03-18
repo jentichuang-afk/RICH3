@@ -41,7 +41,7 @@ const GAME_STATE = {
 // Phase 66: 計算連續領地長度 (相連城池加成)
 // 更新：現在可以跨過長安(0)與建業(8)計算，將地圖視為完整的環狀領土。
 function getCityChainLength(playerId, cityId) {
-    if (cityId === 0 || cityId === 8 || playerId == null) return 0;
+    if (cityId === 0 || cityId === 10 || playerId == null) return 0;
     
     const visited = new Set();
     visited.add(cityId);
@@ -49,7 +49,7 @@ function getCityChainLength(playerId, cityId) {
     // 獲取下一個「領地」索引 (自動跳過 0 與 8)
     const getNextLandIndex = (cur, step) => {
         let next = (cur + step + 20) % 20;
-        while (next === 0 || next === 8) {
+        while (next === 0 || next === 10) {
             next = (next + step + 20) % 20;
         }
         return next;
@@ -122,9 +122,9 @@ const MAP_DATA = [
     { id: 5, name: "下邳", type: "LAND", price: 1500, owner: null, defenders: [], development: 0 },
     { id: 6, name: "臨淄", type: "LAND", price: 1500, owner: null, defenders: [], development: 0 },
     { id: 7, name: "徐州", type: "LAND", price: 1500, owner: null, defenders: [], development: 0 },
-    { id: 8, name: "建業", type: "ITEM_SHOP", price: 0, owner: null }, // 中立道具店
+    { id: 8, name: "建業", type: "LAND", price: 1500, owner: null, defenders: [], development: 0 },
     { id: 9, name: "廬江", type: "LAND", price: 1500, owner: null, defenders: [], development: 0 },
-    { id: 10, name: "江夏", type: "LAND", price: 1300, owner: null, defenders: [], development: 0 },
+    { id: 10, name: "江夏", type: "ITEM_SHOP", price: 0, owner: null }, // 招募與道具店
     { id: 11, name: "襄陽", type: "LAND", price: 1800, owner: null, defenders: [], development: 0 },
     { id: 12, name: "成都", type: "LAND", price: 2000, owner: null, defenders: [], development: 0 },
     { id: 13, name: "江州", type: "LAND", price: 1200, owner: null, defenders: [], development: 0 },
@@ -792,7 +792,7 @@ function triggerLandEvent(player, landInfo) {
             offeredIds = [...GAME_STATE.changanOfficers].sort(() => 0.5 - Math.random()).slice(0, 3);
         }
         
-        let cityName = landInfo.type === "START" ? "長安" : "建業";
+        let cityName = landInfo.name;
         
         if (offeredIds.length > 0) {
             log(`${player.name} 抵達了${cityName}。市集人聲鼎沸，發現了 ${offeredIds.length} 名在野武將的蹤跡與各式奇珍異寶！`);

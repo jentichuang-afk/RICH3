@@ -490,7 +490,7 @@ h1 {
     position: relative;
 }
 
-#cell-0 {
+#cell-0, #cell-10 {
     background: rgba(230, 220, 200, 0.9);
     font-weight: bold;
 }
