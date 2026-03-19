@@ -1,11 +1,11 @@
 :root {
-    --bg-color: #f4f1ea;
-    /* 宣紙/米黃底色 */
-    --ink-dark: #2c2c2c;
-    /* 濃墨黑 */
-    --ink-light: #525252;
-    /* 淡墨灰 */
-    --border-color: #8c8c8c;
+    --bg-color: #1a1a1a;
+    /* 夜墨/深灰底色 */
+    --ink-dark: #f4f1ea;
+    /* 宣紙白 (原濃墨黑反轉) */
+    --ink-light: #b0b0b0;
+    /* 淡宣灰 */
+    --border-color: #4a4a4a;
 
     --faction-1: #4caf50;
     /* 蜀綠 */
