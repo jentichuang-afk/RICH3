@@ -377,6 +377,13 @@ function initGame() {
             });
         }
 
+        // 點擊玩家頭像卡片可檢視麾下武將與駐地
+        if (UI.p1Card) { UI.p1Card.addEventListener('click', () => showPlayerOfficers(1)); UI.p1Card.style.cursor = 'pointer'; }
+        if (UI.p2Card) { UI.p2Card.addEventListener('click', () => showPlayerOfficers(2)); UI.p2Card.style.cursor = 'pointer'; }
+        if (UI.p3Card) { UI.p3Card.addEventListener('click', () => showPlayerOfficers(3)); UI.p3Card.style.cursor = 'pointer'; }
+        if (UI.p4Card) { UI.p4Card.addEventListener('click', () => showPlayerOfficers(4)); UI.p4Card.style.cursor = 'pointer'; }
+        if (UI.p5Card) { UI.p5Card.addEventListener('click', () => showPlayerOfficers(5)); UI.p5Card.style.cursor = 'pointer'; }
+
         // 為所有地圖格子加上點擊事件 (查看情報)
         document.querySelectorAll('.cell').forEach(cell => {
             cell.addEventListener('click', () => {
@@ -1459,6 +1466,11 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
                     playAwakeningAnimation(o.name, statName);
                     log(`🎊 【覺醒】${o.name} 突破極限，領悟了新的隱藏特技！`);
                 }
+                // Phase 71: 101+ 破極判定
+                if (oldVal < 101 && newVal >= 101 && [1, 2, 3, 4, 5, 6].includes(statRoll)) {
+                    playBreakthroughAnimation(o.name, statName);
+                    log(`⭐ 【破極】${o.name} 登峰造極，原先特技獲得了大幅強化！`);
+                }
             }
             // Phase 31: 若為逆轉勝，勝方需全體承受 80%~99% 絕對重傷代價
             if (reversalProc) {
@@ -1545,6 +1557,11 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
                 if (oldVal < 95 && newVal >= 95 && [1, 2, 3, 4, 5, 6].includes(statRoll)) {
                     playAwakeningAnimation(o.name, statName);
                     log(`🎊 【覺醒】${o.name} 突破極限，領悟了新的隱藏特技！`);
+                }
+                // Phase 71: 101+ 破極判定
+                if (oldVal < 101 && newVal >= 101 && [1, 2, 3, 4, 5, 6].includes(statRoll)) {
+                    playBreakthroughAnimation(o.name, statName);
+                    log(`⭐ 【破極】${o.name} 登峰造極，原先特技獲得了大幅強化！`);
                 }
             }
             // 敗方受傷判定
@@ -1942,6 +1959,21 @@ function applyTeamSkills(teamIds, teamStats, enemyIds = [], isDefense = false, l
     teamIds.forEach(id => {
         if (OFFICER_SKILLS[id]) {
             OFFICER_SKILLS[id].effect(teamStats, enemyIds, isDefense, landInfo);
+            
+            // Phase 71: 能力 101 以上者，原先特技獲得大幅強化 (疊加一次)
+            const o = getOfficer(id);
+            if (o && o.injuryRate === 0) {
+                let hasBreakthrough = false;
+                for (let i = 1; i <= 6; i++) {
+                    if (getEffectiveStat(o, i) >= 101) {
+                        hasBreakthrough = true;
+                        break;
+                    }
+                }
+                if (hasBreakthrough) {
+                    OFFICER_SKILLS[id].effect(teamStats, enemyIds, isDefense, landInfo);
+                }
+            }
         }
     });
 }
@@ -2098,6 +2130,37 @@ function playAwakeningAnimation(officerName, attrName) {
             document.body.removeChild(overlay);
         }
     }, 1500);
+}
+
+// Phase 71: 播放「武將能力破極」特效動畫 (能力 101+)
+function playBreakthroughAnimation(officerName, attrName) {
+    const overlay = document.createElement('div');
+    overlay.className = 'awakening-overlay';
+    // 改為紅色/金色放射狀漸層，營造更強烈的衝擊感
+    overlay.style.background = 'radial-gradient(circle, rgba(211, 47, 47, 0.6) 0%, rgba(0, 0, 0, 0) 70%)';
+
+    const title = document.createElement('div');
+    title.className = 'awakening-title';
+    title.textContent = '登峰造極';
+    title.style.textShadow = '0 0 15px #d32f2f, 0 0 30px #d32f2f, 0 0 45px #fff';
+    title.style.color = '#fff';
+
+    const subtitle = document.createElement('div');
+    subtitle.className = 'awakening-subtitle';
+    subtitle.textContent = `${officerName} 的特技獲得強化！`;
+    subtitle.style.borderColor = '#d32f2f';
+    subtitle.style.color = '#ffc107';
+
+    overlay.appendChild(title);
+    overlay.appendChild(subtitle);
+    document.body.appendChild(overlay);
+
+    // 1秒後自動移除
+    setTimeout(() => {
+        if (overlay.parentNode) {
+            document.body.removeChild(overlay);
+        }
+    }, 1200);
 }
 
 // Phase 67: AI 招募動畫
@@ -2294,7 +2357,14 @@ function renderSiegeOfficerList() {
 
         let skillText = "-";
         if (OFFICER_SKILLS[o.id]) {
-            skillText = `<strong style="color:var(--primary-color)">【${OFFICER_SKILLS[o.id].name}】</strong>`;
+            let isBreakthrough = false;
+            for (let i = 1; i <= 6; i++) {
+                if (getEffectiveStat(o, i) >= 101 && o.injuryRate === 0) { isBreakthrough = true; break; }
+            }
+            let skillName = OFFICER_SKILLS[o.id].name;
+            if (isBreakthrough) skillName += ' (極)';
+            
+            skillText = `<strong style="color:var(--primary-color)">【${skillName}】</strong>`;
         }
         if (o.injuryRate > 0) {
             skillText += ` <span style="color:#e57373; font-size:0.85em;">(受傷 -${o.injuryRate}%)</span>`;
@@ -2505,6 +2575,74 @@ function setupSiegeSort() {
         });
     });
     isSiegeSortSetup = true;
+}
+
+// 顯示特定玩家的麾下所有武將清單
+function showPlayerOfficers(playerId) {
+    const player = GAME_STATE.players[playerId];
+    if (!player) return;
+
+    let officerList = [];
+    
+    // 依據佔領地取得駐防武將
+    MAP_DATA.forEach(land => {
+        if (land.owner === playerId && land.defenders && land.defenders.length > 0) {
+            land.defenders.forEach(id => {
+                officerList.push({ id: id, loc: `<span style="color:#e67e22;">駐防: ${land.name}</span>` });
+            });
+        }
+    });
+
+    // 取得閒置武將 (目前在 player.officers 中的)
+    if (player.officers && player.officers.length > 0) {
+        player.officers.forEach(id => {
+            officerList.push({ id: id, loc: '<span style="color:#27ae60;">本隊 (閒置)</span>' });
+        });
+    }
+
+    let html = `
+    <div style="font-weight: bold; margin-bottom: 10px; font-size: 1.1em; color: var(--gold);">
+        總武將數: ${officerList.length} 名
+    </div>
+    <div style="max-height: 400px; overflow-y: auto; text-align: left; padding: 10px; background: rgba(0,0,0,0.5); border: 1px inset var(--border-color); color: var(--ink-light);">`;
+    
+    if (officerList.length === 0) {
+        html += `<p style="text-align:center;">目前麾下無武將跟隨</p>`;
+    } else {
+        html += `<table style="width:100%; border-collapse: collapse; font-size: 0.9em; text-align: center;">
+                    <tr style="border-bottom: 1px solid #555; background: rgba(255,255,255,0.1);">
+                        <th style="padding: 5px;">姓名</th>
+                        <th style="padding: 5px;">所在地</th>
+                        <th style="padding: 5px;">綜合能力</th>
+                        <th style="padding: 5px;">特技</th>
+                    </tr>`;
+        officerList.forEach(item => {
+            const o = getOfficer(item.id);
+            if(o) {
+                let skillText = "-";
+                if (OFFICER_SKILLS[o.id]) {
+                    let isBreakthrough = [1,2,3,4,5,6].some(i => getEffectiveStat(o, i) >= 101 && o.injuryRate === 0);
+                    skillText = OFFICER_SKILLS[o.id].name + (isBreakthrough ? ' (極)' : '');
+                }
+                
+                let total = 0;
+                for(let i=1;i<=6;i++) total += getEffectiveStat(o, i);
+                
+                html += `<tr style="border-bottom: 1px dotted #444; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background=''">
+                            <td style="padding: 5px; color: var(--gold); font-weight: bold;">${o.name}</td>
+                            <td style="padding: 5px;">${item.loc}</td>
+                            <td style="padding: 5px; color: #aaa;">${total}</td>
+                            <td style="padding: 5px; color: #888; font-size: 0.85em;">${skillText}</td>
+                         </tr>`;
+            }
+        });
+        html += `</table>`;
+    }
+    html += `</div>`;
+
+    UI.infoModalTitle.textContent = `${player.name} 麾下陣容清單`;
+    UI.infoModalMessage.innerHTML = html;
+    UI.infoModal.classList.remove('hidden');
 }
 
 // -----------------------------------------------------------------------------
