@@ -406,15 +406,15 @@ function initGame() {
 
                     if (landInfo.defenders.length > 0) {
                         info += '<p style="font-weight: bold; margin-top: 10px; border-left: 4px solid var(--primary-color); padding-left: 8px;">【駐軍陣容】</p>';
-                        info += '<table style="width:100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 8px; border: 1px solid #ddd;">';
-                        info += '<tr style="background:#f2f2f2; border-bottom: 2px solid #ccc; font-size: 0.75rem;">';
+                        info += '<table style="width:100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 8px; border: 1px solid var(--border-color);">';
+                        info += '<tr style="background:rgba(255,255,255,0.1); border-bottom: 2px solid var(--border-color); font-size: 0.75rem;">';
                         info += '<th style="padding:4px; width:15%;">姓名</th><th>武</th><th>智</th><th>統</th><th>政</th><th>魅</th><th>運</th><th style="width:35%;">特技</th></tr>';
                         
                         let totalStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
                         landInfo.defenders.forEach(id => {
                             const o = getOfficer(id);
                             if (o) {
-                                let injuryClass = o.injuryRate > 0 ? 'background-color: #fff5f5; color: #c0392b;' : '';
+                                let injuryClass = o.injuryRate > 0 ? 'background-color: rgba(231,76,60,0.1); color: #e74c3c;' : '';
                                 let injuryIcon = o.injuryRate > 0 ? '🤕' : '';
                                 
                                 let skills = [];
@@ -424,7 +424,7 @@ function initGame() {
                                 let ss = getSuperSkillDescription(o);
                                 if (ss) skills.push(ss);
 
-                                info += `<tr style="border-bottom: 1px solid #eee; ${injuryClass}">`;
+                                info += `<tr style="border-bottom: 1px dotted var(--border-color); ${injuryClass}">`;
                                 info += `<td style="padding: 6px 4px; font-weight:bold;">${injuryIcon}${o.name}</td>`;
                                 for (let i = 1; i <= 6; i++) {
                                     let val = getEffectiveStat(o, i);
@@ -437,7 +437,7 @@ function initGame() {
                         });
 
                         // 總合列
-                        info += '<tr style="background: #f9f9f9; font-weight: bold; border-top: 2px solid #8e735b;">';
+                        info += '<tr style="background: rgba(0,0,0,0.2); font-weight: bold; border-top: 2px solid var(--gold);">';
                         info += '<td style="padding: 6px 4px; text-align: right;">團隊總合</td>';
                         for (let i = 1; i <= 6; i++) {
                             info += `<td style="text-align:center; color: var(--primary-color);">${totalStats[i]}</td>`;
