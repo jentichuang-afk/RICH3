@@ -1348,15 +1348,25 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
     let reversalHtml = "";
     let reversalSacrificeId = null;
     let losingIdsForCheck = isAttackerWin ? defendingIds : attackingIds;
+    let winningIdsForCheck = isAttackerWin ? attackingIds : defendingIds;
     
+    // Phase 72: 如果勝方也有神機妙算，則敗方發動者的智力必需大於勝方最高智庫的智力
+    let maxWinnerInt = 0;
+    winningIdsForCheck.forEach(id => {
+        const o = getOfficer(id);
+        if (o && getEffectiveStat(o, 2) >= 95) {
+            maxWinnerInt = Math.max(maxWinnerInt, getEffectiveStat(o, 2));
+        }
+    });
+
     let superStrategistId = losingIdsForCheck.find(id => {
         const o = getOfficer(id);
-        return o && getEffectiveStat(o, 2) >= 101 && o.injuryRate === 0;
+        return o && getEffectiveStat(o, 2) >= 101 && o.injuryRate === 0 && getEffectiveStat(o, 2) > maxWinnerInt;
     });
 
     let topStrategistId = losingIdsForCheck.find(id => {
         const o = getOfficer(id);
-        return o && getEffectiveStat(o, 2) >= 95; // 智力 >= 95 (包含成長與受傷影響)
+        return o && getEffectiveStat(o, 2) >= 95 && getEffectiveStat(o, 2) > maxWinnerInt;
     });
 
     let revChance = superStrategistId ? 0.75 : (topStrategistId ? 0.50 : 0);
