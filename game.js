@@ -620,7 +620,9 @@ function handleAIItemUsage(player) {
             if (player.money > 2000 && Math.random() < 0.4) {
                 let enemies = GAME_STATE.activePlayers.filter(pid => pid !== player.id && !GAME_STATE.players[pid].isBankrupt);
                 if (enemies.length > 0) {
-                    let targetPid = enemies[Math.floor(Math.random() * enemies.length)];
+                    // Phase 73: 修改 AI 暗箭傷人邏輯，針對錢最多的對手
+                    enemies.sort((a, b) => GAME_STATE.players[b].money - GAME_STATE.players[a].money);
+                    let targetPid = enemies[0];
                     useItem(player, { ...item, index: idx }, GAME_STATE.players[targetPid]);
                     return;
                 }
