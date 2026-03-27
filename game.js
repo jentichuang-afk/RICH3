@@ -582,10 +582,17 @@ function checkTurn() {
     if (currentPlayer.isBot) {
         log(`[電腦] 輪到 ${currentPlayer.name} 回合...`);
         // Phase 65: AI 嘗試使用道具
+        const botPlayerId = currentPlayer.id;
         handleAIItemUsage(currentPlayer);
 
         setTimeout(() => {
-            // 防止重入：如果 AI 已經因為傳送等原因觸發了事件，不再重複擲骰
+            // Bug Fix: 確認這個計時器到期時，當前玩家仍然是當初設定計時器的那位 AI
+            // 防止當 AI 使用暗度陳倉後，回合切換給真人玩家，計時器誤觸真人玩家自動擲骰的問題
+            const activePlayer = GAME_STATE.players[GAME_STATE.currentPlayer];
+            if (!activePlayer || !activePlayer.isBot || activePlayer.id !== botPlayerId) {
+                console.log(`[Debug] Skipping handleRollDice: turn has changed to ${activePlayer?.name}, expected ${currentPlayer.name}`);
+                return;
+            }
             if (GAME_STATE.isWaitingForAction) {
                 console.log(`[Debug] Skipping handleRollDice for ${currentPlayer.name} - isWaitingForAction is true`);
                 return;
