@@ -697,6 +697,15 @@ function handleAIItemUsage(player) {
                 return;
             }
         }
+
+        if (item.id === 9) { // 天下為公：自己是全部君主最窮時使用
+            const activePids = GAME_STATE.activePlayers.filter(pid => !GAME_STATE.players[pid].isBankrupt);
+            const isPoorest = activePids.every(pid => pid === player.id || GAME_STATE.players[pid].money >= player.money);
+            if (isPoorest && activePids.length > 1) {
+                useItem(player, { ...item, index: idx });
+                return;
+            }
+        }
     }
 }
 
@@ -3076,6 +3085,18 @@ function useItem(player, itemInfo, aiTarget = null) {
             };
             if (isBot && aiTarget) executeArson(aiTarget);
             else openTargetSelect('land', executeArson);
+            break;
+        case 9: // 天下為公: 所有主公平分金錢
+            const activePids = GAME_STATE.activePlayers.filter(pid => !GAME_STATE.players[pid].isBankrupt);
+            const totalMoney = activePids.reduce((sum, pid) => sum + GAME_STATE.players[pid].money, 0);
+            const share = Math.floor(totalMoney / activePids.length);
+            log(`⚖️ 【天下為公】！${player.name} 宣告財富共享，各方主公重新平分金庫，每人獲得 $${share}！`);
+            activePids.forEach(pid => {
+                const diff = share - GAME_STATE.players[pid].money;
+                updateMoney(pid, diff);
+            });
+            consumeItem(player, itemInfo.index);
+            GAME_STATE.isWaitingForAction = false;
             break;
     }
 }
