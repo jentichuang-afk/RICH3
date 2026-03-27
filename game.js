@@ -3434,8 +3434,8 @@ function getSuperSkillDescription(o) {
 
     // 魅力 (5)
     let cha = getEffectiveStat(o, 5);
-    if (cha >= 101 && o.injuryRate === 0) superSkills.push(`<span style="color:#d32f2f">【天選之子】</span>75% 機率勸退敵軍`);
-    else if (cha >= 95) superSkills.push(`<span style="color:#e91e63">【名德重望】</span>50% 機率勸退敵軍`);
+    if (cha >= 101 && o.injuryRate === 0) superSkills.push(`<span style="color:#d32f2f">【天選之子】</span>(魅力>攻)100% 勸退敵軍`);
+    else if (cha >= 95) superSkills.push(`<span style="color:#e91e63">【名德眾望】</span>(魅力>攻) 75% 勸退敵軍`);
 
     // 運氣 (6)
     let luc = getEffectiveStat(o, 6);
