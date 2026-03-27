@@ -1188,7 +1188,7 @@ function triggerLandEvent(player, landInfo) {
 // 買地與派駐守將處理
 function executeBuyLand(player, landInfo, selectedIds) {
     try {
-        let currentPrice = GAME_STATE.currentRound <= 3 ? 0 : parseInt(landInfo.price);
+        let currentPrice = parseInt(landInfo.price);
         updateMoney(player.id, -currentPrice);
         landInfo.owner = player.id;
 
@@ -1197,7 +1197,7 @@ function executeBuyLand(player, landInfo, selectedIds) {
         player.officers = player.officers.filter(id => id != null && !selectedIds.includes(id));
         updateOfficerCountUI(player.id);
 
-        let priceDesc = currentPrice === 0 ? "免費" : `花費 $${currentPrice}`;
+        let priceDesc = `花費 $${currentPrice}`;
         log(`${player.name} ${priceDesc}佔領了 ${landInfo.name}！派駐 ${selectedIds.length} 名武將守城。`);
 
         // 更新 UI 標示
