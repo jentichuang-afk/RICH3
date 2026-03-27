@@ -3314,36 +3314,34 @@ function handleCityMenuAI(player, offeredIds, cityName) {
     // Phase 74: 當 AI 身邊空閒武將少於 6 人時，優先選擇招募武將，而不購買道具
     let forceRecruit = canRecruit && player.officers.length < 6;
 
-    // AI 判斷是否買道具 (改為可購買多個)
+    // AI 判斷是否買道具 (金錢超過 10000 可買完所有道具)
     let boughtItemsList = [];
     if (!forceRecruit) {
         let reserveThreshold = 10000;
         let itemOptions = Object.values(ITEMS_DATA).filter(it => !player.items.some(pi => pi.id === it.id));
     
-    // AI 隨機挑選 1~3 個不同道具嘗試購買
+    // AI 隨機挑選道具嘗試購買 (金錢 > 10000 無數量上限)
     if (itemOptions.length > 0) {
         let tempBudget = player.money;
         let shuffle = [...itemOptions].sort(() => 0.5 - Math.random());
-        let count = 0;
         for (let item of shuffle) {
-            if (count >= 3) break; // 一次最多買 3 個
             let afterPrice = tempBudget - item.price;
             
-            // 邏輯：扣除後仍大於 10000 則可繼續買(上限3)；若會低於 10000 則最多只能買這 1 個
+            // 預算充足 (>10000)：隨機決定是否購買，無數量上限
             if (afterPrice >= reserveThreshold) {
                 if (Math.random() < 0.7) {
                     tempBudget = afterPrice;
                     boughtItemsList.push(item);
-                    count++;
                 }
-            } else if (count === 0 && afterPrice > 0) { 
-                // 低於 10000 仍可購買，但僅限第 1 個
+            } else if (boughtItemsList.length === 0 && afterPrice > 0) { 
+                // 已低於 10000 且尚未購買：最多只買 1 個
                 if (Math.random() < 0.7) {
                     tempBudget = afterPrice;
                     boughtItemsList.push(item);
-                    count++;
                 }
-                break; // 買完這一個(或機率沒中)就結束，因為低於 10000 了
+                break;
+            } else {
+                break; // 已有購買且預算不足，停止
             }
         }
     }
