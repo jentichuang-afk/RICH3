@@ -130,9 +130,9 @@ const MAP_DATA = [
     { id: 13, name: "江州", type: "LAND", price: 1200, owner: null, defenders: [], development: 0 },
     { id: 14, name: "梓潼", type: "LAND", price: 1200, owner: null, defenders: [], development: 0 },
     { id: 15, name: "漢中", type: "LAND", price: 1100, owner: null, defenders: [], development: 0 },
-    { id: 16, name: "京都", type: "LAND", price: 2200, owner: null, defenders: [], development: 0 },
+    { id: 16, name: "京都", type: "LAND", price: 2000, owner: null, defenders: [], development: 0 },
     { id: 17, name: "大阪", type: "LAND", price: 1800, owner: null, defenders: [], development: 0 },
-    { id: 18, name: "江戶", type: "LAND", price: 2000, owner: null, defenders: [], development: 0 },
+    { id: 18, name: "江戶", type: "LAND", price: 1800, owner: null, defenders: [], development: 0 },
     { id: 19, name: "名古屋", type: "LAND", price: 1500, owner: null, defenders: [], development: 0 },
 ];
 
