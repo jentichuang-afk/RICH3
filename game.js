@@ -979,25 +979,35 @@ function triggerLandEvent(player, landInfo) {
             return;
         }
 
-        // Phase 41 & 45: 魅力 (95+)「名德重望」- 50% 機率不戰而退
+        // Phase 41 & 45 (Updated): 魅力「名德眾望」
+        // 條件：守城武將魅力 >= 95，且魅力高於攻城方所有身邊閒置武將的魅力
+        
+        // 計算攻城方閒置武將中的最高魅力值
+        let attackerMaxCha = 0;
+        player.officers.forEach(id => {
+            const o = getOfficer(id);
+            if (o) attackerMaxCha = Math.max(attackerMaxCha, getEffectiveStat(o, 5));
+        });
+
         let superCharismaId = landInfo.defenders.find(id => {
             const o = getOfficer(id);
-            return o && getEffectiveStat(o, 5) >= 101 && o.injuryRate === 0;
+            return o && getEffectiveStat(o, 5) >= 101 && o.injuryRate === 0 && getEffectiveStat(o, 5) > attackerMaxCha;
         });
         let topCharismaId = landInfo.defenders.find(id => {
             const o = getOfficer(id);
-            return o && getEffectiveStat(o, 5) >= 95;
+            return o && getEffectiveStat(o, 5) >= 95 && getEffectiveStat(o, 5) > attackerMaxCha;
         });
 
         let charmId = superCharismaId || topCharismaId;
-        let charmChance = superCharismaId ? 0.75 : 0.50;
+        // 101+ 必定發動 (100%)；95+ 有 75% 機率
+        let charmChance = superCharismaId ? 1.0 : 0.75;
 
         if (charmId && Math.random() < charmChance) {
             const charmer = getOfficer(charmId);
-            let skillName = superCharismaId ? '【天選之子】' : '【名德重望】';
+            let skillName = superCharismaId ? '【天選之子】' : '【名德眾望】';
             log(`✨ ${skillName}${charmer.name} 威名遠播，${player.name} 被其風采感化，決定繳費離開。`);
 
-            // Phase 47: 魅力特技發動後體力透支，受傷增加 50%
+            // 自身損失體力 50%
             charmer.injuryRate = Math.min(100, charmer.injuryRate + 50);
             log(`🩸 ${charmer.name} 因為發揮特技消耗大量精神，受傷程度大幅增加！(目前健康: ${100 - charmer.injuryRate}%)`);
 
@@ -1009,7 +1019,7 @@ function triggerLandEvent(player, landInfo) {
                 display: flex; justify-content: center; align-items: center;
                 pointer-events: none; opacity: 0; transition: opacity 0.3s;
             `;
-            overlay.innerHTML = `<h1 style="color: white; font-size: 5vw; text-shadow: 0 0 20px #e1bee7; transform: scale(0.5); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);">✨ 名德重望 - ${charmer.name} ✨</h1>`;
+            overlay.innerHTML = `<h1 style="color: white; font-size: 5vw; text-shadow: 0 0 20px #e1bee7; transform: scale(0.5); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);">✨ 名德眾望 - ${charmer.name} ✨</h1>`;
             document.body.appendChild(overlay);
 
             // Trigger animation
@@ -1026,11 +1036,11 @@ function triggerLandEvent(player, landInfo) {
                 if (player.isBot) {
                     setTimeout(() => { payToll(player, owner, toll); }, 500);
                 } else {
-                    let skillName = superCharismaId ? '天選之子' : '名德重望';
+                    let displayName = superCharismaId ? '天選之子' : '名德眾望';
                     showModal(
-                        `${skillName} - ${charmer.name}`,
+                        `${displayName} - ${charmer.name}`,
                         `<div style="text-align:center;">
-                            <div style="font-size: 1.2rem; color: #9c27b0; font-weight: bold; margin-bottom: 10px;">★ ${skillName} ★</div>
+                            <div style="font-size: 1.2rem; color: #9c27b0; font-weight: bold; margin-bottom: 10px;">★ ${displayName} ★</div>
                             <p>${charmer.name} 的仁德之風使我軍肅然起敬，<br>不忍與其正對。僅繳納過路費 $${toll} 後離去。</p>
                             <p style="color:#d32f2f; font-size: 0.9rem; margin-top: 10px;">(※ ${charmer.name} 因發動特技消耗精神，受傷程度增加 50%)</p>
                         </div>`,
