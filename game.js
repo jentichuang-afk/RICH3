@@ -3294,10 +3294,14 @@ function handleCityMenuAI(player, offeredIds, cityName) {
         }
     }
 
+    // Phase 74: 當 AI 身邊空閒武將少於 6 人時，優先選擇招募武將，而不購買道具
+    let forceRecruit = canRecruit && player.officers.length < 6;
+
     // AI 判斷是否買道具 (改為可購買多個)
     let boughtItemsList = [];
-    let reserveThreshold = 10000;
-    let itemOptions = Object.values(ITEMS_DATA).filter(it => !player.items.some(pi => pi.id === it.id));
+    if (!forceRecruit) {
+        let reserveThreshold = 10000;
+        let itemOptions = Object.values(ITEMS_DATA).filter(it => !player.items.some(pi => pi.id === it.id));
     
     // AI 隨機挑選 1~3 個不同道具嘗試購買
     if (itemOptions.length > 0) {
@@ -3326,11 +3330,12 @@ function handleCityMenuAI(player, offeredIds, cityName) {
             }
         }
     }
+    }
 
     setTimeout(() => {
         try {
-            if (canRecruit && (boughtItemsList.length === 0 || Math.random() < 0.6)) {
-                // 傾向招募 (60%)
+            if (forceRecruit || (canRecruit && (boughtItemsList.length === 0 || Math.random() < 0.6))) {
+                // 傾向招募 (60%)，或者是兵力不足強制招募
                 playRecruitAnimation(targetOfficer.name, player.name);
 
                 setTimeout(() => {
