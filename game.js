@@ -905,6 +905,44 @@ function triggerLandEvent(player, landInfo) {
         // 自己的土地
         if (player.isBot) {
             log(`${player.name} 回到自己的領地 ${landInfo.name}，軍心大振。`);
+            
+            // AI 傷員替換邏輯：若守將有重傷 (>50%)，且閒置清單有武將，則進行輪替
+            let hasInjured = false;
+            let healthyDefenders = [];
+            landInfo.defenders.forEach(id => {
+                let o = getOfficer(id);
+                if (o && o.injuryRate > 50) {
+                    hasInjured = true;
+                    player.officers.push(id); // 退回閒置區
+                } else {
+                    healthyDefenders.push(id);
+                }
+            });
+
+            if (hasInjured) {
+                // 從閒置區挑選健康的填補空缺 (補滿最多 3 人)
+                let healthyIdle = player.officers.filter(id => {
+                    let o = getOfficer(id);
+                    return o && (o.injuryRate || 0) <= 50;
+                });
+                // 優先依照總戰鬥力排序
+                healthyIdle.sort((a, b) => {
+                    let oa = getOfficer(a), ob = getOfficer(b);
+                    let ta = 0, tb = 0;
+                    for(let i=1; i<=6; i++) { ta+=oa.stats[i]; tb+=ob.stats[i]; }
+                    return tb - ta;
+                });
+
+                while (healthyDefenders.length < 3 && healthyIdle.length > 0) {
+                    let bestId = healthyIdle.shift();
+                    healthyDefenders.push(bestId);
+                    player.officers = player.officers.filter(id => id !== bestId);
+                }
+                landInfo.defenders = healthyDefenders;
+                updateOfficerCountUI(player.id);
+                log(`🔄 【調兵遣將】[電腦] ${player.name} 發現 ${landInfo.name} 有守將重傷，已重新部署武將駐守！`);
+            }
+
             // AI 建設邏輯：若手頭現金充足 (目前資金大於 建設費 + $1000)，則自動進行建設
             const buildCost = ((landInfo.development || 0) + 1) * 100;
             if (player.money >= 1000 + buildCost) {
@@ -917,10 +955,22 @@ function triggerLandEvent(player, landInfo) {
         } else {
             const originalDefenders = [...landInfo.defenders];
             const buildCost = ((landInfo.development || 0) + 1) * 100;
+            
+            // 檢查是否有重傷守將 (傷勢 > 50%)
+            let injuredNames = [];
+            landInfo.defenders.forEach(id => {
+                let o = getOfficer(id);
+                if (o && o.injuryRate > 50) injuredNames.push(o.name);
+            });
+            
+            let warningHtml = "";
+            if (injuredNames.length > 0) {
+                warningHtml = `<br><br><div style="background-color:rgba(211,47,47,0.1); padding:10px; border-radius:5px; border:1px solid #d32f2f;"><span style="color:#d32f2f; font-weight:bold;">⚠️ 警告：駐守此地的【${injuredNames.join('、')}】受到重傷 (傷勢 > 50%)，極易遭到攻破，強烈建議立即更換健康的武將防守！</span></div>`;
+            }
 
             showModal(
                 `回到領地：${landInfo.name}`,
-                `歡迎來到 ${landInfo.name}，目前建設等級 Lv ${landInfo.development || 0}。<br>您可以選擇更換駐軍武將，或花費 $${buildCost} 建設城池（使基礎稅率提升 1%）。`,
+                `歡迎來到 ${landInfo.name}，目前建設等級 Lv ${landInfo.development || 0}。<br>您可以選擇更換駐軍武將，或花費 $${buildCost} 建設城池（使基礎稅率提升 1%）。${warningHtml}`,
                 () => { // 選擇更換
                     // 將守護武將暫時放回閒置清單
                     player.officers.push(...landInfo.defenders);
