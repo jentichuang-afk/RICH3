@@ -525,6 +525,9 @@ function startGame() {
 
         // Phase 55: 開局隨機初始站位
         GAME_STATE.players[i].position = Math.floor(Math.random() * 20);
+        
+        // Phase 75: 天下為公單局使用次數初始化
+        GAME_STATE.players[i].item9UseCount = 0;
 
         // 如果電腦玩家（非人類），顯示其 UI 為電腦標記
         if (GAME_STATE.players[i].isBot) {
@@ -698,7 +701,8 @@ function handleAIItemUsage(player) {
             }
         }
 
-        if (item.id === 9) { // 天下為公：自己是全部君主最窮時使用
+        if (item.id === 9) { // 天下為公：自己是全部君主最窮時使用 (每局限3次)
+            if ((player.item9UseCount || 0) >= 3) return; // 次數耗盡則跳過
             const activePids = GAME_STATE.activePlayers.filter(pid => !GAME_STATE.players[pid].isBankrupt);
             const isPoorest = activePids.every(pid => pid === player.id || GAME_STATE.players[pid].money >= player.money);
             if (isPoorest && activePids.length > 1) {
@@ -2946,13 +2950,31 @@ function renderInventory(player) {
         const div = document.createElement('div');
         div.className = 'officer-item';
         div.style.textAlign = 'left';
-        div.innerHTML = `<strong>${item.name}</strong><br><small>${item.desc}</small>`;
-        div.onclick = () => {
-            document.querySelectorAll('#inventory-item-list .officer-item').forEach(el => el.classList.remove('selected'));
-            div.classList.add('selected');
-            selectedInventoryItem = { ...item, index: index };
-            if (UI.btnConfirmUseItem) UI.btnConfirmUseItem.disabled = false;
-        };
+        
+        // 限制天下為公次數
+        let extraDesc = "";
+        let isDisabled = false;
+        if (item.id === 9) {
+            let usedCount = player.item9UseCount || 0;
+            extraDesc = ` <span style="color:#d32f2f; font-weight:bold;">(已用: ${usedCount}/3次)</span>`;
+            if (usedCount >= 3) isDisabled = true;
+        }
+
+        div.innerHTML = `<strong>${item.name}</strong>${extraDesc}<br><small>${item.desc}</small>`;
+        
+        if (isDisabled) {
+            div.style.opacity = '0.5';
+            div.onclick = () => {
+                alert(`「${item.name}」單場遊戲每位主公最多發動 3 次，您已經無法再使用本計謀。`);
+            };
+        } else {
+            div.onclick = () => {
+                document.querySelectorAll('#inventory-item-list .officer-item').forEach(el => el.classList.remove('selected'));
+                div.classList.add('selected');
+                selectedInventoryItem = { ...item, index: index };
+                if (UI.btnConfirmUseItem) UI.btnConfirmUseItem.disabled = false;
+            };
+        }
         UI.inventoryItemList.appendChild(div);
     });
 }
@@ -3134,11 +3156,18 @@ function useItem(player, itemInfo, aiTarget = null) {
             if (isBot && aiTarget) executeArson(aiTarget);
             else openTargetSelect('land', executeArson);
             break;
-        case 9: // 天下為公: 所有主公平分金錢
+        case 9: // 天下為公: 所有主公平分金錢 (每主公限3次)
+            if ((player.item9UseCount || 0) >= 3) {
+                log(`🚫 ${player.name} 使用「天下為公」的次數已達單局上限 (3次)，本計謀已被封印無法發動！`);
+                GAME_STATE.isWaitingForAction = false;
+                return;
+            }
+            player.item9UseCount = (player.item9UseCount || 0) + 1;
+
             const activePids = GAME_STATE.activePlayers.filter(pid => !GAME_STATE.players[pid].isBankrupt);
-            const totalMoney = activePids.reduce((sum, pid) => sum + GAME_STATE.players[pid].money, 0);
+            const totalMoney = activePids.reduce((sum, pid) => sum + GAME_STATE.players[pid].money, 0); // 取整
             const share = Math.floor(totalMoney / activePids.length);
-            log(`⚖️ 【天下為公】！${player.name} 宣告財富共享，各方主公重新平分金庫，每人獲得 $${share}！`);
+            log(`⚖️ 【天下為公】！${player.name} 宣告財富共享，各方主公重新平分金庫，每人獲得 $${share}！ (剩餘發動次數: ${3 - player.item9UseCount})`);
             activePids.forEach(pid => {
                 const diff = share - GAME_STATE.players[pid].money;
                 updateMoney(pid, diff);
