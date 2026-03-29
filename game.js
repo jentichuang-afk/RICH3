@@ -1333,16 +1333,23 @@ function getBestSiegeTeam(attackerOfficerIds, defenderIds, cityId = -1, useBuff 
             }
         }
 
-        // 動態判斷屬性權重 (Phase 101+ update)
+        // 動態判斷屬性權重 (武力>95可累加機制)
         let atkStr = atkStats[1], defStr = currentDefStats[1];
-        let hasSuperStr = teamIds.some(id => { let o = getOfficer(id); return o && getEffectiveStat(o, 1) >= 101 && o.injuryRate === 0; }) ||
-                          defenderIds.some(id => { let o = getOfficer(id); return o && getEffectiveStat(o, 1) >= 101 && o.injuryRate === 0; });
-        let hasTopStr = teamIds.some(id => { let o = getOfficer(id); return o && getEffectiveStat(o, 1) >= 95; }) ||
-                        defenderIds.some(id => { let o = getOfficer(id); return o && getEffectiveStat(o, 1) >= 95; });
-
         let strWeight = 1;
-        if (hasSuperStr && (atkStr > defStr || defStr > atkStr)) strWeight = 3;
-        else if (hasTopStr && (atkStr > defStr || defStr > atkStr)) strWeight = 2;
+        
+        let dominantTeamPrediction = null;
+        if (atkStr > defStr) dominantTeamPrediction = teamIds;
+        else if (defStr > atkStr) dominantTeamPrediction = defenderIds;
+        
+        if (dominantTeamPrediction) {
+            dominantTeamPrediction.forEach(id => {
+                let o = getOfficer(id);
+                if (o) {
+                    if (getEffectiveStat(o, 1) >= 101 && o.injuryRate === 0) strWeight += 2;
+                    else if (getEffectiveStat(o, 1) >= 95) strWeight += 1;
+                }
+            });
+        }
 
         const totalOutcomes = 5 + strWeight;
 
@@ -1404,22 +1411,38 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
     attackingIds.forEach(id => { let o = getOfficer(id); if (o) atkStr += getEffectiveStat(o, 1); });
     defendingIds.forEach(id => { let o = getOfficer(id); if (o) defStr += getEffectiveStat(o, 1); });
     
-    // 檢查武力特技
-    const hasSuperStrAtk = attackingIds.some(id => { let o = getOfficer(id); return o && getEffectiveStat(o, 1) >= 101 && o.injuryRate === 0; });
-    const hasSuperStrDef = defendingIds.some(id => { let o = getOfficer(id); return o && getEffectiveStat(o, 1) >= 101 && o.injuryRate === 0; });
-    const hasTopStrAtk = attackingIds.some(id => { let o = getOfficer(id); return o && getEffectiveStat(o, 1) >= 95; });
-    const hasTopStrDef = defendingIds.some(id => { let o = getOfficer(id); return o && getEffectiveStat(o, 1) >= 95; });
-    
-    let useSuperStrPool = (hasSuperStrAtk && atkStr > defStr) || (hasSuperStrDef && defStr > atkStr);
-    let useTopStrPool = (hasTopStrAtk && atkStr > defStr) || (hasTopStrDef && defStr > atkStr);
+    // 檢查武力特技 (武力>95可累加機制)
+    let dominantTeam = null;
+    let dominantName = "";
+    if (atkStr > defStr) { dominantTeam = attackingIds; dominantName = "攻方"; }
+    else if (defStr > atkStr) { dominantTeam = defendingIds; dominantName = "守方"; }
 
     let statPool = [1, 2, 3, 4, 5, 6];
-    if (useSuperStrPool) {
-        statPool = [1, 1, 1, 2, 3, 4, 5, 6];
-        log(`💪 【萬夫莫敵】戰場出現武力突破極限的猛將，硬碰硬的機率巨幅提升！`);
-    } else if (useTopStrPool) {
-        statPool = [1, 1, 2, 3, 4, 5, 6];
-        log(`💪 【一夫當關】戰場出現驍勇虎將，硬碰硬的機率提升！`);
+    let extraStrCount = 0;
+    let hasSuperStr = false; // 是否有人滿101+且未受傷，用於動畫與log顯示等級
+
+    if (dominantTeam) {
+        dominantTeam.forEach(id => {
+            let o = getOfficer(id);
+            if (o) {
+                if (getEffectiveStat(o, 1) >= 101 && o.injuryRate === 0) {
+                    extraStrCount += 2;
+                    statPool.push(1, 1);
+                    hasSuperStr = true;
+                } else if (getEffectiveStat(o, 1) >= 95) {
+                    extraStrCount += 1;
+                    statPool.push(1);
+                }
+            }
+        });
+    }
+
+    if (extraStrCount > 0) {
+        if (hasSuperStr) {
+            log(`💪 【萬夫莫敵】戰場出現武力突破極限的猛將，且${dominantName}武力佔優，硬碰硬的機率巨幅疊加提升！(累積票數: ${extraStrCount})`);
+        } else {
+            log(`💪 【一夫當關】${dominantName}擁有多名驍勇虎將且總力佔優，硬碰硬的機率疊加提升！(累積票數: ${extraStrCount})`);
+        }
     }
     const statRoll = statPool[Math.floor(Math.random() * statPool.length)];
     const statNames = { 1: '武力', 2: '智力', 3: '統率', 4: '政治', 5: '魅力', 6: '運氣' };
@@ -1479,7 +1502,8 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
     // Phase 31: 頂尖智將「絕境逆轉」隱藏被動
     let reversalProc = false;
     let reversalHtml = "";
-    let reversalSacrificeId = null;
+    let reversalSacrificeId = null; // 用於神鬼莫測 (101+) 犧牲邏輯
+    let actingStrategistIdGlobal = null; // 新增：用於記錄發動者
     let losingIdsForCheck = isAttackerWin ? defendingIds : attackingIds;
     let winningIdsForCheck = isAttackerWin ? attackingIds : defendingIds;
     
@@ -1507,6 +1531,7 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
 
     if (actingStrategistId && Math.random() < revChance) {
         reversalProc = true;
+        actingStrategistIdGlobal = actingStrategistId; // 紀錄是誰發動
         isAttackerWin = !isAttackerWin; // 翻轉勝負
         playReversalAnimation(); // 播放 Phase 37 特效動畫
         const strategistName = getOfficer(actingStrategistId).name;
@@ -1616,33 +1641,41 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
                 }
             }
             // Phase 31: 若為逆轉勝，勝方需全體承受 80%~99% 絕對重傷代價
+            // Phase 31 & User Custom: 若為逆轉勝，勝方需全體承受代價
             if (reversalProc) {
-                let dmg = Math.floor(Math.random() * 20) + 80; // 80% ~ 99%
+                let dmg = 0;
                 let auraStr = "";
-                let isSacrifice = (reversalSacrificeId && id === reversalSacrificeId);
+                let isStrategist = (id === actingStrategistIdGlobal);
 
-                if (reversalSacrificeId) {
-                    if (id === reversalSacrificeId) {
-                        dmg = 99;
-                        // 101+ 智力逆轉代價，可受隊友 95+/101+ 統率減免
-                        if (winnerSuperCommander) {
-                            if (id !== winnerSuperCommander) { dmg = 0; auraStr = ` 🛡️(${winnerCmdName} 神級指揮，代價免疫)`; }
-                            else { dmg = Math.floor(dmg / 2); auraStr = ` 🛡️(${winnerCmdName} 神級指揮，代價減半)`; }
-                        } else if (winnerTopCommander) {
-                            dmg = Math.floor(dmg / 2); auraStr = ` 🛡️(${winnerCmdName} 統整，代價減半)`;
-                        } else {
-                            auraStr = ' (神鬼莫測代價)';
-                        }
-                    } else {
-                        dmg = 0; // 隊友因神鬼莫測豁免
-                    }
+                if (isStrategist) {
+                    // 發動者：無論 95+ 還是 101+，自己受傷均改為 50%~99%
+                    dmg = Math.floor(Math.random() * 50) + 50; 
+                    auraStr = reversalSacrificeId ? ' (神鬼莫測代價)' : ' (神機妙算代價)';
                 } else {
-                    // 95+ 智力逆轉代價，全體受 95+/101+ 統率減免
+                    // 隊友
+                    if (reversalSacrificeId) {
+                        // 101+ 神鬼莫測：隊友豁免
+                        dmg = 0; 
+                    } else {
+                        // 95+ 神機妙算：隊友受傷改為 1%~50%
+                        dmg = Math.floor(Math.random() * 50) + 1;
+                        auraStr = ' (神機妙算代價)';
+                    }
+                }
+
+                // 統率減免邏輯 (保留原有的統率光環效果)
+                if (dmg > 0) {
                     if (winnerSuperCommander) {
-                        if (id !== winnerSuperCommander) { dmg = 0; auraStr = ` 🛡️(${winnerCmdName} 神級指揮，友軍免疫受傷)`; }
-                        else { dmg = Math.floor(dmg / 2); auraStr = ` 🛡️(${winnerCmdName} 神級指揮，傷害減半)`; }
+                        if (id !== winnerSuperCommander) { 
+                            dmg = 0; 
+                            auraStr = ` 🛡️(${winnerCmdName} 神級指揮，免疫受傷)`; 
+                        } else { 
+                            dmg = Math.floor(dmg / 2); 
+                            auraStr += ` 🛡️(${winnerCmdName} 神級指揮，代價減半)`; 
+                        }
                     } else if (winnerTopCommander) {
-                        dmg = Math.floor(dmg / 2); auraStr = ` 🛡️(${winnerCmdName} 統整，傷害減半)`;
+                        dmg = Math.floor(dmg / 2); 
+                        auraStr += ` 🛡️(${winnerCmdName} 統整，代價減半)`;
                     }
                 }
                 
@@ -1650,7 +1683,7 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
                     applyInjury(o, dmg);
                     injuryHtml += `<div style="font-size: 14px; margin-top: 5px;">🩸 <strong>${o.name}</strong> 因逆轉奇謀，重創 ${dmg}%！${auraStr}</div>`;
                     log(`🩸 ${o.name} 承受逆轉代價，陷入 ${dmg}% 的重傷！${auraStr}`);
-                } else if (auraStr && (isSacrifice || !reversalSacrificeId)) {
+                } else if (auraStr && (actingStrategistIdGlobal)) {
                     // 只有當統率光環真的「救了」原本該受傷的人才顯示
                     injuryHtml += `<div style="font-size: 14px; margin-top: 5px;">🛡️ <strong>${o.name}</strong> 在 ${winnerCmdName} 保護下，免於逆轉重創！</div>`;
                     log(`🛡️ ${o.name} 在 ${winnerCmdName} 保護下，免於逆轉重創！`);
