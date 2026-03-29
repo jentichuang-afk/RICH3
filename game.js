@@ -2714,19 +2714,23 @@ function updateWinRateDisplay() {
     }
 
     let expectedWins = 0;
-    // 動態判斷屬性權重 (Phase 101+ update)
-    const hasSuperStr = [...selectedOfficers, ...window.currentDefIds].some(id => {
-        const o = getOfficer(id);
-        return o && getEffectiveStat(o, 1) >= 101 && o.injuryRate === 0;
-    });
-    const hasTopStr = [...selectedOfficers, ...window.currentDefIds].some(id => {
-        const o = getOfficer(id);
-        return o && getEffectiveStat(o, 1) >= 95;
-    });
-
+    // 動態判斷屬性權重 (武力>95可累加機制)
+    let atkStr = atkStats[1], defStr = defStats[1];
     let strWeight = 1;
-    if (hasSuperStr && (atkStats[1] > defStats[1] || defStats[1] > atkStats[1])) strWeight = 3;
-    else if (hasTopStr && (atkStats[1] > defStats[1] || defStats[1] > atkStats[1])) strWeight = 2;
+    
+    let dominantTeamPrediction = null;
+    if (atkStr > defStr) dominantTeamPrediction = selectedOfficers;
+    else if (defStr > atkStr) dominantTeamPrediction = window.currentDefIds;
+    
+    if (dominantTeamPrediction) {
+        dominantTeamPrediction.forEach(id => {
+            let o = getOfficer(id);
+            if (o) {
+                if (getEffectiveStat(o, 1) >= 101 && o.injuryRate === 0) strWeight += 2;
+                else if (getEffectiveStat(o, 1) >= 95) strWeight += 1;
+            }
+        });
+    }
 
     const totalOutcomes = 5 + strWeight;
 
