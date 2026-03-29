@@ -10,5 +10,6 @@ const ITEMS_DATA = {
     6: { id: 6, name: "無懈可擊", price: 500, desc: "被動防禦，抵銷敵方對自己使用的負面計謀", type: "passive" },
     7: { id: 7, name: "迴光返照", price: 300, desc: "治療己方任意武將 (傷勢歸零)", type: "active_target_officer" },
     8: { id: 8, name: "殺人放火", price: 1000, desc: "選定一座敵方城池，降低其一半建設等級，且守將有 50% 機率受傷 (20%-80%)", type: "active_target_land" },
-    9: { id: 9, name: "天下為公", price: 2000, desc: "使用後，場上所有主公的金錢重新平均分配", type: "active" }
+    9: { id: 9, name: "天下為公", price: 2000, desc: "使用後，場上所有主公的金錢重新平均分配", type: "active" },
+    10: { id: 10, name: "起死回生", price: 300, desc: "復活一名己方陣亡的武將，並清除所有傷勢", type: "active_target_officer" }
 };

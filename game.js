@@ -112,6 +112,47 @@ function formatStatDisplay(base, current, injuryRate = 0) {
     return html;
 }
 
+// Phase 76: 新增統一步驟處理武將受傷與死亡判定
+function applyInjury(officer, dmg) {
+    if (officer.isDead) return;
+    let actualDmg = Math.max(0, dmg);
+    if (actualDmg === 0) return;
+
+    officer.injuryRate = Math.min(100, (officer.injuryRate || 0) + actualDmg);
+    officer.cumulativeInjury = (officer.cumulativeInjury || 0) + actualDmg;
+
+    // 檢查是否陣亡
+    if (officer.cumulativeInjury >= 1000) {
+        officer.isDead = true;
+        officer.injuryRate = 100;
+
+        let ownerName = "在野";
+        // 找出所有者並從守軍中移除
+        for (let pid in GAME_STATE.players) {
+            let p = GAME_STATE.players[pid];
+            if (p.officers.includes(officer.id)) {
+                ownerName = p.name;
+                break;
+            }
+        }
+        for (let land of MAP_DATA) {
+            if (land.defenders && land.defenders.includes(officer.id)) {
+                let p = GAME_STATE.players[land.owner];
+                ownerName = p.name;
+                // 從守軍陣列中移除
+                land.defenders = land.defenders.filter(id => id !== officer.id);
+                // 必須退回玩家的 officers 陣列 (以死亡狀態存在)
+                if (!p.officers.includes(officer.id)) p.officers.push(officer.id);
+                break;
+            }
+        }
+
+        // 發出全域通告
+        log(`☠️ 【武將陣亡】${ownerName} 麾下的 ${officer.name} 傷勢累積達 1000，不幸陣亡！`);
+        updateOfficerCountUI(1); updateOfficerCountUI(2); updateOfficerCountUI(3); updateOfficerCountUI(4); updateOfficerCountUI(5);
+    }
+}
+
 // 地圖資料 (20格)
 const MAP_DATA = [
     { id: 0, name: "長安", type: "START", price: 0, owner: null },
@@ -617,9 +658,19 @@ function handleAIItemUsage(player) {
 
         if (item.id === 7) { // 迴光返照: 治療
             let targetId = null;
-            const check = (id) => { let o = getOfficer(id); if (o && o.injuryRate > 50) targetId = id; };
+            const check = (id) => { let o = getOfficer(id); if (o && o.injuryRate > 50 && !o.isDead) targetId = id; };
             player.officers.forEach(check);
             if (!targetId) MAP_DATA.forEach(land => { if (land.owner === player.id) land.defenders.forEach(check); });
+            if (targetId) {
+                useItem(player, { ...item, index: idx }, targetId);
+                return;
+            }
+        }
+
+        if (item.id === 10) { // 起死回生
+            let targetId = null;
+            const check = (id) => { let o = getOfficer(id); if (o && o.isDead) targetId = id; };
+            player.officers.forEach(check); // 死亡武將都會退回身邊，所以只要搜 player.officers 即可
             if (targetId) {
                 useItem(player, { ...item, index: idx }, targetId);
                 return;
@@ -1069,7 +1120,7 @@ function triggerLandEvent(player, landInfo) {
             log(`✨ ${skillName}${charmer.name} 威名遠播，${player.name} 被其風采感化，決定繳費離開。`);
 
             // 自身損失體力 50%
-            charmer.injuryRate = Math.min(100, charmer.injuryRate + 50);
+            applyInjury(charmer, 50);
             log(`🩸 ${charmer.name} 因為發揮特技消耗大量精神，受傷程度大幅增加！(目前健康: ${100 - charmer.injuryRate}%)`);
 
             // Phase 53: 播放 1 秒的動畫
@@ -1223,6 +1274,8 @@ function executeBuyLand(player, landInfo, selectedIds) {
 
 // 計算 AI 最佳攻城陣容 (>50% 勝率)
 function getBestSiegeTeam(attackerOfficerIds, defenderIds, cityId = -1, useBuff = false, forUI = false) {
+    // 過濾掉已陣亡的武將
+    const validAttackerIds = attackerOfficerIds.filter(id => { let o = getOfficer(id); return o && !o.isDead; });
     const landInfo = (cityId !== -1) ? MAP_DATA[cityId] : null;
     let bestTeam = null;
     let maxWins = forUI ? -1 : 2; // AI 在預估勝率 >= 50%（大於 49%，即贏得至少 3 項屬性）便會發起攻城，UI 則始終需要一組最佳陣容
@@ -1594,7 +1647,7 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
                 }
                 
                 if (dmg > 0) {
-                    o.injuryRate = Math.min(100, o.injuryRate + dmg);
+                    applyInjury(o, dmg);
                     injuryHtml += `<div style="font-size: 14px; margin-top: 5px;">🩸 <strong>${o.name}</strong> 因逆轉奇謀，重創 ${dmg}%！${auraStr}</div>`;
                     log(`🩸 ${o.name} 承受逆轉代價，陷入 ${dmg}% 的重傷！${auraStr}`);
                 } else if (auraStr && (isSacrifice || !reversalSacrificeId)) {
@@ -1622,7 +1675,7 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
                     }
 
                     if (dmg > 0) {
-                        o.injuryRate = Math.min(100, o.injuryRate + dmg);
+                        applyInjury(o, dmg);
                         injuryHtml += `<div style="font-size: 14px; margin-top: 5px;">⚠️ <strong>${o.name}</strong> 在激戰中掛彩，能力下降 ${dmg}%！${auraStr}</div>`;
                         log(`⚠️ ${o.name} 戰勝後掛彩，能力下降 ${dmg}%！`);
                     }
@@ -1673,7 +1726,7 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
                 }
 
                 if (dmg > 0) {
-                    o.injuryRate = Math.min(100, o.injuryRate + dmg);
+                    applyInjury(o, dmg);
                     injuryHtml += `<div style="font-size: 14px; margin-top: 5px;">💥 <strong>${o.name}</strong> 受到重創，全能力下降 ${dmg}%！${auraStr}</div>`;
                     log(`💥 ${o.name} 在戰局中身受重傷，全能力下降 ${dmg}%！`);
                 }
@@ -2151,7 +2204,7 @@ function healOfficers(player) {
 
     const healLogic = (id) => {
         let o = getOfficer(id);
-        if (o && o.injuryRate > 0) {
+        if (o && o.injuryRate > 0 && !o.isDead) { // 陣亡武將無法自然恢復
             o.injuryRate = Math.max(0, o.injuryRate - 10);
             if (o.injuryRate === 0) healed.push(o.name);
         }
@@ -2456,7 +2509,11 @@ function renderSiegeOfficerList() {
             
             skillText = `<strong style="color:var(--primary-color)">【${skillName}】</strong>`;
         }
-        if (o.injuryRate > 0) {
+        if (o.isDead) {
+            skillText += ` <span style="color:#666; font-size:0.85em; font-weight:bold;">(💀 陣亡)</span>`;
+            tr.style.opacity = '0.5';
+            tr.style.pointerEvents = 'none'; // 禁止點擊
+        } else if (o.injuryRate > 0) {
             skillText += ` <span style="color:#e57373; font-size:0.85em;">(受傷 -${o.injuryRate}%)</span>`;
         }
 
@@ -3072,7 +3129,7 @@ function useItem(player, itemInfo, aiTarget = null) {
                     let victimNames = [];
                     victims.forEach(v => {
                         let victim = getOfficer(v.id);
-                        victim.injuryRate = 99; // 99% 傷勢
+                        applyInjury(victim, 99); // 增加 99 點累積傷害並使目前傷勢成為重傷
                         victimNames.push(victim.name);
                     });
                     log(`🏹 暗箭噴射！${targetPlayer.name} 麾下最強的 ${victimNames.join('、')} 遭到伏擊，負傷累累！(健康度僅剩 1%)`);
@@ -3097,12 +3154,27 @@ function useItem(player, itemInfo, aiTarget = null) {
             const executeHeal = (targetOfficerId) => {
                 let o = getOfficer(targetOfficerId);
                 o.injuryRate = 0;
-                log(`✨ 神醫再世！${o.name} 的傷勢已完全康復。`);
+                o.cumulativeInjury = Math.max(0, (o.cumulativeInjury || 0) - 100); // 依據建議降低累積受傷值100點
+                log(`✨ 神醫再世！${o.name} 的傷勢康復，且長期調養後體質恢復！`);
                 consumeItem(player, itemInfo.index);
                 GAME_STATE.isWaitingForAction = false;
             };
             if (isBot && aiTarget) executeHeal(aiTarget);
             else openTargetSelect('officer', executeHeal, player);
+            break;
+        case 10: // 起死回生
+            const executeResurrect = (targetOfficerId) => {
+                let o = getOfficer(targetOfficerId);
+                o.isDead = false;
+                o.injuryRate = 0;
+                o.cumulativeInjury = 0;
+                log(`🌟 天降甘霖！【${o.name}】獲得起死回生，積傷全數歸零，奇蹟復甦重新加入戰鬥！`);
+                consumeItem(player, itemInfo.index);
+                updateOfficerCountUI(player.id);
+                GAME_STATE.isWaitingForAction = false;
+            };
+            if (isBot && aiTarget) executeResurrect(aiTarget);
+            else openTargetSelect('dead_officer', executeResurrect, player);
             break;
         case 8: // 殺人放火: 毀人建設，傷人武將
             const executeArson = (targetLand) => {
@@ -3143,7 +3215,7 @@ function useItem(player, itemInfo, aiTarget = null) {
                             const o = getOfficer(id);
                             if (o) {
                                 const dmg = Math.floor(Math.random() * 61) + 20; // 20% - 80%
-                                o.injuryRate = Math.min(100, (o.injuryRate || 0) + dmg);
+                                applyInjury(o, dmg);
                                 log(`🩸 ${o.name} 在混亂中遭到重創，負傷 ${dmg}%！`);
                             }
                         }
@@ -3225,29 +3297,30 @@ function openTargetSelect(type, callback, extra) {
             };
             UI.targetSelectList.appendChild(div);
         });
-    } else if (type === 'officer') {
+    } else if (type === 'officer' || type === 'dead_officer') {
         const player = extra;
-        // 收集受傷的武將
-        let injured = [];
+        // 收集符合條件的武將
+        let targets = [];
         const check = (id) => {
             let o = getOfficer(id);
-            if (o && o.injuryRate > 0) injured.push(o);
+            if (type === 'officer' && o && o.injuryRate > 0 && !o.isDead) targets.push(o);
+            if (type === 'dead_officer' && o && o.isDead) targets.push(o);
         };
         player.officers.forEach(check);
         MAP_DATA.forEach(land => {
             if (land.owner === player.id) land.defenders.forEach(check);
         });
 
-        if (injured.length === 0) {
-            log(`[提示] 您麾下目前沒有受傷的武將。`);
+        if (targets.length === 0) {
+            log(type === 'dead_officer' ? `[提示] 您麾下目前沒有陣亡的武將。` : `[提示] 您麾下目前沒有受傷的武將。`);
             GAME_STATE.isWaitingForAction = false;
             return;
         }
 
-        injured.forEach(o => {
+        targets.forEach(o => {
             const div = document.createElement('div');
             div.className = 'officer-item';
-            div.innerHTML = `<strong>${o.name}</strong> (傷勢: ${o.injuryRate}%)`;
+            div.innerHTML = `<strong>${o.name}</strong> ` + (type === 'dead_officer' ? `(陣亡)` : `(傷勢: ${o.injuryRate}%)`);
             div.onclick = () => {
                 document.querySelectorAll('#target-select-list .officer-item').forEach(el => el.classList.remove('selected'));
                 div.classList.add('selected');
