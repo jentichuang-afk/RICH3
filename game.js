@@ -3306,11 +3306,23 @@ function useItem(player, itemInfo, aiTarget = null) {
             player.item9UseCount = (player.item9UseCount || 0) + 1;
 
             const activePids = GAME_STATE.activePlayers.filter(pid => !GAME_STATE.players[pid].isBankrupt);
-            const totalMoney = activePids.reduce((sum, pid) => sum + GAME_STATE.players[pid].money, 0); // 取整
+            const totalMoney = activePids.reduce((sum, pid) => sum + GAME_STATE.players[pid].money, 0); 
             const share = Math.floor(totalMoney / activePids.length);
-            log(`⚖️ 【天下為公】！${player.name} 宣告財富共享，各方主公重新平分金庫，每人獲得 $${share}！ (剩餘發動次數: ${3 - player.item9UseCount})`);
+            
+            log(`⚖️ 【天下為公】！${player.name} 宣告財富共享，各方主公重新整理金庫，基準金額為 $${share}！ (剩餘發動次數: ${3 - player.item9UseCount})`);
+            
             activePids.forEach(pid => {
-                const diff = share - GAME_STATE.players[pid].money;
+                const targetP = GAME_STATE.players[pid];
+                // 如果該玩家金錢大於平均，且手上有無懈可擊 (id: 6)
+                if (targetP.money > share) {
+                    const shieldIndex = targetP.items.findIndex(it => it.id === 6);
+                    if (shieldIndex !== -1) {
+                        log(`🛡️ 【無懈可擊】！${targetP.name} 手握重金並識破了共產計畫，消耗道具成功保住了財產！`);
+                        consumeItem(targetP, shieldIndex);
+                        return; // 跳過此人的金錢更新
+                    }
+                }
+                const diff = share - targetP.money;
                 updateMoney(pid, diff);
             });
             consumeItem(player, itemInfo.index);
