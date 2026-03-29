@@ -149,6 +149,7 @@ function applyInjury(officer, dmg) {
 
         // 發出全域通告
         log(`☠️ 【武將陣亡】${ownerName} 麾下的 ${officer.name} 傷勢累積達 1000，不幸陣亡！`);
+        playDeathAnimation(officer.name);
         updateOfficerCountUI(1); updateOfficerCountUI(2); updateOfficerCountUI(3); updateOfficerCountUI(4); updateOfficerCountUI(5);
     }
 }
@@ -2326,6 +2327,37 @@ function playBreakthroughAnimation(officerName, attrName) {
     subtitle.textContent = `${officerName} 的特技獲得強化！`;
     subtitle.style.borderColor = '#d32f2f';
     subtitle.style.color = '#ffc107';
+
+    overlay.appendChild(title);
+    overlay.appendChild(subtitle);
+    document.body.appendChild(overlay);
+
+    // 1秒後自動移除
+    setTimeout(() => {
+        if (overlay.parentNode) {
+            document.body.removeChild(overlay);
+        }
+    }, 1200);
+}
+
+// 播放武將陣亡動畫
+function playDeathAnimation(officerName) {
+    const overlay = document.createElement('div');
+    overlay.className = 'awakening-overlay';
+    // 灰黑深淵黯淡風格
+    overlay.style.background = 'radial-gradient(circle, rgba(0, 0, 0, 0.9) 0%, rgba(50, 50, 50, 0.7) 100%)';
+
+    const title = document.createElement('div');
+    title.className = 'awakening-title';
+    title.textContent = '將星隕落';
+    title.style.textShadow = '0 0 15px #ff4444, 0 0 30px #000, 0 0 45px #333';
+    title.style.color = '#ccc';
+
+    const subtitle = document.createElement('div');
+    subtitle.className = 'awakening-subtitle';
+    subtitle.textContent = `【 ${officerName} 】傷勢過重，命喪沙場！`;
+    subtitle.style.borderColor = '#666';
+    subtitle.style.color = '#fff';
 
     overlay.appendChild(title);
     overlay.appendChild(subtitle);
