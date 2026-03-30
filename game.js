@@ -122,7 +122,7 @@ function applyInjury(officer, dmg) {
     officer.cumulativeInjury = (officer.cumulativeInjury || 0) + actualDmg;
 
     // 檢查是否陣亡
-    if (officer.cumulativeInjury >= 1000) {
+    if (officer.cumulativeInjury >= 800) {
         officer.isDead = true;
         officer.injuryRate = 100;
 
@@ -3746,6 +3746,9 @@ function renderEncyclopedia() {
         } else if (currentSortKey === 'winrate') { // Phase 26
             valA = a.battleCount > 0 ? a.winCount / a.battleCount : -1;
             valB = b.battleCount > 0 ? b.winCount / b.battleCount : -1;
+        } else if (currentSortKey === 'cumulativeInjury') {
+            valA = a.cumulativeInjury || 0;
+            valB = b.cumulativeInjury || 0;
         } else if (currentSortKey === 'faction') {
             valA = a.dynFaction;
             valB = b.dynFaction;
@@ -3773,6 +3776,10 @@ function renderEncyclopedia() {
 
         let skillHtml = skillParts.length > 0 ? skillParts.join('<br>') : "-";
         let winRateStr = o.battleCount > 0 ? Math.round((o.winCount / o.battleCount) * 100) + '%' : '-';
+        const cumInj = o.cumulativeInjury || 0;
+        const statusText = o.isDead ? `<span style="color:#aaa; font-weight:bold;">💀 陣亡</span>` 
+                         : cumInj > 0 ? `<span style="color:${cumInj >= 600 ? '#e53935' : cumInj >= 400 ? '#e67e22' : '#888'}">${cumInj}</span>` 
+                         : `<span style="color:#4caf50">0</span>`;
 
         tr.innerHTML = `
             <td>${o.id}</td>
@@ -3787,6 +3794,7 @@ function renderEncyclopedia() {
             <td style="font-weight:bold; color:var(--ink-dark);">${o.dynTotal}</td>
             <td style="text-align:center;">${o.battleCount}</td>
             <td style="text-align:center;">${winRateStr}</td>
+            <td style="text-align:center;">${statusText}</td>
             <td class="desc-col">${skillHtml}</td>
         `;
         UI.encyclopediaTbody.appendChild(tr);
