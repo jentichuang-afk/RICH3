@@ -3563,8 +3563,13 @@ function handleCityMenuAI(player, offeredIds, cityName) {
         }
     }
 
-    // Phase 74: 當 AI 身邊空閒武將少於 6 人時，優先選擇招募武將，而不購買道具
-    let forceRecruit = canRecruit && player.officers.length < 6;
+    // Phase 74 & 102: 當 AI 身邊空閒武將少於 10 人且身處長安或江夏時，優先選擇招募武將，而不購買道具
+    let forceRecruit = canRecruit && (player.officers.length < 10) && (cityName === "長安" || cityName === "江夏");
+    
+    // 如果不是在長安/江夏且人數少於 6 人，也保持原本的基礎保底招募意願
+    if (!forceRecruit) {
+        forceRecruit = canRecruit && player.officers.length < 6;
+    }
 
     // AI 判斷是否買道具 (金錢超過 10000 可買完所有道具)
     let boughtItemsList = [];
