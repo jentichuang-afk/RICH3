@@ -122,7 +122,7 @@ function applyInjury(officer, dmg) {
     officer.cumulativeInjury = (officer.cumulativeInjury || 0) + actualDmg;
 
     // 檢查是否陣亡
-    if (officer.cumulativeInjury >= 800) {
+    if (officer.cumulativeInjury >= 500) {
         officer.isDead = true;
         officer.injuryRate = 100;
 
@@ -3778,7 +3778,7 @@ function renderEncyclopedia() {
         let winRateStr = o.battleCount > 0 ? Math.round((o.winCount / o.battleCount) * 100) + '%' : '-';
         const cumInj = o.cumulativeInjury || 0;
         const statusText = o.isDead ? `<span style="color:#aaa; font-weight:bold;">💀 陣亡</span>` 
-                         : cumInj > 0 ? `<span style="color:${cumInj >= 600 ? '#e53935' : cumInj >= 400 ? '#e67e22' : '#888'}">${cumInj}</span>` 
+                         : cumInj > 0 ? `<span style="color:${cumInj >= 400 ? '#e53935' : cumInj >= 300 ? '#e67e22' : '#888'}">${cumInj}</span>` 
                          : `<span style="color:#4caf50">0</span>`;
 
         tr.innerHTML = `
