@@ -141,8 +141,10 @@ function applyInjury(officer, dmg) {
                 ownerName = p.name;
                 // 從守軍陣列中移除
                 land.defenders = land.defenders.filter(id => id !== officer.id);
-                // 必須退回玩家的 officers 陣列 (以死亡狀態存在)
-                if (!p.officers.includes(officer.id)) p.officers.push(officer.id);
+                // 退回玩家的 officers 陣列 (以死亡狀態存在)，確保不重複
+                if (!p.officers.includes(officer.id)) {
+                    p.officers.push(officer.id);
+                }
                 break;
             }
         }
@@ -3237,6 +3239,16 @@ function useItem(player, itemInfo, aiTarget = null) {
                 o.isDead = false;
                 o.injuryRate = 0;
                 o.cumulativeInjury = 0;
+                // 確保武將在玩家手中，防止重複
+                if (!player.officers.includes(o.id)) {
+                    player.officers.push(o.id);
+                }
+                // 去除任何可能的重複項目
+                player.officers = [...new Set(player.officers)];
+                // 確保武將不在任何城池守軍名單中（冗餘清理）
+                MAP_DATA.forEach(land => {
+                    if (land.defenders) land.defenders = land.defenders.filter(id => id !== o.id);
+                });
                 log(`🌟 天降甘霖！【${o.name}】獲得起死回生，積傷全數歸零，奇蹟復甦重新加入戰鬥！`);
                 consumeItem(player, itemInfo.index);
                 updateOfficerCountUI(player.id);
