@@ -1805,14 +1805,16 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
                     injuredAllies.forEach(targetId => {
                         let target = getOfficer(targetId);
                         target.injuryRate = 0;
+                        target.cumulativeInjury = Math.max(0, (target.cumulativeInjury || 0) - 50);
                         healedNames.push(target.name);
                     });
-                    healMsg = `🍀 【天降甘霖】${healer.name} 運氣爆棚！戰後神蹟降臨，讓同隊伍的 ${healedNames.join('、')} 傷勢完全康復！`;
+                    healMsg = `🍀 【天降甘霖】${healer.name} 運氣爆棚！戰後神蹟降臨，讓同隊伍的 ${healedNames.join('、')} 傷勢完全康復，並降低累積傷勢 50 點！`;
                 } else {
                     let targetId = injuredAllies[Math.floor(Math.random() * injuredAllies.length)];
                     let target = getOfficer(targetId);
                     target.injuryRate = 0;
-                    healMsg = `🍀 【吉星高照】${healer.name} 展現奇蹟，使 ${target.name} 的傷勢完全恢復了！`;
+                    target.cumulativeInjury = Math.max(0, (target.cumulativeInjury || 0) - 50);
+                    healMsg = `🍀 【吉星高照】${healer.name} 展現奇蹟，使 ${target.name} 的傷勢完全恢復，並降低累積傷勢 50 點！`;
                 }
                 log(healMsg);
                 resultHtml += `<div style="margin-top: 10px; padding: 8px; background: rgba(255, 235, 59, 0.2); border: 1px solid #FBC02D; border-radius: 5px;">
