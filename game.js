@@ -3401,17 +3401,18 @@ function openTargetSelect(type, callback, extra) {
         });
     } else if (type === 'officer' || type === 'dead_officer') {
         const player = extra;
-        // 收集符合條件的武將
-        let targets = [];
+        // 收集符合條件的武將並防呆去重
+        let targetMap = new Map();
         const check = (id) => {
             let o = getOfficer(id);
-            if (type === 'officer' && o && o.injuryRate > 0 && !o.isDead) targets.push(o);
-            if (type === 'dead_officer' && o && o.isDead) targets.push(o);
+            if (type === 'officer' && o && o.injuryRate > 0 && !o.isDead) targetMap.set(o.id, o);
+            if (type === 'dead_officer' && o && o.isDead) targetMap.set(o.id, o);
         };
         player.officers.forEach(check);
         MAP_DATA.forEach(land => {
             if (land.owner === player.id) land.defenders.forEach(check);
         });
+        let targets = Array.from(targetMap.values());
 
         if (targets.length === 0) {
             log(type === 'dead_officer' ? `[提示] 您麾下目前沒有陣亡的武將。` : `[提示] 您麾下目前沒有受傷的武將。`);
