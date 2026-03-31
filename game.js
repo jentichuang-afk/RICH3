@@ -1999,7 +1999,14 @@ function updateMoney(playerId, amount) {
 function updateOfficerCountUI(playerId) {
     const p = GAME_STATE.players[playerId];
     const el = document.getElementById(`p${playerId}-officers`);
-    if (el) el.textContent = p.officers.length;
+    if (el) {
+        // Phase 103: 計算閒置武將數目時，去除死亡武將
+        const aliveCount = p.officers.filter(id => {
+            const o = getOfficer(id);
+            return o && !o.isDead;
+        }).length;
+        el.textContent = aliveCount;
+    }
 }
 
 // 根據 ID 獲取武將資料
@@ -3575,12 +3582,18 @@ function handleCityMenuAI(player, offeredIds, cityName) {
         }
     }
 
+    // Phase 103: 計算「有效」的閒置武將數目（排除死亡武將）
+    const aliveIdleCount = player.officers.filter(id => {
+        const o = getOfficer(id);
+        return o && !o.isDead;
+    }).length;
+
     // Phase 74 & 102: 當 AI 身邊空閒武將少於 10 人且身處長安或江夏時，優先選擇招募武將，而不購買道具
-    let forceRecruit = canRecruit && (player.officers.length < 10) && (cityName === "長安" || cityName === "江夏");
+    let forceRecruit = canRecruit && (aliveIdleCount < 10) && (cityName === "長安" || cityName === "江夏");
     
     // 如果不是在長安/江夏且人數少於 6 人，也保持原本的基礎保底招募意願
     if (!forceRecruit) {
-        forceRecruit = canRecruit && player.officers.length < 6;
+        forceRecruit = canRecruit && aliveIdleCount < 6;
     }
 
     // AI 判斷是否買道具 (金錢超過 10000 可買完所有道具)
