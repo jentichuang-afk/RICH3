@@ -718,8 +718,23 @@ function handleAIItemUsage(player) {
         }
 
         if (item.id === 3) { // 暗度陳倉: 傳送
-            if (player.money > 4000) {
-                // 只會移動到自己的城池，或是攻城勝率高於 80% 的城池
+            // Phase 103: 檢查存活的閒置武將數量
+            const aliveIdleCount = player.officers.filter(id => {
+                const o = getOfficer(id);
+                return o && !o.isDead;
+            }).length;
+
+            if (aliveIdleCount < 10 && player.money >= 2000) {
+                // 人手短缺，優先傳送去長安或江夏招募人手
+                let recruitTargets = MAP_DATA.filter(land => land.name === "長安" || land.name === "江夏");
+                if (recruitTargets.length > 0) {
+                    let targetLand = recruitTargets[Math.floor(Math.random() * recruitTargets.length)];
+                    log(`🎯 【求賢若渴】${player.name} 見帳下人才凋零，決定使用「暗度陳倉」！`);
+                    useItem(player, { ...item, index: idx }, targetLand);
+                    return;
+                }
+            } else if (player.money > 4000) {
+                // 兵力充足且資金餘裕時，尋找進攻或防守目標
                 let targets = MAP_DATA.filter(land => {
                     if (land.owner === player.id) return true;
                     if (land.type === 'LAND' && land.owner && land.owner !== player.id) {
