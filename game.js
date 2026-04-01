@@ -653,8 +653,18 @@ function checkTurn() {
 function handleAIItemUsage(player) {
     if (!player.items || player.items.length === 0) return;
 
-    // 隨機亂序檢查道具，避免 AI 永遠選第一個
-    let indices = player.items.map((_, i) => i).sort(() => 0.5 - Math.random());
+    // Phase 104: AI 使用道具優先順位：復活(10) > 治療(7，若有傷員) > 其他(隨機)
+    const hasDead = player.officers.some(id => { const o = getOfficer(id); return o && o.isDead; });
+    const hasInjured = player.officers.some(id => { const o = getOfficer(id); return o && o.injuryRate > 50 && !o.isDead; });
+    
+    let indices = player.items.map((_, i) => i).sort((a, b) => {
+        let scoreA = 0, scoreB = 0;
+        if (hasDead && player.items[a].id === 10) scoreA = 1000;
+        if (hasDead && player.items[b].id === 10) scoreB = 1000;
+        if (hasInjured && player.items[a].id === 7) scoreA = 500;
+        if (hasInjured && player.items[b].id === 7) scoreB = 500;
+        return scoreB - scoreA || 0.5 - Math.random();
+    });
 
     for (let idx of indices) {
         const item = player.items[idx];
@@ -3623,7 +3633,18 @@ function handleCityMenuAI(player, offeredIds, cityName) {
     // AI 隨機挑選道具嘗試購買 (金錢 > 10000 無數量上限)
     if (itemOptions.length > 0) {
         let tempBudget = player.money;
-        let shuffle = [...itemOptions].sort(() => 0.5 - Math.random());
+        // Phase 104: AI 購買道具優先順位：復活(10，若有死者的話) > 治療(7，若有重傷者) > 其他(隨機)
+        const hasDeadPur = player.officers.some(id => { const o = getOfficer(id); return o && o.isDead; });
+        const hasInjuredPur = player.officers.some(id => { const o = getOfficer(id); return o && o.injuryRate > 50 && !o.isDead; });
+
+        let shuffle = [...itemOptions].sort((a, b) => {
+            let scoreA = 0, scoreB = 0;
+            if (hasDeadPur && a.id === 10) scoreA = 1000;
+            if (hasDeadPur && b.id === 10) scoreB = 1000;
+            if (hasInjuredPur && a.id === 7) scoreA = 500;
+            if (hasInjuredPur && b.id === 7) scoreB = 500;
+            return scoreB - scoreA || 0.5 - Math.random();
+        });
         for (let item of shuffle) {
             let afterPrice = tempBudget - item.price;
             
