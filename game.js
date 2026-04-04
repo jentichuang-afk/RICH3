@@ -2272,11 +2272,20 @@ function updateAllianceUI() {
 function updateAllianceStatus() {
     const activePids = GAME_STATE.activePlayers.filter(pid => !GAME_STATE.players[pid].isBankrupt);
 
-    // 同盟成員中去除已破產者
-    GAME_STATE.alliance = GAME_STATE.alliance.filter(pid => activePids.includes(pid));
+    // --- 規則 1：同盟中有人破產 → 立即解散 ---
+    if (GAME_STATE.alliance.length > 0) {
+        const bankruptAlly = GAME_STATE.alliance.find(pid => !activePids.includes(pid));
+        if (bankruptAlly) {
+            const deadName = GAME_STATE.players[bankruptAlly].name;
+            const oldNames = GAME_STATE.alliance.map(id => GAME_STATE.players[id].name).join('、');
+            GAME_STATE.alliance = [];
+            updateAllianceUI();
+            log(`💔 「同盟瓦解」 —— 盟友 ${deadName} 宣告破產，${oldNames} 的同盟就此解散！各自為政，天下再起紛爭！`);
+            return;
+        }
+    }
 
     if (activePids.length < 3) {
-        // 人數不足，同盟必被解散
         if (GAME_STATE.alliance.length > 0) {
             log(`💧 「同盟瓦解」 —— 存活玩家已不足三人，同盟自動解散。`);
             GAME_STATE.alliance = [];
@@ -2290,29 +2299,52 @@ function updateAllianceStatus() {
     const richestId = sorted[sorted.length - 1];
     const richestMoney = GAME_STATE.players[richestId].money;
 
-    // --- 槄樣同盟解散 ---
+    // --- 已有同盟：檢查解散 & 動態擴張 ---
     if (GAME_STATE.alliance.length > 0) {
         const allianceSum = GAME_STATE.alliance.reduce((s, pid) => s + GAME_STATE.players[pid].money, 0);
+
+        // 解散條件：同盟總金 > 最強者 × 120%
         if (allianceSum > richestMoney * 1.2) {
             const oldNames = GAME_STATE.alliance.map(id => GAME_STATE.players[id].name).join('、');
             GAME_STATE.alliance = [];
             updateAllianceUI();
-            log(`💔 「同盟瓦解」 —— ${oldNames} 实力已足以對抗強權，同盟宣告解散！天下再起紛等！`);
+            log(`💔 「同盟瓦解」 —— ${oldNames} 實力已足以對抗強權，同盟宣告解散！天下再起紛爭！`);
             return;
         }
-        // 同盟持續中，不重新成立
+
+        // --- 規則 2：2人同盟動態擴張 → 嘗試加入第三者 ---
+        if (GAME_STATE.alliance.length === 2) {
+            // 找出不在同盟、也不是最富者、且尚存活的玩家
+            const candidates = activePids.filter(pid =>
+                !GAME_STATE.alliance.includes(pid) && pid !== richestId
+            );
+            // 按金錢由小到大排序，優先讓最弱者加入
+            candidates.sort((a, b) => GAME_STATE.players[a].money - GAME_STATE.players[b].money);
+
+            for (const candidateId of candidates) {
+                const allianceSumWith3rd = allianceSum + GAME_STATE.players[candidateId].money;
+                if (allianceSumWith3rd < richestMoney) {
+                    GAME_STATE.alliance.push(candidateId);
+                    updateAllianceUI();
+                    const newName = GAME_STATE.players[candidateId].name;
+                    const allNames = GAME_STATE.alliance.map(id => GAME_STATE.players[id].name).join('、');
+                    log(`🤝 「同盟擴張」！${newName} 見局勢不利，加入同盟！盟友現為：${allNames}，共同對抗 ${GAME_STATE.players[richestId].name}！`);
+                    break; // 一次只加一人
+                }
+            }
+        }
+
+        // 同盟持續中
         return;
     }
 
-    // --- 檢查同盟成立 ---
-    // 先嘗訓 3 人（最窧的 3 人）
+    // --- 無同盟：檢查是否應成立 ---
     let newAlliance = [];
     if (activePids.length >= 4) {
         const cands3 = sorted.slice(0, 3);
         const sum3 = cands3.reduce((s, id) => s + GAME_STATE.players[id].money, 0);
         if (richestMoney > sum3) newAlliance = cands3;
     }
-    // 再嘗訓 2 人
     if (newAlliance.length === 0) {
         const cands2 = sorted.slice(0, 2);
         const sum2 = cands2.reduce((s, id) => s + GAME_STATE.players[id].money, 0);
@@ -2323,7 +2355,7 @@ function updateAllianceStatus() {
         GAME_STATE.alliance = newAlliance;
         updateAllianceUI();
         const names = newAlliance.map(id => GAME_STATE.players[id].name).join('、');
-        log(`🤝 「弱弱聯合」！${names} 面對強權 ${GAME_STATE.players[richestId].name}，决定結盟。自此對方專有免貼割擘、不攻城、不用計謀攻擊對方！`);
+        log(`🤝 「弱弱聯合」！${names} 面對強權 ${GAME_STATE.players[richestId].name}，決定結盟。自此互免過路費、不攻城、不用計謀攻擊對方！`);
         playAllianceAnimation(newAlliance, richestId);
     }
 }
