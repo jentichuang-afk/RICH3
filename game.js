@@ -28,6 +28,7 @@ const GAME_STATE = {
     activePlayers: [1, 2, 3, 4, 5], // 記錄存活玩家的 ID
     changanOfficers: [], // 流亡長安的在野武將 (Phase 15)
     logs: [], // 記錄最近的日誌語記 (存檔用)
+    alliance: [], // Phase 110: 同盟玩家 ID 陣列
     // Phase 65: 擴充 items 陣列與相關 flag (actTwice, stayInPlace, siegeBuff, blockScheme)
     players: {
         1: { id: 1, name: "劉備", money: 15000, position: 0, colorClass: 'p1', nameClass: 'p1-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false },
@@ -690,11 +691,12 @@ function handleAIItemUsage(player) {
             }
         }
 
-        if (item.id === 4) { // 暗箭傷人
+        if (item.id === 4) { // 暗筭傷人
             if (player.money > 2000 && Math.random() < 0.4) {
-                let enemies = GAME_STATE.activePlayers.filter(pid => pid !== player.id && !GAME_STATE.players[pid].isBankrupt);
+                // Phase 110: 過濾同盟盟友
+                let enemies = GAME_STATE.activePlayers.filter(pid => pid !== player.id && !GAME_STATE.players[pid].isBankrupt && !GAME_STATE.alliance.includes(pid));
                 if (enemies.length > 0) {
-                    // Phase 73: 修改 AI 暗箭傷人邏輯，針對錢最多的對手
+                    // Phase 73: 修改 AI 暗筭傷人邏輯，针對錢最多的對手
                     enemies.sort((a, b) => GAME_STATE.players[b].money - GAME_STATE.players[a].money);
                     let targetPid = enemies[0];
                     useItem(player, { ...item, index: idx }, GAME_STATE.players[targetPid]);
@@ -763,11 +765,12 @@ function handleAIItemUsage(player) {
         }
 
         if (item.id === 8) { // 殺人放火
-            // 找出等級最高且屬於敵方的土地
-            let enemyLands = MAP_DATA.filter(land => 
-                land.type === 'LAND' && 
-                land.owner && 
-                land.owner !== player.id && 
+            // Phase 110: 過濾同盟盟友城池
+            let enemyLands = MAP_DATA.filter(land =>
+                land.type === 'LAND' &&
+                land.owner &&
+                land.owner !== player.id &&
+                !GAME_STATE.alliance.includes(land.owner) &&
                 land.development >= 5
             );
             
@@ -1119,6 +1122,13 @@ function triggerLandEvent(player, landInfo) {
             return;
         }
 
+        // Phase 110: 同盟免費通行
+        if (GAME_STATE.alliance.includes(player.id) && GAME_STATE.alliance.includes(landInfo.owner)) {
+            log(`🤝 【同盟通行】${player.name} 途經盟友 ${owner.name} 的領地 ${landInfo.name}，義結金蘭，無需繳納過路費！`);
+            endTurn();
+            return;
+        }
+
         // Phase 41 & 45 (Updated): 魅力「名德眾望」
         // 條件：守城武將魅力 >= 95，且魅力高於攻城方所有身邊閒置武將的魅力
         
@@ -1195,6 +1205,12 @@ function triggerLandEvent(player, landInfo) {
         log(`${player.name} 來到 ${owner.name} 的領地 ${landInfo.name}，防守兵力：${landInfo.defenders.length}將！\n可繳交軍費 $${toll} 或 發起攻城！`);
 
         if (player.isBot) {
+            // Phase 110: 同盟保護 — AI 不攻打盟友城池，直接通過
+            if (GAME_STATE.alliance.includes(player.id) && GAME_STATE.alliance.includes(landInfo.owner)) {
+                log(`🤝 【同盟通行】[電腦] ${player.name} 路過盟友 ${owner.name} 的 ${landInfo.name}，義不容辭，繼續前行。`);
+                setTimeout(() => { endTurn(); }, 800);
+                return;
+            }
             // AI 自動抉擇：計算所有可能派出的 1~3 名武將組合
             // 如果有一組陣容能在 6 個屬性中贏過對手至少 4 項 (>50% 勝率)，則發起攻城
             const result = getBestSiegeTeam(player.officers, landInfo.defenders, landInfo.id);
@@ -2191,6 +2207,127 @@ function applyTeamSkills(teamIds, teamStats, enemyIds = [], isDefense = false, l
     });
 }
 // 結束回合
+// ============================================================
+// Phase 110: 同盟系統
+// ============================================================
+
+/**
+ * 演奏同盟成立動畫 (2 秒)
+ */
+function playAllianceAnimation(allianceIds, richestId) {
+    const names = allianceIds.map(id => GAME_STATE.players[id].name).join(' & ');
+    const richestName = GAME_STATE.players[richestId].name;
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+        background: linear-gradient(135deg, rgba(0,30,60,0.92), rgba(0,60,120,0.88));
+        z-index: 10002; display: flex; flex-direction: column;
+        justify-content: center; align-items: center;
+        pointer-events: none; opacity: 0; transition: opacity 0.4s;
+        font-family: 'Noto Serif TC', serif;
+    `;
+    overlay.innerHTML = `
+        <div style="font-size: 4vw; color: #4fc3f7; text-shadow: 0 0 30px #4fc3f7, 0 0 60px #0288d1; margin-bottom: 20px;">🤝 弱弱聯合 🤝</div>
+        <div style="font-size: 2.2vw; color: #e0f7fa; margin-bottom: 12px; letter-spacing: 0.15em;">[ ${names} ]</div>
+        <div style="font-size: 1.5vw; color: #90caf9;">結盟共同對抗 『${richestName}』 !</div>
+        <div style="margin-top: 25px; font-size: 1.1vw; color: #b0bec5;">同盟期間：互免過路費、不攻城、不用計謀攻擊對方</div>
+    `;
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => { overlay.style.opacity = '1'; });
+    setTimeout(() => {
+        overlay.style.opacity = '0';
+        setTimeout(() => overlay.remove(), 500);
+    }, 2000);
+}
+
+/**
+ * 更新玩家卡片同盟標記
+ */
+function updateAllianceUI() {
+    for (let pid of [1, 2, 3, 4, 5]) {
+        const cardEl = document.getElementById(`p${pid}-card`);
+        if (!cardEl) continue;
+        let badge = cardEl.querySelector('.alliance-badge');
+        if (GAME_STATE.alliance.includes(pid)) {
+            if (!badge) {
+                badge = document.createElement('div');
+                badge.className = 'alliance-badge';
+                badge.style.cssText = `
+                    font-size: 0.75rem; color: #4fc3f7; background: rgba(0,50,100,0.8);
+                    border: 1px solid #4fc3f7; border-radius: 10px; padding: 2px 8px;
+                    margin-top: 4px; text-align: center; letter-spacing: 0.05em;
+                `;
+                badge.textContent = '🤝 同盟中';
+                cardEl.appendChild(badge);
+            }
+        } else {
+            if (badge) badge.remove();
+        }
+    }
+}
+
+/**
+ * 每回合檢查同盟成立 / 瓦解條件
+ */
+function updateAllianceStatus() {
+    const activePids = GAME_STATE.activePlayers.filter(pid => !GAME_STATE.players[pid].isBankrupt);
+
+    // 同盟成員中去除已破產者
+    GAME_STATE.alliance = GAME_STATE.alliance.filter(pid => activePids.includes(pid));
+
+    if (activePids.length < 3) {
+        // 人數不足，同盟必被解散
+        if (GAME_STATE.alliance.length > 0) {
+            log(`💧 「同盟瓦解」 —— 存活玩家已不足三人，同盟自動解散。`);
+            GAME_STATE.alliance = [];
+            updateAllianceUI();
+        }
+        return;
+    }
+
+    // 依金錢排序（小到大）
+    const sorted = [...activePids].sort((a, b) => GAME_STATE.players[a].money - GAME_STATE.players[b].money);
+    const richestId = sorted[sorted.length - 1];
+    const richestMoney = GAME_STATE.players[richestId].money;
+
+    // --- 槄樣同盟解散 ---
+    if (GAME_STATE.alliance.length > 0) {
+        const allianceSum = GAME_STATE.alliance.reduce((s, pid) => s + GAME_STATE.players[pid].money, 0);
+        if (allianceSum > richestMoney * 1.2) {
+            const oldNames = GAME_STATE.alliance.map(id => GAME_STATE.players[id].name).join('、');
+            GAME_STATE.alliance = [];
+            updateAllianceUI();
+            log(`💔 「同盟瓦解」 —— ${oldNames} 实力已足以對抗強權，同盟宣告解散！天下再起紛等！`);
+            return;
+        }
+        // 同盟持續中，不重新成立
+        return;
+    }
+
+    // --- 檢查同盟成立 ---
+    // 先嘗訓 3 人（最窧的 3 人）
+    let newAlliance = [];
+    if (activePids.length >= 4) {
+        const cands3 = sorted.slice(0, 3);
+        const sum3 = cands3.reduce((s, id) => s + GAME_STATE.players[id].money, 0);
+        if (richestMoney > sum3) newAlliance = cands3;
+    }
+    // 再嘗訓 2 人
+    if (newAlliance.length === 0) {
+        const cands2 = sorted.slice(0, 2);
+        const sum2 = cands2.reduce((s, id) => s + GAME_STATE.players[id].money, 0);
+        if (richestMoney > sum2) newAlliance = cands2;
+    }
+
+    if (newAlliance.length > 0) {
+        GAME_STATE.alliance = newAlliance;
+        updateAllianceUI();
+        const names = newAlliance.map(id => GAME_STATE.players[id].name).join('、');
+        log(`🤝 「弱弱聯合」！${names} 面對強權 ${GAME_STATE.players[richestId].name}，决定結盟。自此對方專有免貼割擘、不攻城、不用計謀攻擊對方！`);
+        playAllianceAnimation(newAlliance, richestId);
+    }
+}
+
 function endTurn() {
     if (GAME_STATE.gameOver) return;
 
@@ -2254,6 +2391,9 @@ function endTurn() {
 
             // Phase 30: 結算政治稅收與過路費通膨
             processCityTaxesAndInflation(nextPlayer);
+
+            // Phase 110: 每回合更新同盟狀態
+            updateAllianceStatus();
 
             checkTurn();
         } else {
@@ -3196,6 +3336,12 @@ function useItem(player, itemInfo, aiTarget = null) {
             break;
         case 4: // 暗箭傷人: 使敵方有效能力最高的前三名武將重傷
             const executeSabotage = (targetPlayer) => {
+                // Phase 110: 同盟保護 —— 不攻擊盟友
+                if (GAME_STATE.alliance.includes(player.id) && GAME_STATE.alliance.includes(targetPlayer.id)) {
+                    log(`🤝 「同盟保護」—— ${player.name} 記得與 ${targetPlayer.name} 是同盟，收回「暗筭傷人」！`);
+                    GAME_STATE.isWaitingForAction = false;
+                    return;
+                }
                 // 檢查對手是否有無懈可擊
                 const shieldIndex = targetPlayer.items.findIndex(it => it.id === 6);
                 if (shieldIndex !== -1) {
@@ -3299,6 +3445,12 @@ function useItem(player, itemInfo, aiTarget = null) {
                     return;
                 }
                 const targetPlayer = GAME_STATE.players[targetLand.owner];
+                // Phase 110: 同盟保護 —— 不攻擊盟友城池
+                if (GAME_STATE.alliance.includes(player.id) && GAME_STATE.alliance.includes(targetLand.owner)) {
+                    log(`🤝 「同盟保護」—— ${player.name} 記得 ${targetLand.name} 是盟友 ${targetPlayer.name} 的城池，收回「殺人放火」！`);
+                    GAME_STATE.isWaitingForAction = false;
+                    return;
+                }
                 
                 // 檢查對手是否有無懈可擊
                 const shieldIndex = targetPlayer.items.findIndex(it => it.id === 6);
