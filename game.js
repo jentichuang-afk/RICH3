@@ -3815,9 +3815,8 @@ if (UI.btnChanganShopCancel) {
 // Phase 69: 城池通用 AI (招募與買道具)
 function handleCityMenuAI(player, offeredIds, cityName) {
     GAME_STATE.isWaitingForAction = true;
-    const reserveFund = 2000;
     
-    // AI 判斷是否招募
+    // 1. 決定招募對象 (若有武將)
     let canRecruit = false;
     let targetOfficer = null;
     let officerCost = 0;
@@ -3834,37 +3833,25 @@ function handleCityMenuAI(player, offeredIds, cityName) {
             return { id: o.id, name: o.name, cost: cost };
         });
         availableList.sort((a, b) => b.cost - a.cost);
-        if (availableList.length > 0 && (player.money - availableList[0].cost) >= reserveFund) {
-            canRecruit = true;
-            targetOfficer = availableList[0];
-            officerCost = targetOfficer.cost;
+        
+        // 只要買得起就招募（不考慮閒置數）
+        for (let cand of availableList) {
+            if (player.money >= cand.cost) {
+                canRecruit = true;
+                targetOfficer = cand;
+                officerCost = cand.cost;
+                break;
+            }
         }
     }
 
-    // Phase 103: 計算「有效」的閒置武將數目（排除死亡武將）
-    const aliveIdleCount = player.officers.filter(id => {
-        const o = getOfficer(id);
-        return o && !o.isDead;
-    }).length;
-
-    // Phase 74 & 102: 當 AI 身邊空閒武將少於 10 人且身處長安或江夏時，優先選擇招募武將，而不購買道具
-    let forceRecruit = canRecruit && (aliveIdleCount < 10) && (cityName === "長安" || cityName === "江夏");
-    
-    // 如果不是在長安/江夏且人數少於 6 人，也保持原本的基礎保底招募意願
-    if (!forceRecruit) {
-        forceRecruit = canRecruit && aliveIdleCount < 6;
-    }
-
-    // AI 判斷是否買道具 (金錢超過 10000 可買完所有道具)
+    // 2. 決定購買道具 (用扣除招募費後的剩餘預算)
     let boughtItemsList = [];
-    if (!forceRecruit) {
-        let reserveThreshold = 10000;
-        let itemOptions = Object.values(ITEMS_DATA).filter(it => !player.items.some(pi => pi.id === it.id));
-    
-    // AI 隨機挑選道具嘗試購買 (金錢 > 10000 無數量上限)
-    if (itemOptions.length > 0) {
-        let tempBudget = player.money;
-        // Phase 104: AI 購買道具優先順位：復活(10，若有死者的話) > 治療(7，若有重傷者) > 其他(隨機)
+    let tempBudget = player.money - (canRecruit ? officerCost : 0);
+    let itemOptions = Object.values(ITEMS_DATA).filter(it => !player.items.some(pi => pi.id === it.id));
+
+    if (itemOptions.length > 0 && tempBudget > 0) {
+        // Phase 104: AI 購買道具優先順位：復活(10) > 治療(7) > 其他
         const hasDeadPur = player.officers.some(id => { const o = getOfficer(id); return o && o.isDead; });
         const hasInjuredPur = player.officers.some(id => { const o = getOfficer(id); return o && o.injuryRate > 50 && !o.isDead; });
 
@@ -3876,33 +3863,28 @@ function handleCityMenuAI(player, offeredIds, cityName) {
             if (hasInjuredPur && b.id === 7) scoreB = 500;
             return scoreB - scoreA || 0.5 - Math.random();
         });
+
         for (let item of shuffle) {
             let afterPrice = tempBudget - item.price;
-            
-            // 預算充足 (>10000)：隨機決定是否購買，無數量上限
-            if (afterPrice >= reserveThreshold) {
-                if (Math.random() < 0.7) {
+            if (afterPrice >= 0) {
+                if (afterPrice >= 10000) {
                     tempBudget = afterPrice;
                     boughtItemsList.push(item);
-                }
-            } else if (boughtItemsList.length === 0 && afterPrice > 0) { 
-                // 已低於 10000 且尚未購買：最多只買 1 個
-                if (Math.random() < 0.7) {
+                } else if (boughtItemsList.length === 0) { 
                     tempBudget = afterPrice;
                     boughtItemsList.push(item);
+                    break;
+                } else {
+                    break;
                 }
-                break;
-            } else {
-                break; // 已有購買且預算不足，停止
             }
         }
     }
-    }
 
+    // 3. 執行表現
     setTimeout(() => {
         try {
-            if (forceRecruit || (canRecruit && (boughtItemsList.length === 0 || Math.random() < 0.6))) {
-                // 傾向招募 (60%)，或者是兵力不足強制招募
+            if (canRecruit) {
                 playRecruitAnimation(targetOfficer.name, player.name);
 
                 setTimeout(() => {
@@ -3911,6 +3893,15 @@ function handleCityMenuAI(player, offeredIds, cityName) {
                     player.officers.push(targetOfficer.id);
                     updateOfficerCountUI(player.id);
                     log(`🎉 [電腦] ${player.name} 在${cityName}花費了 $${officerCost} 招募了在野武將【${targetOfficer.name}】！`);
+                    
+                    // 招募後如果有買道具，順便印出
+                    if (boughtItemsList.length > 0) {
+                        boughtItemsList.forEach(item => {
+                            updateMoney(player.id, -item.price);
+                            player.items.push({ ...item });
+                            log(`🎁 奇珍異寶！[電腦] ${player.name} 順便挑選了道具【${item.name}】！`);
+                        });
+                    }
                     GAME_STATE.isWaitingForAction = false;
                     endTurn();
                 }, 1000);
