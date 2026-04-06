@@ -682,11 +682,19 @@ function handleAIItemUsage(player) {
         }
 
         if (item.id === 10) { // 起死回生
-            let targetId = null;
-            const check = (id) => { let o = getOfficer(id); if (o && o.isDead) targetId = id; };
-            player.officers.forEach(check); // 死亡武將都會退回身邊，所以只要搜 player.officers 即可
-            if (targetId) {
-                useItem(player, { ...item, index: idx }, targetId);
+            let candidates = [];
+            player.officers.forEach(id => {
+                let o = getOfficer(id);
+                if (o && o.isDead) {
+                    let totalStat = 0;
+                    for (let i = 1; i <= 6; i++) totalStat += (o.stats[i] || 0);
+                    candidates.push({ id: id, total: totalStat });
+                }
+            });
+            if (candidates.length > 0) {
+                // 優先選擇能力總和最高的武將
+                candidates.sort((a, b) => b.total - a.total);
+                useItem(player, { ...item, index: idx }, candidates[0].id);
                 return;
             }
         }
