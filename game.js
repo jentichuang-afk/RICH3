@@ -3161,8 +3161,8 @@ function showChanganModal(player, offeredIds) {
         }
 
         UI.changanModal.classList.add('hidden');
-        GAME_STATE.isWaitingForAction = false;
-        endTurn();
+        // Phase 112: 招募後自動開啟道具商店，讓結員可在同一回合購買道具
+        showChanganShopModal(player);
     };
 
     UI.btnChanganCancel.onclick = () => {
@@ -3756,10 +3756,10 @@ if (UI.btnChanganBuyItem) UI.btnChanganBuyItem.onclick = () => {
 };
 
 if (UI.btnChanganShopCancel) {
-    UI.btnChanganShopCancel.textContent = "離開市集";
+    UI.btnChanganShopCancel.textContent = "結束回合";
     UI.btnChanganShopCancel.onclick = () => {
         UI.changanItemShopModal.classList.add('hidden');
-        log(`${changanCurrentPlayer.name} 整理了一下行囊，離開了市集。`);
+        log(`${changanCurrentPlayer.name} 整理了一下行囊，離開了市集，結束本回合行動。`);
         GAME_STATE.isWaitingForAction = false;
         endTurn();
     };
