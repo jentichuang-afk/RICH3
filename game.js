@@ -31,11 +31,11 @@ const GAME_STATE = {
     alliance: [], // Phase 110: 同盟玩家 ID 陣列
     // Phase 65: 擴充 items 陣列與相關 flag (actTwice, stayInPlace, siegeBuff, blockScheme)
     players: {
-        1: { id: 1, name: "劉備", money: 15000, position: 0, colorClass: 'p1', nameClass: 'p1-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false, ownTurnCount: 0, itemCooldownUntilTurn: 0 },
-        2: { id: 2, name: "曹操", money: 15000, position: 0, colorClass: 'p2', nameClass: 'p2-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false, ownTurnCount: 0, itemCooldownUntilTurn: 0 },
-        3: { id: 3, name: "孫權", money: 15000, position: 0, colorClass: 'p3', nameClass: 'p3-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false, ownTurnCount: 0, itemCooldownUntilTurn: 0 },
-        4: { id: 4, name: "董卓", money: 15000, position: 0, colorClass: 'p4', nameClass: 'p4-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false, ownTurnCount: 0, itemCooldownUntilTurn: 0 },
-        5: { id: 5, name: "信長", money: 15000, position: 0, colorClass: 'p5', nameClass: 'p5-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false, ownTurnCount: 0, itemCooldownUntilTurn: 0 }
+        1: { id: 1, name: "劉備", money: 15000, position: 0, colorClass: 'p1', nameClass: 'p1-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false, ownTurnCount: 0, itemCooldowns: {} },
+        2: { id: 2, name: "曹操", money: 15000, position: 0, colorClass: 'p2', nameClass: 'p2-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false, ownTurnCount: 0, itemCooldowns: {} },
+        3: { id: 3, name: "孫權", money: 15000, position: 0, colorClass: 'p3', nameClass: 'p3-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false, ownTurnCount: 0, itemCooldowns: {} },
+        4: { id: 4, name: "董卓", money: 15000, position: 0, colorClass: 'p4', nameClass: 'p4-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false, ownTurnCount: 0, itemCooldowns: {} },
+        5: { id: 5, name: "信長", money: 15000, position: 0, colorClass: 'p5', nameClass: 'p5-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false, ownTurnCount: 0, itemCooldowns: {} }
     }
 };
 
@@ -654,10 +654,6 @@ function checkTurn() {
 function handleAIItemUsage(player) {
     if (!player.items || player.items.length === 0) return;
 
-    // Phase 113: 冷卻中則跳過所有道具使用
-    const cooldownRemaining = (player.itemCooldownUntilTurn || 0) - (player.ownTurnCount || 0);
-    if (cooldownRemaining > 0) return;
-
     // Phase 104: AI 使用道具優先順位：復活(10) > 治療(7，若有傷員) > 其他(隨機)
     const hasDead = player.officers.some(id => { const o = getOfficer(id); return o && o.isDead; });
     const hasInjured = player.officers.some(id => { const o = getOfficer(id); return o && o.injuryRate > 50 && !o.isDead; });
@@ -673,6 +669,10 @@ function handleAIItemUsage(player) {
 
     for (let idx of indices) {
         const item = player.items[idx];
+
+        // Phase 115: 檢查單獨道具冷卻
+        const cdRemaining = Math.max(0, ((player.itemCooldowns || {})[item.id] || 0) - (player.ownTurnCount || 0));
+        if (item.id !== 6 && cdRemaining > 0) continue;
 
         if (item.id === 7) { // 迴光返照: 治療
             let targetId = null;
@@ -3302,9 +3302,9 @@ function renderInventory(player) {
         div.className = 'officer-item';
         div.style.textAlign = 'left';
         
-        // Phase 113: 計算冷卻狀態
+        // Phase 115: 計算獨立道具冷卻狀態
         const cooldownRemaining = item.id !== 6
-            ? Math.max(0, (player.itemCooldownUntilTurn || 0) - (player.ownTurnCount || 0))
+            ? Math.max(0, ((player.itemCooldowns || {})[item.id] || 0) - (player.ownTurnCount || 0))
             : 0;
         const isOnCooldown = cooldownRemaining > 0;
 
@@ -3367,16 +3367,17 @@ function useItem(player, itemInfo, aiTarget = null) {
     const item = itemInfo;
     const isBot = player.isBot;
 
-    // Phase 113: 道具冷卻系統 (無懈可擊 id=6 為被動，不受限)
+    // Phase 115: 獨立道具冷卻系統 (無懈可擊 id=6 為被動，不受限)
     if (item.id !== 6) {
-        const cooldownRemaining = (player.itemCooldownUntilTurn || 0) - (player.ownTurnCount || 0);
+        player.itemCooldowns = player.itemCooldowns || {};
+        const cooldownRemaining = (player.itemCooldowns[item.id] || 0) - (player.ownTurnCount || 0);
         if (cooldownRemaining > 0) {
-            log(`🕐 【道具冷卻】${player.name} 的計謀能量尚未恢復，還需 ${cooldownRemaining} 個自身回合才能再次使用道具！`);
+            log(`🕐 【道具冷卻】${player.name} 的「${item.name}」尚在冷卻中，還需 ${cooldownRemaining} 個自身回合才能再次使用！`);
             GAME_STATE.isWaitingForAction = false;
             return;
         }
-        // 使用成功：設定 5 回合冷卻
-        player.itemCooldownUntilTurn = (player.ownTurnCount || 0) + 5;
+        // 使用成功：設定該道具 5 回合冷卻
+        player.itemCooldowns[item.id] = (player.ownTurnCount || 0) + 5;
     }
 
     log(`✨ ${player.name} 施展了計謀：【${item.name}】！`);
