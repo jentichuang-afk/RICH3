@@ -3414,7 +3414,7 @@ function useItem(player, itemInfo, aiTarget = null) {
             if (isBot && aiTarget) teleportTo(aiTarget);
             else openTargetSelect('land', teleportTo);
             break;
-        case 4: // 暗箭傷人: 使敵方有效能力最高的前三名武將重傷
+        case 4: // 暗箭傷人: 使敵方隨機3名未受傷武將重傷
             const executeSabotage = (targetPlayer) => {
                 // Phase 110: 同盟保護 —— 不攻擊盟友
                 if (GAME_STATE.alliance.includes(player.id) && GAME_STATE.alliance.includes(targetPlayer.id)) {
@@ -3432,40 +3432,40 @@ function useItem(player, itemInfo, aiTarget = null) {
                     return;
                 }
 
-                // 找出目前「有效能力」最強的前三名
-                let targetOfficers = [];
+                // 找出目前「沒有受傷」的武將
+                let healthyOfficers = [];
                 // 閒置武將
                 targetPlayer.officers.forEach(id => {
                     let o = getOfficer(id);
-                    let sum = 0;
-                    for (let i = 1; i <= 6; i++) sum += getEffectiveStat(o, i);
-                    targetOfficers.push({ id: o.id, name: o.name, total: sum });
+                    if (o && !o.isDead && (o.injuryRate || 0) === 0) {
+                        healthyOfficers.push(o);
+                    }
                 });
                 // 守城武將
                 MAP_DATA.forEach(land => {
                     if (land.owner === targetPlayer.id) {
                         land.defenders.forEach(id => {
                             let o = getOfficer(id);
-                            let sum = 0;
-                            for (let i = 1; i <= 6; i++) sum += getEffectiveStat(o, i);
-                            targetOfficers.push({ id: o.id, name: o.name, total: sum });
+                            if (o && !o.isDead && (o.injuryRate || 0) === 0) {
+                                healthyOfficers.push(o);
+                            }
                         });
                     }
                 });
                 
-                // 直接抓取最強前三名 (由大到小排序)
-                let victims = targetOfficers.sort((a, b) => b.total - a.total).slice(0, 3);
+                // 隨機打亂並抽取最多三名
+                let shuffle = [...healthyOfficers].sort(() => 0.5 - Math.random());
+                let victims = shuffle.slice(0, 3);
 
                 if (victims.length > 0) {
                     let victimNames = [];
-                    victims.forEach(v => {
-                        let victim = getOfficer(v.id);
+                    victims.forEach(victim => {
                         applyInjury(victim, 99); // 增加 99 點累積傷害並使目前傷勢成為重傷
                         victimNames.push(victim.name);
                     });
-                    log(`🏹 暗箭噴射！${targetPlayer.name} 麾下最強的 ${victimNames.join('、')} 遭到伏擊，負傷累累！(健康度僅剩 1%)`);
+                    log(`🏹 暗箭噴射！${targetPlayer.name} 麾下的 ${victimNames.join('、')} 遭到伏擊，負傷累累！(健康度僅剩 1%)`);
                 } else {
-                    log(`${targetPlayer.name} 帳下無將，逃過一劫。`);
+                    log(`${targetPlayer.name} 帳下已無健康的武將，逃過一劫。`);
                 }
                 consumeItem(player, itemInfo.index);
                 GAME_STATE.isWaitingForAction = false;
