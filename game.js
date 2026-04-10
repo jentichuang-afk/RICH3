@@ -3432,30 +3432,36 @@ function useItem(player, itemInfo, aiTarget = null) {
                     return;
                 }
 
-                // 找出目前「沒有受傷」的武將
+                // 找出目前所有存活武將，並區分健康與受傷
                 let healthyOfficers = [];
-                // 閒置武將
-                targetPlayer.officers.forEach(id => {
+                let injuredOfficers = [];
+                
+                const processOfficer = (id) => {
                     let o = getOfficer(id);
-                    if (o && !o.isDead && (o.injuryRate || 0) === 0) {
-                        healthyOfficers.push(o);
+                    if (o && !o.isDead) {
+                        if ((o.injuryRate || 0) === 0) {
+                            healthyOfficers.push(o);
+                        } else {
+                            injuredOfficers.push(o);
+                        }
                     }
-                });
+                };
+
+                // 閒置武將
+                targetPlayer.officers.forEach(processOfficer);
+                
                 // 守城武將
                 MAP_DATA.forEach(land => {
                     if (land.owner === targetPlayer.id) {
-                        land.defenders.forEach(id => {
-                            let o = getOfficer(id);
-                            if (o && !o.isDead && (o.injuryRate || 0) === 0) {
-                                healthyOfficers.push(o);
-                            }
-                        });
+                        land.defenders.forEach(processOfficer);
                     }
                 });
                 
-                // 隨機打亂並抽取最多三名
-                let shuffle = [...healthyOfficers].sort(() => 0.5 - Math.random());
-                let victims = shuffle.slice(0, 3);
+                // 優先隨機選擇健康的，若不到 3 名，則以受傷中最健康的（injuryRate 最小）遞補
+                let shuffleHealthy = [...healthyOfficers].sort(() => 0.5 - Math.random());
+                let sortInjured = [...injuredOfficers].sort((a, b) => (a.injuryRate || 0) - (b.injuryRate || 0));
+                
+                let victims = [...shuffleHealthy, ...sortInjured].slice(0, 3);
 
                 if (victims.length > 0) {
                     let victimNames = [];
@@ -3465,7 +3471,7 @@ function useItem(player, itemInfo, aiTarget = null) {
                     });
                     log(`🏹 暗箭噴射！${targetPlayer.name} 麾下的 ${victimNames.join('、')} 遭到伏擊，負傷累累！(健康度僅剩 1%)`);
                 } else {
-                    log(`${targetPlayer.name} 帳下已無健康的武將，逃過一劫。`);
+                    log(`${targetPlayer.name} 帳下無將，逃過一劫。`);
                 }
                 consumeItem(player, itemInfo.index);
                 GAME_STATE.isWaitingForAction = false;
