@@ -519,6 +519,24 @@ function showChanganChoiceModal(player, offeredIds) {
     changanCurrentPlayer = player;
     changanOfferedIds = offeredIds;
     UI.btnChanganGoRecruit.disabled = (offeredIds.length === 0);
+    
+    UI.btnChanganGoRecruit.onclick = () => {
+        UI.changanChoiceModal.classList.add('hidden');
+        showChanganModal(changanCurrentPlayer, changanOfferedIds);
+    };
+    
+    UI.btnChanganGoShop.onclick = () => {
+        UI.changanChoiceModal.classList.add('hidden');
+        showChanganShopModal(changanCurrentPlayer);
+    };
+    
+    UI.btnChanganLeave.onclick = () => {
+        log(`${changanCurrentPlayer.name} 在行館外駐足片刻，便轉身離去。`);
+        UI.changanChoiceModal.classList.add('hidden');
+        GAME_STATE.isWaitingForAction = false;
+        endTurn();
+    };
+
     UI.changanChoiceModal.classList.remove('hidden');
 }
 
@@ -580,5 +598,25 @@ function showChanganShopModal(player) {
         }
         UI.changanItemList.appendChild(div);
     });
+
+    UI.btnChanganBuyItem.onclick = () => {
+        if (!shopSelectedItem) return;
+        if (player.money >= shopSelectedItem.price) {
+            updateMoney(player.id, -shopSelectedItem.price);
+            player.items.push({ ...shopSelectedItem });
+            log(`🎁 奇珍異寶！${player.name} 買下了道具【${shopSelectedItem.name}】！`);
+            UI.changanItemShopModal.classList.add('hidden');
+            GAME_STATE.isWaitingForAction = false;
+            endTurn();
+        }
+    };
+
+    UI.btnChanganLeaveShop.onclick = () => {
+        log(`${player.name} 在市集逛了一圈，沒有看中需要的道具，轉身離開了。`);
+        UI.changanItemShopModal.classList.add('hidden');
+        GAME_STATE.isWaitingForAction = false;
+        endTurn();
+    };
+
     UI.changanItemShopModal.classList.remove('hidden');
 }
