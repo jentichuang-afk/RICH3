@@ -611,7 +611,7 @@ function showChanganShopModal(player) {
         }
     };
 
-    UI.btnChanganLeaveShop.onclick = () => {
+    UI.btnChanganShopCancel.onclick = () => {
         log(`${player.name} 在市集逛了一圈，沒有看中需要的道具，轉身離開了。`);
         UI.changanItemShopModal.classList.add('hidden');
         GAME_STATE.isWaitingForAction = false;
