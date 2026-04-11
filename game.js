@@ -83,8 +83,19 @@ function getCityChainLength(playerId, cityId) {
     }
     
     const count = visited.size;
-    // 使用者規定：單獨領地不加成
-    return count > 1 ? count : 0;
+    let bonus = count > 1 ? count : 0;
+    
+    // 當相鄰城池（左與右）都是己方時，額外加成 2%
+    if (bonus > 0) {
+        let leftCity = getNextLandIndex(cityId, -1);
+        let rightCity = getNextLandIndex(cityId, 1);
+        if (MAP_DATA[leftCity] && MAP_DATA[leftCity].owner === playerId &&
+            MAP_DATA[rightCity] && MAP_DATA[rightCity].owner === playerId) {
+            bonus += 2;
+        }
+    }
+    
+    return bonus;
 }
 
 
@@ -446,7 +457,9 @@ function initGame() {
                     info += `<p><strong>過路費：</strong>$${getCityToll(landInfo)}</p>`;
                     info += `<p><strong>每回合稅收：</strong>$${tax}</p>`;
                     const geoBonus = getDevelopmentGeoBonus(landInfo.development || 0);
-                    info += `<p><strong>屬性加成：</strong>價值 +${(landInfo.development || 0) * 10}% / 地利 +${geoBonus}%</p>`;
+                    const chainBonus = getCityChainLength(landInfo.owner, index);
+                    const totalGeoBonus = geoBonus + chainBonus;
+                    info += `<p><strong>屬性加成：</strong>價值 +${(landInfo.development || 0) * 10}% / 地利 +${totalGeoBonus}%</p>`;
                     info += `</div>`;
 
                     if (landInfo.defenders.length > 0) {
@@ -1418,23 +1431,36 @@ function getBestSiegeTeam(attackerOfficerIds, defenderIds, cityId = -1, useBuff 
     };
 
     let minTotalStats = Infinity;
-    let bestOutcomeDenom = 6;
+    let bestRate = -1;
+    let bestWins = 0;
+    let bestDenom = 6;
 
     const checkTeam = (team) => {
         let res = evaluateTeamWinRate(team);
-        // 比較期望值百分比
         let currentRate = res.wins / res.totalOutcomes;
-        let maxRate = maxWins / bestOutcomeDenom;
 
-        if (currentRate > maxRate || (currentRate === maxRate && res.totalStats < minTotalStats)) {
-            maxWins = res.wins;
-            bestOutcomeDenom = res.totalOutcomes;
+        // 如果是 AI (forUI = false)，至少需要大於 49% (贏 3 項以上) 才考慮
+        if (!forUI && currentRate <= 0.49) {
+            return;
+        }
+
+        // 我們目標是：勝率最高，若勝率相同則此組合的能力總和越低越好（用最少成本拚下城池）
+        if (currentRate > bestRate) {
+            bestRate = currentRate;
+            bestWins = res.wins;
+            bestDenom = res.totalOutcomes;
+            minTotalStats = res.totalStats;
+            bestTeam = team;
+        } else if (currentRate === bestRate && res.totalStats < minTotalStats) {
+            bestRate = currentRate;
+            bestWins = res.wins;
+            bestDenom = res.totalOutcomes;
             minTotalStats = res.totalStats;
             bestTeam = team;
         }
     };
 
-    const officers = attackerOfficerIds.filter(id => id != null);
+    const officers = validAttackerIds;
     const n = Math.min(officers.length, 20);
 
     // 1 人組合
@@ -1450,7 +1476,7 @@ function getBestSiegeTeam(attackerOfficerIds, defenderIds, cityId = -1, useBuff 
         }
     }
 
-    return { team: bestTeam, rate: maxWins / bestOutcomeDenom };
+    return { team: bestTeam, rate: bestTeam ? bestRate : 0 };
 }
 
 // 執行攻城結算
@@ -1548,7 +1574,7 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
     // Phase 66: 連續封地加成 (n%)
     const chainBonus = getCityChainLength(landInfo.owner, landInfo.id);
     if (chainBonus > 0) {
-        log(`🏰 【連橫效應】此城為連續 ${chainBonus} 座領地之一，全防守屬性提升 ${chainBonus}%！`);
+        log(`🏰 【連橫效應】此城發揮連橫地利，全防守屬性提升 ${chainBonus}%！`);
         defenderScore = Math.ceil(defenderScore * (1 + chainBonus / 100));
     }
 
@@ -4221,3 +4247,62 @@ function restoreUI() {
         enableRollButton(false);
     }
 }
+
+// ============================================================
+// Phase X: 動畫佇列系統 (避免多個特效重疊播放)
+// ============================================================
+(function() {
+    window._animQueue = [];
+    window._isAnimating = false;
+    
+    function enqueueAnimation(duration, animFn) {
+        window._animQueue.push({duration, animFn});
+        const processNext = () => {
+            if (window._isAnimating || window._animQueue.length === 0) return;
+            window._isAnimating = true;
+            let task = window._animQueue.shift();
+            task.animFn();
+            setTimeout(() => {
+                window._isAnimating = false;
+                processNext();
+            }, task.duration + 200); // 加上 200ms 的過渡間隔
+        };
+        processNext();
+    }
+
+    // 攔截並覆寫原始的動畫函式
+    if (typeof playReversalAnimation === 'function') {
+        const origReversal = playReversalAnimation;
+        playReversalAnimation = (...args) => enqueueAnimation(1200, () => origReversal(...args));
+    }
+    
+    if (typeof playAwakeningAnimation === 'function') {
+        const origAwakening = playAwakeningAnimation;
+        playAwakeningAnimation = (...args) => enqueueAnimation(1500, () => origAwakening(...args));
+    }
+    
+    if (typeof playBreakthroughAnimation === 'function') {
+        const origBreakthrough = playBreakthroughAnimation;
+        playBreakthroughAnimation = (...args) => enqueueAnimation(1200, () => origBreakthrough(...args));
+    }
+    
+    if (typeof playDeathAnimation === 'function') {
+        const origDeath = playDeathAnimation;
+        playDeathAnimation = (...args) => enqueueAnimation(1200, () => origDeath(...args));
+    }
+    
+    if (typeof playRecruitAnimation === 'function') {
+        const origRecruit = playRecruitAnimation;
+        playRecruitAnimation = (...args) => enqueueAnimation(1200, () => origRecruit(...args));
+    }
+    
+    if (typeof playItemAnimation === 'function') {
+        const origItem = playItemAnimation;
+        playItemAnimation = (...args) => enqueueAnimation(1200, () => origItem(...args));
+    }
+    
+    if (typeof playAllianceAnimation === 'function') {
+        const origAlliance = playAllianceAnimation;
+        playAllianceAnimation = (...args) => enqueueAnimation(2000, () => origAlliance(...args));
+    }
+})();
