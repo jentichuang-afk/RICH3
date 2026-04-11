@@ -30,6 +30,10 @@ try:
     css_content = load_file('style.css')
     items_js = load_file('items.js')
     officers_js = load_file('officers.js')
+    utils_js = load_file('utils.js')
+    combat_engine_js = load_file('combat_engine.js')
+    item_system_js = load_file('item_system.js')
+    ai_model_js = load_file('ai_model.js')
     game_js = load_file('game.js')
 
     # 將 CSS 和 JS 直接注入到 HTML
@@ -37,8 +41,8 @@ try:
     # 移除原本所有的外部 script 引入 (避免 Streamlit 以自己的 HTML 錯誤回應)
     html_with_css = re.sub(r'<script[^>]*src=["\'].*?\.js["\'][^>]*></script>', '', html_with_css)
     
-    # 注意：officers.js 和 items.js 必須在 game.js 之前載入
-    scripts = f'<script>{items_js}</script><script>{officers_js}</script><script>{game_js}</script>'
+    # 注意：officers.js 和 items.js 等必須在 game.js 之前載入
+    scripts = f'<script>{items_js}</script><script>{officers_js}</script><script>{utils_js}</script><script>{combat_engine_js}</script><script>{item_system_js}</script><script>{ai_model_js}</script><script>{game_js}</script>'
     final_html = html_with_css.replace('</body>', f'{scripts}</body>')
 
     # 將背景顏色鎖定，防止受到 Streamlit 佈景主題影響
