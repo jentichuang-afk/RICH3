@@ -605,9 +605,8 @@ function showChanganShopModal(player) {
             updateMoney(player.id, -shopSelectedItem.price);
             player.items.push({ ...shopSelectedItem });
             log(`🎁 奇珍異寶！${player.name} 買下了道具【${shopSelectedItem.name}】！`);
-            UI.changanItemShopModal.classList.add('hidden');
-            GAME_STATE.isWaitingForAction = false;
-            endTurn();
+            // 重整商店畫面，不關閉視窗，讓玩家可以繼續購買
+            showChanganShopModal(player);
         }
     };
 
