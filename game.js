@@ -39,134 +39,18 @@ const GAME_STATE = {
     }
 };
 
-// Phase 66: 計算連續領地長度 (相連城池加成)
-// 更新：現在可以跨過長安(0)與江夏(10)計算，將地圖視為完整的環狀領土。
-function getCityChainLength(playerId, cityId) {
-    if (cityId === 0 || cityId === 10 || playerId == null) return 0;
-    
-    const visited = new Set();
-    visited.add(cityId);
-    
-    // 獲取下一個「領地」索引 (自動跳過 0 與 10)
-    const getNextLandIndex = (cur, step) => {
-        let next = (cur + step + 20) % 20;
-        while (next === 0 || next === 10) {
-            next = (next + step + 20) % 20;
-        }
-        return next;
-    };
-
-    // 往「左」搜尋
-    let curL = cityId;
-    while (true) {
-        let next = getNextLandIndex(curL, -1);
-        if (visited.has(next)) break; // 繞回原點
-        if (MAP_DATA[next] && MAP_DATA[next].owner === playerId) {
-            visited.add(next);
-            curL = next;
-        } else {
-            break;
-        }
-    }
-    
-    // 往「右」搜尋
-    let curR = cityId;
-    while (true) {
-        let next = getNextLandIndex(curR, 1);
-        if (visited.has(next)) break; // 繞回原點
-        if (MAP_DATA[next] && MAP_DATA[next].owner === playerId) {
-            visited.add(next);
-            curR = next;
-        } else {
-            break;
-        }
-    }
-    
-    const count = visited.size;
-    let bonus = count > 1 ? count : 0;
-    
-    // 當相鄰城池（左與右）都是己方時，額外加成 2%
-    if (bonus > 0) {
-        let leftCity = getNextLandIndex(cityId, -1);
-        let rightCity = getNextLandIndex(cityId, 1);
-        if (MAP_DATA[leftCity] && MAP_DATA[leftCity].owner === playerId &&
-            MAP_DATA[rightCity] && MAP_DATA[rightCity].owner === playerId) {
-            bonus += 2;
-        }
-    }
-    
-    return bonus;
-}
+// getCityChainLength -> 已移至 utils.js
 
 
-// Phase 21: 取得戰鬥時有效的能力 (計算衰減)
-function getEffectiveStat(o, statIdx) {
-    let val = o.stats[statIdx];
-    if (o.injuryRate > 0) {
-        val = Math.floor(val * (100 - o.injuryRate) / 100);
-    }
-    return val;
-}
 
-// Phase 17 & 21: 戰鬥成長與受傷呈現輔助函式
-function formatStatDisplay(base, current, injuryRate = 0) {
-    let effective = current;
-    if (injuryRate > 0) {
-        effective = Math.floor(current * (100 - injuryRate) / 100);
-    }
-    let html = `${base}`;
-    if (current > base) {
-        html += ` &nbsp;<span style="color: #ff5252; font-weight: bold;">(+${current - base})</span>`;
-    }
-    if (injuryRate > 0) {
-        html += ` <span style="color: #e57373; font-weight: bold; font-size: 0.9em;">(傷&rarr;${effective})</span>`;
-    }
-    return html;
-}
+// getEffectiveStat -> 已移至 utils.js
 
-// Phase 76: 新增統一步驟處理武將受傷與死亡判定
-function applyInjury(officer, dmg) {
-    if (officer.isDead) return;
-    let actualDmg = Math.max(0, dmg);
-    if (actualDmg === 0) return;
 
-    officer.injuryRate = Math.min(100, (officer.injuryRate || 0) + actualDmg);
-    officer.cumulativeInjury = (officer.cumulativeInjury || 0) + actualDmg;
+// formatStatDisplay -> 已移至 utils.js
 
-    // 檢查是否陣亡
-    if (officer.cumulativeInjury >= 500) {
-        officer.isDead = true;
-        officer.injuryRate = 100;
 
-        let ownerName = "在野";
-        // 找出所有者並從守軍中移除
-        for (let pid in GAME_STATE.players) {
-            let p = GAME_STATE.players[pid];
-            if (p.officers.includes(officer.id)) {
-                ownerName = p.name;
-                break;
-            }
-        }
-        for (let land of MAP_DATA) {
-            if (land.defenders && land.defenders.includes(officer.id)) {
-                let p = GAME_STATE.players[land.owner];
-                ownerName = p.name;
-                // 從守軍陣列中移除
-                land.defenders = land.defenders.filter(id => id !== officer.id);
-                // 退回玩家的 officers 陣列 (以死亡狀態存在)，確保不重複
-                if (!p.officers.includes(officer.id)) {
-                    p.officers.push(officer.id);
-                }
-                break;
-            }
-        }
+// applyInjury -> 已移至 utils.js
 
-        // 發出全域通告
-        log(`☠️ 【武將陣亡】${ownerName} 麾下的 ${officer.name} 傷勢累積達 1000，不幸陣亡！`);
-        playDeathAnimation(officer.name);
-        updateOfficerCountUI(1); updateOfficerCountUI(2); updateOfficerCountUI(3); updateOfficerCountUI(4); updateOfficerCountUI(5);
-    }
-}
 
 // 地圖資料 (20格)
 const MAP_DATA = [
@@ -456,8 +340,8 @@ function initGame() {
                     info += `<p><strong>城池價值：</strong><span style="color:#d35400; font-weight:bold;">$${cityValue}</span> (Lv.${landInfo.development || 0})</p>`;
                     info += `<p><strong>過路費：</strong>$${getCityToll(landInfo)}</p>`;
                     info += `<p><strong>每回合稅收：</strong>$${tax}</p>`;
-                    const geoBonus = getDevelopmentGeoBonus(landInfo.development || 0);
-                    const chainBonus = getCityChainLength(landInfo.owner, index);
+                    const geoBonus = getDevelopmentGeoBonus(landInfo.development || 0); // 規則1: 0-3級=3%, 4級以上=lv%
+                    const chainBonus = getCityChainLength(landInfo.owner, index); // 規則2: +n%, 規則3: 中心再+2%
                     const totalGeoBonus = geoBonus + chainBonus;
                     info += `<p><strong>屬性加成：</strong>價值 +${(landInfo.development || 0) * 10}% / 地利 +${totalGeoBonus}%</p>`;
                     info += `</div>`;
@@ -2064,186 +1948,18 @@ function handleBankrupt(player) {
     }
 }
 
-// 金錢更新 (包含安全轉型防呆)
-function updateMoney(playerId, amount) {
-    const p = GAME_STATE.players[playerId];
-    p.money = Math.max(0, parseInt(p.money, 10) + parseInt(amount, 10));
+// updateMoney -> 已移至 utils.js
 
-    if (playerId === 1) UI.p1Money.textContent = p.money;
-    if (playerId === 2) UI.p2Money.textContent = p.money;
-    if (playerId === 3) UI.p3Money.textContent = p.money;
-    if (playerId === 4 && UI.p4Money) UI.p4Money.textContent = p.money;
-    if (playerId === 5 && UI.p5Money) UI.p5Money.textContent = p.money;
-}
 
-// 更新閒置武將 UI
-function updateOfficerCountUI(playerId) {
-    const p = GAME_STATE.players[playerId];
-    const el = document.getElementById(`p${playerId}-officers`);
-    if (el) {
-        // Phase 103: 計算閒置武將數目時，去除死亡武將
-        const aliveCount = p.officers.filter(id => {
-            const o = getOfficer(id);
-            return o && !o.isDead;
-        }).length;
-        el.textContent = aliveCount;
-    }
-}
+// updateOfficerCountUI -> 已移至 utils.js
+// getOfficer -> 已移至 utils.js
 
-// 根據 ID 獲取武將資料
-function getOfficer(id) {
-    return OFFICERS_DATA.find(o => o.id === id);
-}
 
-/**
- * 計算城池當前價值 (基礎價格 + 等級加成)
- */
-function getCityValue(land) {
-    if (!land || land.type !== 'LAND') return 0;
-    return Math.floor(land.price * (1 + (land.development || 0) * 0.1));
-}
+// getCityValue, getDevelopmentGeoBonus, getCityToll, updateBoardUI
+// getCityTaxIncome, processCityTaxesAndInflation, applyTeamSkills
+// -> 已移至 utils.js / combat_engine.js
 
-/**
- * 計算開發等級所帶來的地利加成
- */
-function getDevelopmentGeoBonus(development) {
-    const lv = development || 0;
-    if (lv <= 3) return 3;
-    return lv;
-}
 
-/**
- * 計算城池當前過路費 (目前定義為價值的 50%)
- */
-function getCityToll(land) {
-    if (!land || land.type !== 'LAND') return 0;
-    return Math.floor(getCityValue(land) * 0.5);
-}
-
-/**
- * 更新主畫面地圖上的城池外觀 (等級與價值)
- */
-function updateBoardUI() {
-    MAP_DATA.forEach(land => {
-        if (land.type === 'LAND') {
-            const cell = document.getElementById(`cell-${land.id}`);
-            if (cell) {
-                const nameSpan = cell.querySelector('.city-name');
-                if (nameSpan) {
-                    const cityValue = getCityValue(land);
-                    let lvText = (land.development && land.development > 0) ? `<br><span style="color:#e67e22; font-weight:bold;">Lv ${land.development}</span>` : "";
-                    nameSpan.innerHTML = `${land.name}<br><small>$${cityValue}</small>${lvText}`;
-                }
-            }
-        }
-    });
-}
-
-// Phase 12+: 城市稅收與通膨系統
-function getCityTaxIncome(land) {
-    if (!land.owner || land.type !== 'LAND') return 0;
-    
-    // 1. 計算城池價值
-    const cityValue = getCityValue(land);
-    
-    // 2. 計算基礎稅收：價值 * 1%
-    const baseTax = cityValue * 0.01;
-    
-    // 3. 計算守將政治力總和
-    let totalPolitics = 100; // 預設 100% 效率 (即便無將也有一點基礎稅收)
-    if (land.defenders && land.defenders.length > 0) {
-        let teamStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
-        land.defenders.forEach(id => {
-            const o = getOfficer(id);
-            if (o) {
-                for (let i = 1; i <= 6; i++) {
-                    teamStats[i] += getEffectiveStat(o, i);
-                }
-            }
-        });
-        applyTeamSkills(land.defenders, teamStats, [], true, land);
-        totalPolitics = teamStats[4];
-    }
-
-    // 4. 計算稅收金額：(政治力/100) * 基礎稅收
-    let cityIncome = Math.floor((totalPolitics / 100) * baseTax);
-
-    // 5. 政治特技加倍
-    let superPolitician = land.defenders.find(id => {
-        const o = getOfficer(id);
-        return o && getEffectiveStat(o, 4) >= 101 && o.injuryRate === 0;
-    });
-    let elitePolitician = land.defenders.find(id => {
-        const o = getOfficer(id);
-        return o && getEffectiveStat(o, 4) >= 95;
-    });
-
-    if (superPolitician) cityIncome *= 5; // 富國強兵
-    else if (elitePolitician) cityIncome *= 2; // 經世濟民
-
-    return cityIncome;
-}
-
-function processCityTaxesAndInflation(player) {
-    let totalTaxIncome = 0;
-    let taxedCities = 0;
-    let eliteTaxCities = 0;
-
-    MAP_DATA.forEach(land => {
-        if (land.owner === player.id) {
-            // 1. 每過一回合的處理 (原本的過路費通膨邏輯已移除，現在連動價值)
-
-            // 2. 獲取單體稅收
-            let cityIncome = getCityTaxIncome(land);
-            
-            // 檢查是否由精英政治家產生加成
-            let superPolitician = land.defenders.find(id => {
-                const o = getOfficer(id);
-                return o && getEffectiveStat(o, 4) >= 101 && o.injuryRate === 0;
-            });
-            let elitePolitician = land.defenders.find(id => {
-                const o = getOfficer(id);
-                return o && getEffectiveStat(o, 4) >= 95;
-            });
-            if (superPolitician || elitePolitician) eliteTaxCities++;
-
-            if (cityIncome > 0) {
-                totalTaxIncome += cityIncome;
-                taxedCities++;
-            }
-        }
-    });
-
-    if (totalTaxIncome > 0) {
-        updateMoney(player.id, totalTaxIncome);
-        let eliteStr = eliteTaxCities > 0 ? ` (含 ${eliteTaxCities} 座「富國強兵/經世濟民」加成)` : "";
-        log(`💰 【城市稅收】${player.name} 從名下 ${taxedCities} 座城市獲稅 $${totalTaxIncome}！${eliteStr}`);
-    }
-}
-
-// 處理團隊特技光環加成
-function applyTeamSkills(teamIds, teamStats, enemyIds = [], isDefense = false, landInfo = null) {
-    teamIds.forEach(id => {
-        if (OFFICER_SKILLS[id]) {
-            OFFICER_SKILLS[id].effect(teamStats, enemyIds, isDefense, landInfo);
-            
-            // Phase 71: 能力 101 以上者，原先特技獲得大幅強化 (疊加一次)
-            const o = getOfficer(id);
-            if (o && o.injuryRate === 0) {
-                let hasBreakthrough = false;
-                for (let i = 1; i <= 6; i++) {
-                    if (getEffectiveStat(o, i) >= 101) {
-                        hasBreakthrough = true;
-                        break;
-                    }
-                }
-                if (hasBreakthrough) {
-                    OFFICER_SKILLS[id].effect(teamStats, enemyIds, isDefense, landInfo);
-                }
-            }
-        }
-    });
-}
 // 結束回合
 // ============================================================
 // Phase 110: 同盟系統
