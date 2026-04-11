@@ -347,7 +347,20 @@ function openInventory() {
     }
     GAME_STATE.isWaitingForAction = true;
     selectedInventoryItem = null;
-    if (UI.btnConfirmUseItem) UI.btnConfirmUseItem.disabled = true;
+    if (UI.btnConfirmUseItem) {
+        UI.btnConfirmUseItem.disabled = true;
+        UI.btnConfirmUseItem.onclick = () => {
+            if (!selectedInventoryItem) return;
+            UI.inventoryModal.classList.add('hidden');
+            useItem(player, selectedInventoryItem);
+        };
+    }
+    if (UI.btnCancelInventory) {
+        UI.btnCancelInventory.onclick = () => {
+            UI.inventoryModal.classList.add('hidden');
+            GAME_STATE.isWaitingForAction = false;
+        };
+    }
     renderInventory(player);
     if (UI.inventoryModal) UI.inventoryModal.classList.remove('hidden');
 }
