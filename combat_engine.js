@@ -503,29 +503,53 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
             const healer = getOfficer(team.healerId);
             const isSuperLucky = healer && getEffectiveStat(healer, 6) >= 101 && healer.injuryRate === 0;
             let injuredAllies = team.ids.filter(id => getOfficer(id).injuryRate > 0);
-            if (injuredAllies.length > 0) {
+            let hasCumulativeInjury = team.ids.some(id => (getOfficer(id).cumulativeInjury || 0) > 0);
+            
+            if (injuredAllies.length > 0 || (isSuperLucky && hasCumulativeInjury)) {
                 let healMsg = "";
                 if (isSuperLucky) {
                     let healedNames = [];
                     injuredAllies.forEach(targetId => {
                         let target = getOfficer(targetId);
                         target.injuryRate = 0;
-                        target.cumulativeInjury = Math.max(0, (target.cumulativeInjury || 0) - 50);
                         healedNames.push(target.name);
                     });
-                    healMsg = `🍀 【天降甘霖】${healer.name} 運氣爆棚！戰後神蹟降臨，讓同隊伍的 ${healedNames.join('、')} 傷勢完全康復，並降低累積傷勢 50 點！`;
+                    
+                    let availablePoints = 100;
+                    let candidatesToReduce = team.ids.map(id => getOfficer(id)).filter(o => (o.cumulativeInjury || 0) > 0);
+                    
+                    while (availablePoints > 0 && candidatesToReduce.length > 0) {
+                        let randIndex = Math.floor(Math.random() * candidatesToReduce.length);
+                        let randOfficer = candidatesToReduce[randIndex];
+                        randOfficer.cumulativeInjury--;
+                        availablePoints--;
+                        if (randOfficer.cumulativeInjury <= 0) {
+                            candidatesToReduce.splice(randIndex, 1);
+                        }
+                    }
+
+                    if (healedNames.length > 0) {
+                        healMsg = `🍀 【天降甘霖】${healer.name} 運氣爆棚！戰後神蹟降臨，同隊伍的 ${healedNames.join('、')} 傷勢完全康復，並為參戰陣容隨機消退了總計 100 點累積受傷！`;
+                    } else {
+                        healMsg = `🍀 【天降甘霖】${healer.name} 運氣爆棚！無人重傷，戰後神蹟降臨，直接為參戰陣容隨機消退了總計 100 點累積受傷！`;
+                    }
                 } else {
-                    let targetId = injuredAllies[Math.floor(Math.random() * injuredAllies.length)];
-                    let target = getOfficer(targetId);
-                    target.injuryRate = 0;
-                    target.cumulativeInjury = Math.max(0, (target.cumulativeInjury || 0) - 50);
-                    healMsg = `🍀 【吉星高照】${healer.name} 展現奇蹟，使 ${target.name} 的傷勢完全恢復，並降低累積傷勢 50 點！`;
+                    if (injuredAllies.length > 0) {
+                        let targetId = injuredAllies[Math.floor(Math.random() * injuredAllies.length)];
+                        let target = getOfficer(targetId);
+                        target.injuryRate = 0;
+                        target.cumulativeInjury = Math.max(0, (target.cumulativeInjury || 0) - 50);
+                        healMsg = `🍀 【吉星高照】${healer.name} 展現奇蹟，使 ${target.name} 的傷勢完全恢復，並降低累積傷勢 50 點！`;
+                    }
                 }
-                log(healMsg);
-                resultHtml += `<div style="margin-top: 10px; padding: 8px; background: rgba(255, 235, 59, 0.2); border: 1px solid #FBC02D; border-radius: 5px;">
-                    <div style="color: #FBC02D; font-weight: bold; margin-bottom: 3px;">【幸運治療】</div>
-                    <div style="font-size: 13px;">${healMsg}</div>
-                </div>`;
+                
+                if (healMsg) {
+                    log(healMsg);
+                    resultHtml += `<div style="margin-top: 10px; padding: 8px; background: rgba(255, 235, 59, 0.2); border: 1px solid #FBC02D; border-radius: 5px;">
+                        <div style="color: #FBC02D; font-weight: bold; margin-bottom: 3px;">【幸運治療】</div>
+                        <div style="font-size: 13px;">${healMsg}</div>
+                    </div>`;
+                }
             }
         }
     });

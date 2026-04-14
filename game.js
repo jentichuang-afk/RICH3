@@ -2079,8 +2079,8 @@ function getSuperSkillDescription(o) {
 
     // 運氣 (6)
     let luc = getEffectiveStat(o, 6);
-    if (luc >= 101 && o.injuryRate === 0) superSkills.push(`<span style="color:#d32f2f">【天降甘霖】</span>戰後治癒全隊傷勢`);
-    else if (luc >= 95) superSkills.push(`<span style="color:#f1c40f">【吉星高照】</span>戰後隨機治癒一人`);
+    if (luc >= 101 && o.injuryRate === 0) superSkills.push(`<span style="color:#d32f2f">【天降甘霖】</span>戰後全隊傷勢歸零，總計消退100點累積受傷`);
+    else if (luc >= 95) superSkills.push(`<span style="color:#f1c40f">【吉星高照】</span>戰後隨機治癒一人，消退50點累積受傷`);
 
     return superSkills.join('<br>');
 }
