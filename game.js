@@ -906,8 +906,8 @@ function triggerLandEvent(player, landInfo) {
         });
 
         let charmId = superCharismaId || topCharismaId;
-        // 101+ 必定發動 (100%)；95+ 有 75% 機率
-        let charmChance = superCharismaId ? 1.0 : 0.75;
+        // 101+ 有 75% 機率 (天選之子)；95+ 有 50% 機率 (名德眾望)
+        let charmChance = superCharismaId ? 0.75 : 0.50;
 
         if (charmId && Math.random() < charmChance) {
             const charmer = getOfficer(charmId);
@@ -2074,8 +2074,8 @@ function getSuperSkillDescription(o) {
 
     // 魅力 (5)
     let cha = getEffectiveStat(o, 5);
-    if (cha >= 101 && o.injuryRate === 0) superSkills.push(`<span style="color:#d32f2f">【天選之子】</span>(魅力>攻)100% 勸退敵軍`);
-    else if (cha >= 95) superSkills.push(`<span style="color:#e91e63">【名德眾望】</span>(魅力>攻) 75% 勸退敵軍`);
+    if (cha >= 101 && o.injuryRate === 0) superSkills.push(`<span style="color:#d32f2f">【天選之子】</span>(魅力>攻) 75% 勸退敵軍`);
+    else if (cha >= 95) superSkills.push(`<span style="color:#e91e63">【名德眾望】</span>(魅力>攻) 50% 勸退敵軍`);
 
     // 運氣 (6)
     let luc = getEffectiveStat(o, 6);
