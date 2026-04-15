@@ -58,7 +58,7 @@ const MAP_DATA = [
     { id: 1, name: "洛陽", type: "LAND", price: 2500, owner: null, defenders: [], development: 0 },
     { id: 2, name: "許昌", type: "LAND", price: 1800, owner: null, defenders: [], development: 0 },
     { id: 3, name: "宛城", type: "LAND", price: 1300, owner: null, defenders: [], development: 0 },
-    { id: 4, name: "鄴城", type: "LAND", price: 1600, owner: null, defenders: [], development: 0 },
+    { id: 4, name: "鄴城", type: "LAND", price: 2000, owner: null, defenders: [], development: 0 },
     { id: 5, name: "下邳", type: "LAND", price: 1500, owner: null, defenders: [], development: 0 },
     { id: 6, name: "臨淄", type: "LAND", price: 1500, owner: null, defenders: [], development: 0 },
     { id: 7, name: "徐州", type: "LAND", price: 1500, owner: null, defenders: [], development: 0 },
@@ -71,9 +71,9 @@ const MAP_DATA = [
     { id: 14, name: "梓潼", type: "LAND", price: 1200, owner: null, defenders: [], development: 0 },
     { id: 15, name: "漢中", type: "LAND", price: 1100, owner: null, defenders: [], development: 0 },
     { id: 16, name: "京都", type: "LAND", price: 2000, owner: null, defenders: [], development: 0 },
-    { id: 17, name: "大阪", type: "LAND", price: 1800, owner: null, defenders: [], development: 0 },
-    { id: 18, name: "江戶", type: "LAND", price: 1800, owner: null, defenders: [], development: 0 },
-    { id: 19, name: "名古屋", type: "LAND", price: 1500, owner: null, defenders: [], development: 0 },
+    { id: 17, name: "大阪", type: "LAND", price: 1700, owner: null, defenders: [], development: 0 },
+    { id: 18, name: "江戶", type: "LAND", price: 1600, owner: null, defenders: [], development: 0 },
+    { id: 19, name: "名古屋", type: "LAND", price: 1400, owner: null, defenders: [], development: 0 },
 ];
 
 const DICE_FACES = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
