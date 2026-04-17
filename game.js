@@ -2229,6 +2229,10 @@ function setupEncyclopediaSort() {
  * 存檔系統 (Phase: Persistence)
  */
 function saveGame() {
+    if (GAME_STATE.isWaitingForAction || (GAME_STATE.players[GAME_STATE.currentPlayer] && GAME_STATE.players[GAME_STATE.currentPlayer].isBot)) {
+        alert("❌ 請在「輪到您的回合，且尚未擲骰子」的狀態下存檔，以免造成遊戲進度卡死！");
+        return;
+    }
     try {
         const saveData = {
             GAME_STATE: GAME_STATE,
@@ -2281,10 +2285,21 @@ function loadGame() {
 }
 
 function restoreUI() {
-    // 1. 金額更新
+    // 1. 金額更新與電腦標記恢復
     for (let i = 1; i <= 5; i++) {
         updateMoney(i, 0); 
         updateOfficerCountUI(i);
+        
+        // 恢復電腦玩家標記
+        if (GAME_STATE.players[i] && GAME_STATE.players[i].isBot) {
+            const card = UI[`p${i}Card`];
+            if (card) {
+                const strongElement = card.querySelector('.info h2');
+                if (strongElement && !strongElement.textContent.includes('(電腦)')) {
+                    strongElement.textContent += " (電腦)";
+                }
+            }
+        }
     }
     
     // 2. 棋子位置更新
