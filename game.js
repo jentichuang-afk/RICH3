@@ -1761,9 +1761,15 @@ function renderSiegeOfficerList() {
             skillText += ` <span style="color:#e57373; font-size:0.85em;">(受傷 -${o.injuryRate}%)</span>`;
         }
 
+        let isHomeCity = (typeof OFFICER_HOME_CITY !== 'undefined' && OFFICER_HOME_CITY[o.id] === currentSiegeCityId);
+        let nameHtml = o.name;
+        if (isHomeCity) {
+            nameHtml = `<span style="color:#ff5722; font-weight:900; text-shadow: 0 0 5px rgba(255,87,34,0.4);">🏠 ${o.name} (+5%)</span>`;
+        }
+
         tr.innerHTML = `
             <td><input type="checkbox" ${isSelected ? 'checked' : ''} style="pointer-events: none; transform: scale(1.3);"></td>
-            <td style="font-weight:bold;">${o.name}</td>
+            <td style="font-weight:bold; font-size:1.1em;">${nameHtml}</td>
             <td>${formatStatDisplay(o.baseStats[1], o.stats[1], o.injuryRate)}</td>
             <td>${formatStatDisplay(o.baseStats[2], o.stats[2], o.injuryRate)}</td>
             <td>${formatStatDisplay(o.baseStats[3], o.stats[3], o.injuryRate)}</td>
