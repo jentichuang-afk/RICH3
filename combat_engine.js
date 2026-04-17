@@ -144,21 +144,20 @@ function applyTeamSkills(teamIds, teamStats, enemyIds = [], isDefense = false, l
         }
     });
 
-    // 武將故地加成：若城池與武將的歷史成就相關，全能力 +3%
+    // 武將故地加成：只提升該武將個人的 3%，不可疊加
     if (landInfo && landInfo.id !== undefined) {
-        let homeBonusOfficers = [];
         teamIds.forEach(id => {
             if (OFFICER_HOME_CITY[id] === landInfo.id) {
                 const o = getOfficer(id);
-                if (o && !o.isDead) homeBonusOfficers.push(o.name);
+                if (o && !o.isDead) {
+                    for (let i = 1; i <= 6; i++) {
+                        const personalStat = getEffectiveStat(o, i);
+                        teamStats[i] = Math.ceil(teamStats[i] + personalStat * 0.03);
+                    }
+                    log(`🏠 【故地雄風】${o.name} 在故地 ${landInfo.name} 奮戰，個人全能力提升 3%！`);
+                }
             }
         });
-        if (homeBonusOfficers.length > 0) {
-            for (let i = 1; i <= 6; i++) {
-                teamStats[i] = Math.ceil(teamStats[i] * (1 + 0.03 * homeBonusOfficers.length));
-            }
-            log(`🏠 【故地雄風】${homeBonusOfficers.join('、')} 在故地 ${landInfo.name} 奮戰，全能力提升 ${homeBonusOfficers.length * 3}%！`);
-        }
     }
 }
 
