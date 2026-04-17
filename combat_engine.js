@@ -122,7 +122,7 @@ const OFFICER_HOME_CITY = {
 };
 
 // 處理團隊特技光環加成
-function applyTeamSkills(teamIds, teamStats, enemyIds = [], isDefense = false, landInfo = null) {
+function applyTeamSkills(teamIds, teamStats, enemyIds = [], isDefense = false, landInfo = null, isSimulation = false) {
     teamIds.forEach(id => {
         if (OFFICER_SKILLS[id]) {
             OFFICER_SKILLS[id].effect(teamStats, enemyIds, isDefense, landInfo);
@@ -154,7 +154,9 @@ function applyTeamSkills(teamIds, teamStats, enemyIds = [], isDefense = false, l
                         const personalStat = getEffectiveStat(o, i);
                         teamStats[i] = Math.ceil(teamStats[i] + personalStat * 0.03);
                     }
-                    log(`🏠 【故地雄風】${o.name} 在故地 ${landInfo.name} 奮戰，個人全能力提升 3%！`);
+                    if (!isSimulation) {
+                        log(`🏠 【故地雄風】${o.name} 在故地 ${landInfo.name} 奮戰，個人全能力提升 3%！`);
+                    }
                 }
             }
         });
@@ -193,7 +195,7 @@ function getBestSiegeTeam(attackerOfficerIds, defenderIds, cityId = -1, useBuff 
 
         let currentDefStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
         for (let i = 1; i <= 6; i++) currentDefStats[i] = defStats[i];
-        applyTeamSkills(defenderIds, currentDefStats, teamIds, true, landInfo);
+        applyTeamSkills(defenderIds, currentDefStats, teamIds, true, landInfo, true);
 
         // 地利加成 (規則 1: 建設加成)
         const geoBonus = (landInfo) ? getDevelopmentGeoBonus(landInfo.development || 0) : 0;
@@ -207,7 +209,7 @@ function getBestSiegeTeam(attackerOfficerIds, defenderIds, cityId = -1, useBuff 
             for (let i = 1; i <= 6; i++) currentDefStats[i] = Math.ceil(currentDefStats[i] * (1 + chainBonus / 100));
         }
 
-        applyTeamSkills(teamIds, atkStats, defenderIds, false, landInfo);
+        applyTeamSkills(teamIds, atkStats, defenderIds, false, landInfo, true);
 
         if (useBuff) {
             for (let i = 1; i <= 6; i++) {
