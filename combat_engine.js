@@ -6,7 +6,7 @@
 
 // ============================================================
 // 武將故地加成對應表 (武將ID -> 城池ID)
-// 每位武將在對應城池守城或攻城時，全能力獲得 +3% 加成
+// 每位武將在對應城池守城或攻城時，全能力獲得 +5% 加成
 // ============================================================
 const OFFICER_HOME_CITY = {
     // 蜀國
@@ -144,7 +144,7 @@ function applyTeamSkills(teamIds, teamStats, enemyIds = [], isDefense = false, l
         }
     });
 
-    // 武將故地加成：只提升該武將個人的 3%，不可疊加
+    // 武將故地加成：只提升該武將個人的 5%，不可疊加
     if (landInfo && landInfo.id !== undefined) {
         teamIds.forEach(id => {
             if (OFFICER_HOME_CITY[id] === landInfo.id) {
@@ -152,10 +152,10 @@ function applyTeamSkills(teamIds, teamStats, enemyIds = [], isDefense = false, l
                 if (o && !o.isDead) {
                     for (let i = 1; i <= 6; i++) {
                         const personalStat = getEffectiveStat(o, i);
-                        teamStats[i] = Math.ceil(teamStats[i] + personalStat * 0.03);
+                        teamStats[i] = Math.ceil(teamStats[i] + personalStat * 0.05);
                     }
                     if (!isSimulation) {
-                        log(`🏠 【故地雄風】${o.name} 在故地 ${landInfo.name} 奮戰，個人全能力提升 3%！`);
+                        log(`🏠 【故地雄風】${o.name} 在故地 ${landInfo.name} 奮戰，個人全能力提升 5%！`);
                     }
                 }
             }
