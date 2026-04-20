@@ -368,7 +368,7 @@ function initGame() {
 
                                 info += `<tr style="border-bottom: 1px dotted var(--border-color); ${injuryClass}">`;
                                 let isHomeCity = (typeof OFFICER_HOME_CITY !== 'undefined' && OFFICER_HOME_CITY[o.id] === landInfo.id);
-                                let nameDisplay = isHomeCity ? `<span style="color:#ff5722; font-weight:bold; text-shadow: 0 0 3px rgba(255,87,34,0.4);">🏠 ${o.name}</span>` : o.name;
+                                let nameDisplay = isHomeCity ? `<span style="color:#00bcd4; font-weight:bold; text-shadow: 0 0 3px rgba(0,188,212,0.6);">🏠 ${o.name}</span>` : o.name;
                                 info += `<td style="padding: 6px 4px; font-weight:bold;">${injuryIcon}${nameDisplay}</td>`;
                                 for (let i = 1; i <= 6; i++) {
                                     let val = getEffectiveStat(o, i);
@@ -406,8 +406,8 @@ function initGame() {
                         .map(o => o.name);
                     
                     if (homeOfficers.length > 0) {
-                        info += `<div style="margin-top: 15px; padding: 10px; background: rgba(255, 87, 34, 0.1); border-left: 4px solid #ff5722; border-radius: 4px;">`;
-                        info += `<p style="color: #ff5722; font-weight: bold; margin-bottom: 5px; font-size: 0.9rem;">🏠 專屬故地加成英雄 (戰鬥全能力 +5%)</p>`;
+                        info += `<div style="margin-top: 15px; padding: 10px; background: rgba(0, 188, 212, 0.1); border-left: 4px solid #00bcd4; border-radius: 4px;">`;
+                        info += `<p style="color: #00bcd4; font-weight: bold; margin-bottom: 5px; font-size: 0.9rem;">🏠 專屬故地加成英雄 (戰鬥全能力 +5%)</p>`;
                         info += `<p style="font-size: 0.85rem; color: #ddd; line-height: 1.4;">${homeOfficers.join('、')}</p>`;
                         info += `</div>`;
                     }
@@ -1801,7 +1801,7 @@ function renderSiegeOfficerList() {
         let isHomeCity = (typeof OFFICER_HOME_CITY !== 'undefined' && OFFICER_HOME_CITY[o.id] === currentSiegeCityId);
         let nameHtml = o.name;
         if (isHomeCity) {
-            nameHtml = `<span style="color:#ff5722; font-weight:900; text-shadow: 0 0 5px rgba(255,87,34,0.4);">🏠 ${o.name} (+5%)</span>`;
+            nameHtml = `<span style="color:#00bcd4; font-weight:900; text-shadow: 0 0 5px rgba(0,188,212,0.6);">🏠 ${o.name} (+5%)</span>`;
         }
 
         tr.innerHTML = `
