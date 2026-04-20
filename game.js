@@ -949,10 +949,17 @@ function triggerLandEvent(player, landInfo) {
         if (charmId && Math.random() < charmChance) {
             const charmer = getOfficer(charmId);
             const isFemale = (typeof FEMALE_OFFICER_IDS !== 'undefined' && FEMALE_OFFICER_IDS.includes(charmer.id));
-            let displayName = superCharismaId ? '天選之子' : (isFemale ? '傾國傾城' : '名德眾望');
+            
+            let displayName;
+            let flavorText;
+            if (superCharismaId) {
+                displayName = isFemale ? '傾世紅顏' : '天選之子';
+                flavorText = isFemale ? `${charmer.name} 的絕代仙姿令我軍神魂顛倒，不戰而降` : `${charmer.name} 的天命威儀使我軍不戰而屈`;
+            } else {
+                displayName = isFemale ? '傾國傾城' : '名德眾望';
+                flavorText = isFemale ? `${charmer.name} 的絕代風華令我軍神魂顛倒` : `${charmer.name} 的仁德之風使我軍肅然起敬`;
+            }
             let skillName = `【${displayName}】`;
-            let flavorText = superCharismaId ? `${charmer.name} 的天命威儀使我軍不戰而屈` : 
-                             (isFemale ? `${charmer.name} 的絕代風華令我軍神魂顛倒` : `${charmer.name} 的仁德之風使我軍肅然起敬`);
 
             log(`✨ ${skillName}${charmer.name} 威名遠播，${player.name} 被其風采感化，決定繳費離開。`);
 
@@ -2121,11 +2128,14 @@ function getSuperSkillDescription(o) {
 
     // 魅力 (5)
     let cha = getEffectiveStat(o, 5);
-    if (cha >= 101 && o.injuryRate === 0) superSkills.push(`<span style="color:#d32f2f">【天選之子】</span>(魅力>攻) 75% 勸退敵軍`);
-    else if (cha >= 95) {
+    if (cha >= 101 && o.injuryRate === 0) {
         const isF = (typeof FEMALE_OFFICER_IDS !== 'undefined' && FEMALE_OFFICER_IDS.includes(o.id));
-        const sName = isF ? '傾國傾城' : '名德眾望';
-        superSkills.push(`<span style="color:#e91e63">【${sName}】</span>(魅力>攻) 50% 勸退敵軍`);
+        const sName101 = isF ? '傾世紅顏' : '天選之子';
+        superSkills.push(`<span style="color:#d32f2f">【${sName101}】</span>(魅力>攻) 75% 勸退敵軍`);
+    } else if (cha >= 95) {
+        const isF = (typeof FEMALE_OFFICER_IDS !== 'undefined' && FEMALE_OFFICER_IDS.includes(o.id));
+        const sName95 = isF ? '傾國傾城' : '名德眾望';
+        superSkills.push(`<span style="color:#e91e63">【${sName95}】</span>(魅力>攻) 50% 勸退敵軍`);
     }
 
     // 運氣 (6)
