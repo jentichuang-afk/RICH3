@@ -54,17 +54,17 @@ const GAME_STATE = {
 
 // 地圖資料 (20格)
 const MAP_DATA = [
-    { id: 0, name: "長安", type: "START", price: 0, owner: null },
+    { id: 0, name: "聚賢莊", type: "START", price: 0, owner: null },
     { id: 1, name: "洛陽", type: "LAND", price: 2500, owner: null, defenders: [], development: 0 },
     { id: 2, name: "許昌", type: "LAND", price: 1800, owner: null, defenders: [], development: 0 },
     { id: 3, name: "宛城", type: "LAND", price: 1300, owner: null, defenders: [], development: 0 },
     { id: 4, name: "鄴城", type: "LAND", price: 2000, owner: null, defenders: [], development: 0 },
     { id: 5, name: "下邳", type: "LAND", price: 1500, owner: null, defenders: [], development: 0 },
-    { id: 6, name: "臨淄", type: "LAND", price: 1500, owner: null, defenders: [], development: 0 },
-    { id: 7, name: "徐州", type: "LAND", price: 1500, owner: null, defenders: [], development: 0 },
+    { id: 6, name: "長安", type: "LAND", price: 1500, owner: null, defenders: [], development: 0 },
+    { id: 7, name: "江陵", type: "LAND", price: 1500, owner: null, defenders: [], development: 0 },
     { id: 8, name: "建業", type: "LAND", price: 2000, owner: null, defenders: [], development: 0 },
     { id: 9, name: "廬江", type: "LAND", price: 1500, owner: null, defenders: [], development: 0 },
-    { id: 10, name: "江夏", type: "ITEM_SHOP", price: 0, owner: null }, // 招募與道具店
+    { id: 10, name: "道具店", type: "ITEM_SHOP", price: 0, owner: null }, // 招募與道具店
     { id: 11, name: "襄陽", type: "LAND", price: 1800, owner: null, defenders: [], development: 0 },
     { id: 12, name: "成都", type: "LAND", price: 2000, owner: null, defenders: [], development: 0 },
     { id: 13, name: "江州", type: "LAND", price: 1200, owner: null, defenders: [], development: 0 },
