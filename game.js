@@ -716,7 +716,20 @@ function triggerLandEvent(player, landInfo) {
                     // Phase 54: 強制 AI 派滿 3 名守城武將 (若兵力不足則全派)
                     let sendCount = 3;
                     sendCount = Math.min(sendCount, player.officers.length);
-                    let chosen = player.officers.slice(0, sendCount);
+                    
+                    // 優先依照故地加成 > 總戰鬥力 進行排序
+                    let sortedOfficers = [...player.officers].sort((a, b) => {
+                        let isHomeA = (typeof OFFICER_HOME_CITY !== 'undefined' && OFFICER_HOME_CITY[a] === landInfo.id) ? 1 : 0;
+                        let isHomeB = (typeof OFFICER_HOME_CITY !== 'undefined' && OFFICER_HOME_CITY[b] === landInfo.id) ? 1 : 0;
+                        if (isHomeA !== isHomeB) return isHomeB - isHomeA; // 有故地加成者優先
+                        
+                        let oa = getOfficer(a), ob = getOfficer(b);
+                        let ta = 0, tb = 0;
+                        for(let i = 1; i <= 6; i++) { ta += getEffectiveStat(oa, i); tb += getEffectiveStat(ob, i); }
+                        return tb - ta;
+                    });
+                    
+                    let chosen = sortedOfficers.slice(0, sendCount);
                     log(`[追蹤] 2. SetTimeout 設定前`);
                     setTimeout(() => {
                         log(`[追蹤] 3. SetTimeout 已觸發，呼叫 executeBuyLand...`);
@@ -785,11 +798,18 @@ function triggerLandEvent(player, landInfo) {
                     let o = getOfficer(id);
                     return o && (o.injuryRate || 0) <= 50;
                 });
-                // 優先依照總戰鬥力排序
+                // 優先依照故地加成 > 總戰鬥力排序
                 healthyIdle.sort((a, b) => {
+                    let isHomeA = (typeof OFFICER_HOME_CITY !== 'undefined' && OFFICER_HOME_CITY[a] === landInfo.id) ? 1 : 0;
+                    let isHomeB = (typeof OFFICER_HOME_CITY !== 'undefined' && OFFICER_HOME_CITY[b] === landInfo.id) ? 1 : 0;
+                    if (isHomeA !== isHomeB) return isHomeB - isHomeA; // 有故地加成者優先
+
                     let oa = getOfficer(a), ob = getOfficer(b);
                     let ta = 0, tb = 0;
-                    for(let i=1; i<=6; i++) { ta+=oa.stats[i]; tb+=ob.stats[i]; }
+                    for(let i=1; i<=6; i++) { 
+                        ta += getEffectiveStat(oa, i); 
+                        tb += getEffectiveStat(ob, i); 
+                    }
                     return tb - ta;
                 });
 
