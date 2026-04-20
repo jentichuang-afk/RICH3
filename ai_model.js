@@ -91,7 +91,7 @@ function handleAIItemUsage(player) {
                     const o = getOfficer(id);
                     return o && !o.isDead;
                 }).length;
-                if (aliveIdleCount < 8 && GAME_STATE.changanOfficers && GAME_STATE.changanOfficers.length > 0) {
+                if (aliveIdleCount < 10 && GAME_STATE.changanOfficers && GAME_STATE.changanOfficers.length > 0) {
                     shouldStay = true;
                     stayChance = 0.7; // 更高的機率留下繼續招募
                     log(`🏕️ 【廣納賢才】${player.name} 覺得帳下兵將不足，決定在 ${currentLand.name} 使用「以逸待勞」，繼續招賢納士！`);
