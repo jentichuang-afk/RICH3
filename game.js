@@ -948,7 +948,12 @@ function triggerLandEvent(player, landInfo) {
 
         if (charmId && Math.random() < charmChance) {
             const charmer = getOfficer(charmId);
-            let skillName = superCharismaId ? '【天選之子】' : '【名德眾望】';
+            const isFemale = (typeof FEMALE_OFFICER_IDS !== 'undefined' && FEMALE_OFFICER_IDS.includes(charmer.id));
+            let displayName = superCharismaId ? '天選之子' : (isFemale ? '傾國傾城' : '名德眾望');
+            let skillName = `【${displayName}】`;
+            let flavorText = superCharismaId ? `${charmer.name} 的天命威儀使我軍不戰而屈` : 
+                             (isFemale ? `${charmer.name} 的絕代風華令我軍神魂顛倒` : `${charmer.name} 的仁德之風使我軍肅然起敬`);
+
             log(`✨ ${skillName}${charmer.name} 威名遠播，${player.name} 被其風采感化，決定繳費離開。`);
 
             // 自身損失體力 50%
@@ -963,7 +968,7 @@ function triggerLandEvent(player, landInfo) {
                 display: flex; justify-content: center; align-items: center;
                 pointer-events: none; opacity: 0; transition: opacity 0.3s;
             `;
-            overlay.innerHTML = `<h1 style="color: white; font-size: 5vw; text-shadow: 0 0 20px #e1bee7; transform: scale(0.5); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);">✨ 名德眾望 - ${charmer.name} ✨</h1>`;
+            overlay.innerHTML = `<h1 style="color: white; font-size: 5vw; text-shadow: 0 0 20px #e1bee7; transform: scale(0.5); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);">✨ ${displayName} - ${charmer.name} ✨</h1>`;
             document.body.appendChild(overlay);
 
             // Trigger animation
@@ -980,12 +985,11 @@ function triggerLandEvent(player, landInfo) {
                 if (player.isBot) {
                     setTimeout(() => { payToll(player, owner, toll); }, 500);
                 } else {
-                    let displayName = superCharismaId ? '天選之子' : '名德眾望';
                     showModal(
                         `${displayName} - ${charmer.name}`,
                         `<div style="text-align:center;">
                             <div style="font-size: 1.2rem; color: #9c27b0; font-weight: bold; margin-bottom: 10px;">★ ${displayName} ★</div>
-                            <p>${charmer.name} 的仁德之風使我軍肅然起敬，<br>不忍與其正對。僅繳納過路費 $${toll} 後離去。</p>
+                            <p>${flavorText}，<br>不忍與其正對。僅繳納過路費 $${toll} 後離去。</p>
                             <p style="color:#d32f2f; font-size: 0.9rem; margin-top: 10px;">(※ ${charmer.name} 因發動特技消耗精神，受傷程度增加 50%)</p>
                         </div>`,
                         () => { payToll(player, owner, toll); },
@@ -2118,7 +2122,11 @@ function getSuperSkillDescription(o) {
     // 魅力 (5)
     let cha = getEffectiveStat(o, 5);
     if (cha >= 101 && o.injuryRate === 0) superSkills.push(`<span style="color:#d32f2f">【天選之子】</span>(魅力>攻) 75% 勸退敵軍`);
-    else if (cha >= 95) superSkills.push(`<span style="color:#e91e63">【名德眾望】</span>(魅力>攻) 50% 勸退敵軍`);
+    else if (cha >= 95) {
+        const isF = (typeof FEMALE_OFFICER_IDS !== 'undefined' && FEMALE_OFFICER_IDS.includes(o.id));
+        const sName = isF ? '傾國傾城' : '名德眾望';
+        superSkills.push(`<span style="color:#e91e63">【${sName}】</span>(魅力>攻) 50% 勸退敵軍`);
+    }
 
     // 運氣 (6)
     let luc = getEffectiveStat(o, 6);
