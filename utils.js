@@ -195,14 +195,18 @@ function updateOfficerCountUI(playerId) {
 
 function updateBoardUI() {
     MAP_DATA.forEach(land => {
-        if (land.type === 'LAND') {
-            const cell = document.getElementById(`cell-${land.id}`);
-            if (cell) {
-                const nameSpan = cell.querySelector('.city-name');
-                if (nameSpan) {
+        const cell = document.getElementById(`cell-${land.id}`);
+        if (cell) {
+            const nameSpan = cell.querySelector('.city-name');
+            if (nameSpan) {
+                if (land.type === 'LAND') {
                     const cityValue = getCityValue(land);
                     let lvText = (land.development && land.development > 0) ? `<br><span style="color:#e67e22; font-weight:bold;">Lv ${land.development}</span>` : "";
                     nameSpan.innerHTML = `${land.name}<br><small>$${cityValue}</small>${lvText}`;
+                } else if (land.type === 'START') {
+                    nameSpan.innerHTML = `${land.name}<br><small>招募/領賞</small>`;
+                } else if (land.type === 'ITEM_SHOP') {
+                    nameSpan.innerHTML = `${land.name}<br><small>招募/道具</small>`;
                 }
             }
         }

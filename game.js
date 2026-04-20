@@ -54,7 +54,7 @@ const GAME_STATE = {
 
 // 地圖資料 (20格)
 const MAP_DATA = [
-    { id: 0, name: "聚賢莊", type: "START", price: 0, owner: null },
+    { id: 0, name: "水鏡莊", type: "START", price: 0, owner: null },
     { id: 1, name: "長安", type: "LAND", price: 2500, owner: null, defenders: [], development: 0 },
     { id: 2, name: "洛陽", type: "LAND", price: 2000, owner: null, defenders: [], development: 0 },
     { id: 3, name: "許昌", type: "LAND", price: 2200, owner: null, defenders: [], development: 0 },
@@ -64,7 +64,7 @@ const MAP_DATA = [
     { id: 7, name: "襄陽", type: "LAND", price: 1800, owner: null, defenders: [], development: 0 },
     { id: 8, name: "江陵", type: "LAND", price: 1800, owner: null, defenders: [], development: 0 },
     { id: 9, name: "長沙", type: "LAND", price: 1500, owner: null, defenders: [], development: 0 },
-    { id: 10, name: "道具店", type: "ITEM_SHOP", price: 0, owner: null }, // 招募與道具店
+    { id: 10, name: "奇珍閣", type: "ITEM_SHOP", price: 0, owner: null }, // 招募與道具店
     { id: 11, name: "廬江", type: "LAND", price: 1200, owner: null, defenders: [], development: 0 },
     { id: 12, name: "建業", type: "LAND", price: 2200, owner: null, defenders: [], development: 0 },
     { id: 13, name: "永安", type: "LAND", price: 1000, owner: null, defenders: [], development: 0 },
