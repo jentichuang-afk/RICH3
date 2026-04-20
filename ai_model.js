@@ -110,16 +110,19 @@ function handleAIItemUsage(player) {
                     return;
                 }
             } else if (player.money > 4000) {
-                let targets = MAP_DATA.filter(land => {
-                    if (land.owner === player.id) return true;
-                    if (land.type === 'LAND' && land.owner && land.owner !== player.id) {
-                        const res = getBestSiegeTeam(player.officers, land.defenders, land.id);
-                        return res.rate > 0.8;
-                    }
-                    return false;
-                });
-                if (targets.length > 0 && Math.random() < 0.3) {
-                    let targetLand = targets[Math.floor(Math.random() * targets.length)];
+                // 只精準攻城，不走回頭路（不回自己的地）
+                let siegeTargets = MAP_DATA.filter(land =>
+                    land.type === 'LAND' &&
+                    land.owner &&
+                    land.owner !== player.id &&
+                    !GAME_STATE.alliance.includes(land.owner) &&
+                    (() => { const res = getBestSiegeTeam(player.officers, land.defenders, land.id); return res.rate > 0.8; })()
+                );
+                if (siegeTargets.length > 0 && Math.random() < 0.3) {
+                    // 優先選城池價值最高的敵方目標
+                    siegeTargets.sort((a, b) => b.price - a.price);
+                    let targetLand = siegeTargets[0];
+                    log(`⚔️ 【精準奇襲】${player.name} 勝算極高，決定使用「暗度陳倉」奇襲 ${targetLand.name}！`);
                     useItem(player, { ...item, index: idx }, targetLand);
                     return;
                 }
