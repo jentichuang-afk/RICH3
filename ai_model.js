@@ -101,11 +101,11 @@ function handleAIItemUsage(player) {
                 return o && !o.isDead;
             }).length;
 
-            if (aliveIdleCount < 10 && player.money >= 2000) {
-                let recruitTargets = MAP_DATA.filter(land => land.name === "長安" || land.name === "江夏");
+            if (aliveIdleCount < 10 && player.money >= 2000 && GAME_STATE.changanOfficers && GAME_STATE.changanOfficers.length > 0) {
+                let recruitTargets = MAP_DATA.filter(land => land.type === "START" || land.type === "ITEM_SHOP");
                 if (recruitTargets.length > 0) {
                     let targetLand = recruitTargets[Math.floor(Math.random() * recruitTargets.length)];
-                    log(`🎯 【求賢若渴】${player.name} 見帳下人才凋零，決定使用「暗度陳倉」！`);
+                    log(`🎯 【求賢若渴】${player.name} 見帳下人才凋零，決定使用「暗度陳倉」去${targetLand.name}招募武將！`);
                     useItem(player, { ...item, index: idx }, targetLand);
                     return;
                 }
