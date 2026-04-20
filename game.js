@@ -367,7 +367,9 @@ function initGame() {
                                 if (ss) skills.push(ss);
 
                                 info += `<tr style="border-bottom: 1px dotted var(--border-color); ${injuryClass}">`;
-                                info += `<td style="padding: 6px 4px; font-weight:bold;">${injuryIcon}${o.name}</td>`;
+                                let isHomeCity = (typeof OFFICER_HOME_CITY !== 'undefined' && OFFICER_HOME_CITY[o.id] === landInfo.id);
+                                let nameDisplay = isHomeCity ? `<span style="color:#ff5722; font-weight:bold; text-shadow: 0 0 3px rgba(255,87,34,0.4);">🏠 ${o.name}</span>` : o.name;
+                                info += `<td style="padding: 6px 4px; font-weight:bold;">${injuryIcon}${nameDisplay}</td>`;
                                 for (let i = 1; i <= 6; i++) {
                                     let val = getEffectiveStat(o, i);
                                     totalStats[i] += val;
@@ -394,6 +396,21 @@ function initGame() {
                     info += `<p style="font-size: 1.1rem; color: #7f8c8d;">此城池尚未被佔領。</p>`;
                     info += `<p style="margin-top:10px;"><strong>佔領價格：</strong>$${landInfo.price}</p>`;
                     info += `</div>`;
+                }
+
+                if (typeof OFFICER_HOME_CITY !== 'undefined') {
+                    let homeOfficers = Object.keys(OFFICER_HOME_CITY)
+                        .filter(id => OFFICER_HOME_CITY[id] === landInfo.id)
+                        .map(id => getOfficer(parseInt(id)))
+                        .filter(o => o != null)
+                        .map(o => o.name);
+                    
+                    if (homeOfficers.length > 0) {
+                        info += `<div style="margin-top: 15px; padding: 10px; background: rgba(255, 87, 34, 0.1); border-left: 4px solid #ff5722; border-radius: 4px;">`;
+                        info += `<p style="color: #ff5722; font-weight: bold; margin-bottom: 5px; font-size: 0.9rem;">🏠 專屬故地加成英雄 (戰鬥全能力 +5%)</p>`;
+                        info += `<p style="font-size: 0.85rem; color: #ddd; line-height: 1.4;">${homeOfficers.join('、')}</p>`;
+                        info += `</div>`;
+                    }
                 }
 
                 UI.infoModalTitle.textContent = `${landInfo.name} 情報`;
