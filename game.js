@@ -1071,15 +1071,14 @@ function getOfficerRecruitCost(officer) {
     }
     return Math.floor(cost);
 }
-
 // 緊急出售武將（兵諫自保機制）
 function tryEmergencySell(player) {
     const lordId = player.id * 100; // 君主 ID：100, 200, 300, 400, 500
 
-    // 收集全部可用武將：閃置 + 守城
+    // 收集全部可用武將：閒置 + 守城
     function getAllOfficers() {
         let all = [];
-        // 閃置武將
+        // 閒置武將
         player.officers.forEach(id => {
             const o = getOfficer(id);
             if (o) all.push({ id, o, isDefender: false, land: null });
@@ -1099,19 +1098,16 @@ function tryEmergencySell(player) {
     function sellOne() {
         const allOfficers = getAllOfficers();
         if (allOfficers.length === 0) {
-            // 武將全部賣完，觸發滅亡
-            log(`⚠️ ${player.name} 已無武將可用，勢力滅亡！`);
+            log("⚠️ " + player.name + " 已無武將可用，勢力滅亡！");
             handleBankrupt(player);
             return;
         }
 
-        // 分離君主與其他武將
         const nonLords = allOfficers.filter(e => e.id !== lordId);
         const lordEntry = allOfficers.find(e => e.id === lordId);
 
         let toSell;
         if (nonLords.length > 0) {
-            // 按總能力升序，出售最弱者
             nonLords.sort((a, b) => {
                 let ta = 0, tb = 0;
                 for (let i = 1; i <= 6; i++) { ta += a.o.stats[i]; tb += b.o.stats[i]; }
@@ -1119,8 +1115,7 @@ function tryEmergencySell(player) {
             });
             toSell = nonLords[0];
         } else if (lordEntry) {
-            // 只剩君主
-            log(`☠️ 《君主此去》${player.name} 大勢已去，連君主都無力保全，勢力滅亡！`);
+            log("☠️ 《君主此去》" + player.name + " 大勢已去，連君主都無力保全，勢力滅亡！");
             const cost = getOfficerRecruitCost(lordEntry.o);
             GAME_STATE.changanOfficers.push(lordEntry.id);
             if (lordEntry.isDefender) {
@@ -1137,30 +1132,28 @@ function tryEmergencySell(player) {
             return;
         }
 
-        // 出售該武將
         const cost = getOfficerRecruitCost(toSell.o);
         GAME_STATE.changanOfficers.push(toSell.id);
         if (toSell.isDefender) {
             toSell.land.defenders = toSell.land.defenders.filter(id => id !== toSell.id);
-            log(`💸 《兵諫自保》${player.name} 陷入困境，忍痛撤離守將 ${toSell.o.name}（${toSell.land.name}），得金 $${cost}。${toSell.o.name} 重回在野...`);
+            log("💸 《兵諫自保》" + player.name + " 陷入困境，忍痛撤離守城武將 " + toSell.o.name + "，得金 $" + cost + "。" + toSell.o.name + " 重回在野...");
         } else {
             player.officers = player.officers.filter(id => id !== toSell.id);
-            log(`💸 《兵諫自保》${player.name} 陷入困境，忍痛遣散閒置武將 ${toSell.o.name}，得金 $${cost}。${toSell.o.name} 重回在野...`);
+            log("💸 《兵諫自保》" + player.name + " 陷入困境，忍痛遣散閒置武將 " + toSell.o.name + "，得金 $" + cost + "。" + toSell.o.name + " 重回在野...");
         }
         updateMoney(player.id, cost);
         updateOfficerCountUI(player.id);
         updateBoardUI();
 
         if (player.money > 0) {
-            log(`✅ ${player.name} 透過遣散武將暫度危機，剩餘資金 $${player.money}。`);
+            log("✅ " + player.name + " 透過遣散武將暫度危機，剩餘資金 $" + player.money + "。");
             endTurn();
         } else {
-            // 仍不足，繼續出售
             setTimeout(() => sellOne(), 800);
         }
     }
 
-    log(`🛑 ${player.name} 資金歸零，啟動《兵諫自保》機制！`);
+    log("🛑 " + player.name + " 資金歸零，啟動《兵諫自保》機制！");
     sellOne();
 }
 
