@@ -1134,7 +1134,7 @@ function payToll(payer, receiver, toll) {
         updateMoney(receiver.id, actualPaid);
 
         if (payer.money <= 0) {
-            handleBankrupt(payer);
+            tryEmergencySell(payer);
         } else {
             endTurn();
         }
@@ -1143,6 +1143,109 @@ function payToll(payer, receiver, toll) {
         console.error("payToll error:", e);
         endTurn(); // fallback
     }
+}
+
+// 計算武將的招募價格 (用於出售歸返)
+function getOfficerRecruitCost(officer) {
+    let cost = 0;
+    for (let i = 1; i <= 6; i++) cost += officer.stats[i];
+    if (OFFICER_SKILLS[officer.id]) {
+        let power = getSkillPowerPercentage(OFFICER_SKILLS[officer.id]);
+        cost = power > 9 ? cost * 2 : Math.floor(cost * 1.5);
+    }
+    return Math.floor(cost);
+}
+
+// 緊急出售武將（兵諫自保機制）
+function tryEmergencySell(player) {
+    const lordId = player.id * 100; // 君主 ID：100, 200, 300, 400, 500
+
+    // 收集全部可用武將：閃置 + 守城
+    function getAllOfficers() {
+        let all = [];
+        // 閃置武將
+        player.officers.forEach(id => {
+            const o = getOfficer(id);
+            if (o) all.push({ id, o, isDefender: false, land: null });
+        });
+        // 守城武將
+        MAP_DATA.forEach(land => {
+            if (land.owner === player.id && land.defenders) {
+                land.defenders.forEach(id => {
+                    const o = getOfficer(id);
+                    if (o) all.push({ id, o, isDefender: true, land });
+                });
+            }
+        });
+        return all;
+    }
+
+    function sellOne() {
+        const allOfficers = getAllOfficers();
+        if (allOfficers.length === 0) {
+            // 武將全部賣完，觸發滅亡
+            log(`⚠️ ${player.name} 已無武將可用，勢力滅亡！`);
+            handleBankrupt(player);
+            return;
+        }
+
+        // 分離君主與其他武將
+        const nonLords = allOfficers.filter(e => e.id !== lordId);
+        const lordEntry = allOfficers.find(e => e.id === lordId);
+
+        let toSell;
+        if (nonLords.length > 0) {
+            // 按總能力升序，出售最弱者
+            nonLords.sort((a, b) => {
+                let ta = 0, tb = 0;
+                for (let i = 1; i <= 6; i++) { ta += a.o.stats[i]; tb += b.o.stats[i]; }
+                return ta - tb;
+            });
+            toSell = nonLords[0];
+        } else if (lordEntry) {
+            // 只剩君主
+            log(`☠️ 《君主此去》${player.name} 大勢已去，連君主都無力保全，勢力滅亡！`);
+            const cost = getOfficerRecruitCost(lordEntry.o);
+            GAME_STATE.changanOfficers.push(lordEntry.id);
+            if (lordEntry.isDefender) {
+                lordEntry.land.defenders = lordEntry.land.defenders.filter(id => id !== lordEntry.id);
+            } else {
+                player.officers = player.officers.filter(id => id !== lordEntry.id);
+            }
+            updateMoney(player.id, cost);
+            updateOfficerCountUI(player.id);
+            handleBankrupt(player);
+            return;
+        } else {
+            handleBankrupt(player);
+            return;
+        }
+
+        // 出售該武將
+        const cost = getOfficerRecruitCost(toSell.o);
+        GAME_STATE.changanOfficers.push(toSell.id);
+        if (toSell.isDefender) {
+            toSell.land.defenders = toSell.land.defenders.filter(id => id !== toSell.id);
+            log(💸 《兵諫自保》 陷入困境，忍痛撤離 （守城），得金 {cost}。 重回在野...);
+        } else {
+            player.officers = player.officers.filter(id => id !== toSell.id);
+            log(💸 《兵諫自保》 陷入困境，忍痛遣散閒置武將 ，得金 {cost}。 重回在野...);
+        }
+        updateMoney(player.id, cost);
+        updateOfficerCountUI(player.id);
+        updateBoardUI();
+
+        if (player.money > 0) {
+            log(`✅ ${player.name} 透過遣散武將暫度危機，剩餘資金 $${player.money}。`);
+            endTurn();
+        } else {
+            // 仍不足，繼續出售
+            setTimeout(() => sellOne(), 800);
+        }
+    }
+
+    log(`🛑 ${player.name} 資金歸零，啟動《兵諫自保》機制！`);
+    sellOne();
 }
 
 // 破產處理
@@ -1380,9 +1483,9 @@ function endTurn() {
     // Phase 48: 統一結算破產 (處理買地、招募、事件卡扣錢導致的破產)
     const currentPlayer = GAME_STATE.players[GAME_STATE.currentPlayer];
     if (currentPlayer && currentPlayer.money <= 0 && !currentPlayer.isBankrupt) {
-        // 如果這個回合的動作導致當前玩家資金歸零，直接在此宣告破產
-        handleBankrupt(currentPlayer);
-        return; // handleBankrupt 會自行重新呼叫 endTurn 或宣告遊戲結束
+        // 先嘗試兵諫自保，而非直接破產
+        tryEmergencySell(currentPlayer);
+        return;
     }
 
     GAME_STATE.isWaitingForAction = false;
