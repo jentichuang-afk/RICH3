@@ -1226,10 +1226,10 @@ function tryEmergencySell(player) {
         GAME_STATE.changanOfficers.push(toSell.id);
         if (toSell.isDefender) {
             toSell.land.defenders = toSell.land.defenders.filter(id => id !== toSell.id);
-            log(💸 《兵諫自保》 陷入困境，忍痛撤離 （守城），得金 {cost}。 重回在野...);
+            log(`💸 《兵諫自保》${player.name} 陷入困境，忍痛撤離守將 ${toSell.o.name}（${toSell.land.name}），得金 $${cost}。${toSell.o.name} 重回在野...`);
         } else {
             player.officers = player.officers.filter(id => id !== toSell.id);
-            log(💸 《兵諫自保》 陷入困境，忍痛遣散閒置武將 ，得金 {cost}。 重回在野...);
+            log(`💸 《兵諫自保》${player.name} 陷入困境，忍痛遣散閒置武將 ${toSell.o.name}，得金 $${cost}。${toSell.o.name} 重回在野...`);
         }
         updateMoney(player.id, cost);
         updateOfficerCountUI(player.id);
