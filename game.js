@@ -1069,13 +1069,16 @@ function payToll(payer, receiver, toll) {
         updateMoney(payer.id, -actualPaid);
         updateMoney(receiver.id, actualPaid);
 
-        if (payer.money <= 0) {
-            tryEmergencySell(payer);
+        if (payer.money < 0) {
+            // 玩家現金不足以付清過路費，需要賣武將到還清為止
+            const debtAmount = Math.abs(payer.money); // 例：現金 -2500，需賺回 2500
+            log("💰 " + payer.name + " 負債 $" + debtAmount + "，必須出售武將以補足差額！");
+            tryEmergencySell(payer, debtAmount);
         } else {
             endTurn();
         }
     } catch (e) {
-        log(`[系統區] payToll 嚴重錯誤: ${e.message}`);
+        log("[系統區] payToll 嚴重錯誤: " + e.message);
         console.error("payToll error:", e);
         endTurn(); // fallback
     }
@@ -1092,7 +1095,8 @@ function getOfficerRecruitCost(officer) {
     return Math.floor(cost);
 }
 // 緊急出售武將（兵諫自保機制）
-function tryEmergencySell(player) {
+// targetAmount: 需要賺到的金額（填平負債）。0 = 只需要回正即可
+function tryEmergencySell(player, targetAmount = 1) {
     const lordId = player.id * 100; // 君主 ID：100, 200, 300, 400, 500
 
     // 收集全部可用武將：閒置 + 守城
@@ -1179,10 +1183,12 @@ function tryEmergencySell(player) {
             overlay.style.opacity = "0";
             setTimeout(() => overlay.remove(), 500);
             
-            if (player.money > 0) {
+            // 繼續賣，直到現金能覆蓋欠款 (money >= 0)
+            if (player.money >= 0) {
                 log("✅ " + player.name + " 透過遣散武將暫度危機，剩餘資金 $" + player.money + "。");
                 endTurn();
             } else {
+                log("⚠️ " + player.name + " 仍負債 $" + Math.abs(player.money) + "，繼續出售武將...");
                 setTimeout(() => sellOne(), 500);
             }
         }, 1500);
