@@ -339,42 +339,35 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
         log("🩸 " + charmer.name + " 因為發揮特技退敵而消耗大量精神，受傷程度增加！(目前健康: " + (100 - charmer.injuryRate) + "%)");
         updateOfficerCountUI(defenderId);
 
+        const overlay = document.createElement("div");
+        overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(156, 39, 176, 0.4); z-index: 9999; display: flex; justify-content: center; align-items: center; pointer-events: none; opacity: 0; transition: opacity 0.3s;";
+        overlay.innerHTML = "<h1 style=\"color: white; font-size: 5vw; text-shadow: 0 0 20px #e1bee7; transform: scale(0.5); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);\">✨ " + displayName + " - " + charmer.name + " ✨</h1>";
+        document.body.appendChild(overlay);
+
+        requestAnimationFrame(() => {
+            overlay.style.opacity = "1";
+            overlay.querySelector("h1").style.transform = "scale(1)";
+        });
+
         setTimeout(() => {
+            overlay.style.opacity = "0";
+            setTimeout(() => overlay.remove(), 500);
+
             if (attacker.isBot) {
-                payToll(attacker, defender, toll);
+                setTimeout(() => { payToll(attacker, defender, toll); }, 500);
             } else {
-                const overlay = document.createElement("div");
-                overlay.style.position = "fixed";
-                overlay.style.top = "0"; overlay.style.left = "0";
-                overlay.style.width = "100vw"; overlay.style.height = "100vh";
-                overlay.style.background = "rgba(0, 0, 0, 0.85)";
-                overlay.style.display = "flex";
-                overlay.style.alignItems = "center"; overlay.style.justifyContent = "center";
-                overlay.style.zIndex = "9999";
-                overlay.innerHTML = "<h1 style=\"color: white; font-size: 5vw; text-shadow: 0 0 20px #e1bee7; transform: scale(0.5); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);\">✨ " + displayName + " - " + charmer.name + " ✨</h1>";
-                document.body.appendChild(overlay);
-
-                setTimeout(() => {
-                    overlay.querySelector("h1").style.transform = "scale(1)";
-                    setTimeout(() => {
-                        overlay.style.opacity = "0";
-                        overlay.style.transition = "opacity 0.5s";
-                        setTimeout(() => overlay.remove(), 500);
-                    }, 1500);
-                }, 50);
-
                 showModal(
                     displayName + " - " + charmer.name,
                     "<div style=\"text-align:center;\">"
-                    + "    <div style=\"font-size: 1.2rem; color: #9c27b0; font-weight: bold; margin-bottom: 10px;\">★ " + displayName + " ★</div>"
-                    + "    <p>" + flavorText + "！<br>我軍意志動搖，放棄攻城，僅繳交軍費 $" + toll + " 後離去。</p>"
-                    + "    <p style=\"color:#d32f2f; font-size: 0.9rem; margin-top: 10px;\">(※ " + charmer.name + " 因發動特技退敵，受傷程度增加 50%)</p>"
+                    + "<div style=\"font-size: 1.2rem; color: #9c27b0; font-weight: bold; margin-bottom: 10px;\">★ " + displayName + " ★</div>"
+                    + "<p>" + flavorText + "！<br>我軍意志動搖，放棄攻城，僅繳交軍費 $" + toll + " 後離去。</p>"
+                    + "<p style=\"color:#d32f2f; font-size: 0.9rem; margin-top: 10px;\">(※ " + charmer.name + " 因發動特技退敵，受傷程度增加 50%)</p>"
                     + "</div>",
                     () => { payToll(attacker, defender, toll); },
                     null, "繳交軍費", null
                 );
             }
-        }, 1000);
+        }, 1500);
         return;
     }
     // ==========================================================
