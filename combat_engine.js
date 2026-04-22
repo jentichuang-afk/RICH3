@@ -335,7 +335,7 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
 
         log("✨ 【" + displayName + "】" + charmer.name + " 威名遠播！" + attacker.name + " 雖欲發起攻城，卻被其風采感化，最終放棄進攻，繳納軍費 $" + toll + " 後離去。");
         
-        applyInjury(charmer.id, 50);
+        applyInjury(charmer, 50);
         log("🩸 " + charmer.name + " 因為發揮特技退敵而消耗大量精神，受傷程度增加！(目前健康: " + (100 - charmer.injuryRate) + "%)");
         updateOfficerCountUI(defenderId);
 
