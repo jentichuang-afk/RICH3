@@ -329,10 +329,40 @@ function initGame() {
             cell.addEventListener('click', () => {
                 const index = parseInt(cell.getAttribute('data-index'), 10);
                 const landInfo = MAP_DATA[index];
-                if (!landInfo || landInfo.type === 'START') return;
+                if (!landInfo) return;
 
                 let info = `<div style="border-bottom: 2px solid #8e735b; padding-bottom: 10px; margin-bottom: 10px;">`;
-                if (landInfo.owner) {
+                if (landInfo.type === 'START' || landInfo.type === 'ITEM_SHOP') {
+                    info += `<p style="font-size: 1.1rem; color: #f1c40f;">此地乃中立設施。</p>`;
+                    info += `</div>`;
+                    
+                    let wildOfficers = GAME_STATE.changanOfficers.map(id => getOfficer(id)).filter(o => o != null);
+                    if (wildOfficers.length > 0) {
+                        info += '<p style="font-weight: bold; margin-top: 10px; border-left: 4px solid #f1c40f; padding-left: 8px;">【在野武將】</p>';
+                        info += '<table style="width:100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 8px; border: 1px solid var(--border-color);">';
+                        info += '<tr style="background:rgba(255,255,255,0.1); border-bottom: 2px solid var(--border-color); font-size: 0.75rem;">';
+                        info += '<th style="padding:4px; width:15%;">姓名</th><th>武</th><th>智</th><th>統</th><th>政</th><th>魅</th><th>運</th><th style="width:35%;">特技</th></tr>';
+                        wildOfficers.forEach(o => {
+                            let injuryClass = o.injuryRate > 0 ? 'background-color: rgba(231,76,60,0.1); color: #e74c3c;' : '';
+                            let injuryIcon = o.injuryRate > 0 ? '🤕' : '';
+                            let skills = [];
+                            if (OFFICER_SKILLS[o.id]) skills.push(`<strong style="color:var(--primary-color)">【${OFFICER_SKILLS[o.id].name}】</strong>`);
+                            let ss = getSuperSkillDescription(o);
+                            if (ss) skills.push(ss);
+                            info += `<tr style="border-bottom: 1px dotted var(--border-color); ${injuryClass}">`;
+                            info += `<td style="padding: 6px 4px; font-weight:bold;">${injuryIcon}${o.name}</td>`;
+                            for (let i = 1; i <= 6; i++) {
+                                let val = getEffectiveStat(o, i);
+                                info += `<td style="text-align:center;">${val}</td>`;
+                            }
+                            info += `<td style="font-size: 0.75rem; padding: 4px; line-height: 1.3;">${skills.join('<br>')}</td>`;
+                            info += `</tr>`;
+                        });
+                        info += '</table>';
+                    } else {
+                        info += '<p style="color: #999; font-style: italic;">(目前沒有武將在野)</p>';
+                    }
+                } else if (landInfo.owner) {
                     const owner = GAME_STATE.players[landInfo.owner];
                     const cityValue = Math.floor(landInfo.price * (1 + (landInfo.development || 0) * 0.1));
                     const tax = getCityTaxIncome(landInfo);
@@ -340,8 +370,8 @@ function initGame() {
                     info += `<p><strong>城池價值：</strong><span style="color:#d35400; font-weight:bold;">$${cityValue}</span> (Lv.${landInfo.development || 0})</p>`;
                     info += `<p><strong>過路費：</strong>$${getCityToll(landInfo)}</p>`;
                     info += `<p><strong>每回合稅收：</strong>$${tax}</p>`;
-                    const geoBonus = getDevelopmentGeoBonus(landInfo.development || 0); // 規則1: 0-3級=3%, 4級以上=lv%
-                    const chainBonus = getCityChainLength(landInfo.owner, index); // 規則2: +n%, 規則3: 中心再+2%
+                    const geoBonus = getDevelopmentGeoBonus(landInfo.development || 0);
+                    const chainBonus = getCityChainLength(landInfo.owner, index);
                     const totalGeoBonus = geoBonus + chainBonus;
                     info += `<p><strong>屬性加成：</strong>價值 +${(landInfo.development || 0) * 10}% / 地利 +${totalGeoBonus}%</p>`;
                     info += `</div>`;
@@ -351,21 +381,16 @@ function initGame() {
                         info += '<table style="width:100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 8px; border: 1px solid var(--border-color);">';
                         info += '<tr style="background:rgba(255,255,255,0.1); border-bottom: 2px solid var(--border-color); font-size: 0.75rem;">';
                         info += '<th style="padding:4px; width:15%;">姓名</th><th>武</th><th>智</th><th>統</th><th>政</th><th>魅</th><th>運</th><th style="width:35%;">特技</th></tr>';
-                        
                         let totalStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
                         landInfo.defenders.forEach(id => {
                             const o = getOfficer(id);
                             if (o) {
                                 let injuryClass = o.injuryRate > 0 ? 'background-color: rgba(231,76,60,0.1); color: #e74c3c;' : '';
                                 let injuryIcon = o.injuryRate > 0 ? '🤕' : '';
-                                
                                 let skills = [];
-                                if (OFFICER_SKILLS[id]) {
-                                    skills.push(`<strong style="color:var(--primary-color)">【${OFFICER_SKILLS[id].name}】</strong>`);
-                                }
+                                if (OFFICER_SKILLS[id]) skills.push(`<strong style="color:var(--primary-color)">【${OFFICER_SKILLS[id].name}】</strong>`);
                                 let ss = getSuperSkillDescription(o);
                                 if (ss) skills.push(ss);
-
                                 info += `<tr style="border-bottom: 1px dotted var(--border-color); ${injuryClass}">`;
                                 let isHomeCity = (typeof OFFICER_HOME_CITY !== 'undefined' && OFFICER_HOME_CITY[o.id] === landInfo.id);
                                 let nameDisplay = isHomeCity ? `<span style="color:#00bcd4; font-weight:bold; text-shadow: 0 0 3px rgba(0,188,212,0.6);">🏠 ${o.name}</span>` : o.name;
@@ -379,15 +404,12 @@ function initGame() {
                                 info += `</tr>`;
                             }
                         });
-
-                        // 總合列
                         info += '<tr style="background: rgba(0,0,0,0.2); font-weight: bold; border-top: 2px solid var(--gold);">';
                         info += '<td style="padding: 6px 4px; text-align: right;">團隊總合</td>';
                         for (let i = 1; i <= 6; i++) {
                             info += `<td style="text-align:center; color: var(--primary-color);">${totalStats[i]}</td>`;
                         }
                         info += '<td></td></tr>';
-
                         info += '</table>';
                     } else {
                         info += '<p style="color: #999; font-style: italic;">(目前空無一人駐守)</p>';
@@ -404,7 +426,6 @@ function initGame() {
                         .map(id => getOfficer(parseInt(id)))
                         .filter(o => o != null)
                         .map(o => o.name);
-                    
                     if (homeOfficers.length > 0) {
                         info += `<div style="margin-top: 15px; padding: 10px; background: rgba(0, 188, 212, 0.1); border-left: 4px solid #00bcd4; border-radius: 4px;">`;
                         info += `<p style="color: #00bcd4; font-weight: bold; margin-bottom: 5px; font-size: 0.9rem;">🏠 專屬故地加成英雄 (戰鬥全能力 +5%)</p>`;
@@ -412,7 +433,6 @@ function initGame() {
                         info += `</div>`;
                     }
                 }
-
                 UI.infoModalTitle.textContent = `${landInfo.name} 情報`;
                 UI.infoModalMessage.innerHTML = info;
                 UI.infoModal.classList.remove('hidden');
@@ -1145,12 +1165,27 @@ function tryEmergencySell(player) {
         updateOfficerCountUI(player.id);
         updateBoardUI();
 
-        if (player.money > 0) {
-            log("✅ " + player.name + " 透過遣散武將暫度危機，剩餘資金 $" + player.money + "。");
-            endTurn();
-        } else {
-            setTimeout(() => sellOne(), 800);
-        }
+        // 播放下野動畫
+        const overlay = document.createElement("div");
+        overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.7); z-index: 9999; display: flex; justify-content: center; align-items: center; pointer-events: none; opacity: 0; transition: opacity 0.3s;";
+        overlay.innerHTML = "<h1 style=\"color: #f1c40f; font-size: 5vw; text-shadow: 0 0 20px #e67e22; transform: scale(0.5); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);\">🍂 " + toSell.o.name + " 下野了 🍂</h1>";
+        document.body.appendChild(overlay);
+        requestAnimationFrame(() => {
+            overlay.style.opacity = "1";
+            overlay.querySelector("h1").style.transform = "scale(1)";
+        });
+
+        setTimeout(() => {
+            overlay.style.opacity = "0";
+            setTimeout(() => overlay.remove(), 500);
+            
+            if (player.money > 0) {
+                log("✅ " + player.name + " 透過遣散武將暫度危機，剩餘資金 $" + player.money + "。");
+                endTurn();
+            } else {
+                setTimeout(() => sellOne(), 500);
+            }
+        }, 1500);
     }
 
     log("🛑 " + player.name + " 資金歸零，啟動《兵諫自保》機制！");
