@@ -173,7 +173,7 @@ function getCityToll(land) {
 
 function updateMoney(playerId, amount) {
     const p = GAME_STATE.players[playerId];
-    p.money = Math.max(0, parseInt(p.money, 10) + parseInt(amount, 10));
+    p.money = parseInt(p.money, 10) + parseInt(amount, 10);
     if (playerId === 1) UI.p1Money.textContent = p.money;
     if (playerId === 2) UI.p2Money.textContent = p.money;
     if (playerId === 3) UI.p3Money.textContent = p.money;

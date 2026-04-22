@@ -1065,15 +1065,15 @@ function executeBuyLand(player, landInfo, selectedIds) {
 // 付費處理
 function payToll(payer, receiver, toll) {
     try {
-        let actualPaid = Math.min(payer.money, toll);
-        updateMoney(payer.id, -actualPaid);
-        updateMoney(receiver.id, actualPaid);
+        // 直接扣掉全額，允許現金變成負數（負數 = 欠債）
+        updateMoney(payer.id, -toll);
+        updateMoney(receiver.id, toll);
 
         if (payer.money < 0) {
-            // 玩家現金不足以付清過路費，需要賣武將到還清為止
-            const debtAmount = Math.abs(payer.money); // 例：現金 -2500，需賺回 2500
-            log("💰 " + payer.name + " 負債 $" + debtAmount + "，必須出售武將以補足差額！");
-            tryEmergencySell(payer, debtAmount);
+            // 現金不足，負數代表欠多少
+            const debt = Math.abs(payer.money);
+            log("💰 " + payer.name + " 負債 $" + debt + "，必須出售武將以補足差額！");
+            tryEmergencySell(payer);
         } else {
             endTurn();
         }
