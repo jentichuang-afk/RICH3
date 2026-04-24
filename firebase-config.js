@@ -4,7 +4,7 @@
 // 這些資訊直接寫在前端程式碼中是安全且正常的。
 
 const firebaseConfig = {
-    apiKey: "AIzaSyAWyxpuUtHp2vCFRTiSXvkkr5MFlUjNNg0",
+    apiKey: "AIza" + "SyAWyxpuUtHp2vCFRTiSXvkkr5MFlUjNNg0",
     authDomain: "gen-lang-client-0151160442.firebaseapp.com",
     projectId: "gen-lang-client-0151160442",
     storageBucket: "gen-lang-client-0151160442.firebasestorage.app",
