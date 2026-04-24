@@ -78,13 +78,6 @@ const MAP_DATA = [
 
 const DICE_FACES = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
 
-// Firebase 初始化 (Phase: Cloud Persistence)
-// Config 已經移至獨立的 firebase-config.js 中
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
-let currentUser = null;
-
 // DOM 元件
 const UI = {
     startScreen: document.getElementById('start-screen'),
@@ -178,16 +171,11 @@ const UI = {
     btnLoadGame: document.getElementById('btn-load-game'),
     btnRestartGame: document.getElementById('btn-restart-game'),
 
-    // Cloud Sync UI
-    cloudSyncPanel: document.getElementById('cloud-sync-panel'),
-    authLoggedOut: document.getElementById('auth-logged-out'),
-    authLoggedIn: document.getElementById('auth-logged-in'),
-    btnCloudLogin: document.getElementById('btn-cloud-login'),
-    btnCloudLogout: document.getElementById('btn-cloud-logout'),
-    btnCloudSave: document.getElementById('btn-cloud-save'),
-    btnCloudLoad: document.getElementById('btn-cloud-load'),
-    userPhoto: document.getElementById('user-photo'),
-    userName: document.getElementById('user-name')
+    // File Sync UI
+    fileSyncPanel: document.getElementById('file-sync-panel'),
+    btnExportSave: document.getElementById('btn-export-save'),
+    btnImportSaveTrigger: document.getElementById('btn-import-save-trigger'),
+    fileImportInput: document.getElementById('file-import-input')
 };
 
 // Modal 回調函數
@@ -220,27 +208,16 @@ function initGame() {
             }
         });
         
-        // Cloud Sync bindings
-        if (UI.btnCloudLogin) UI.btnCloudLogin.addEventListener('click', handleGoogleLogin);
-        if (UI.btnCloudLogout) UI.btnCloudLogout.addEventListener('click', handleGoogleLogout);
-        if (UI.btnCloudSave) UI.btnCloudSave.addEventListener('click', saveToCloud);
-        if (UI.btnCloudLoad) UI.btnCloudLoad.addEventListener('click', loadFromCloud);
-
-        // Firebase Auth State Observer
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                currentUser = user;
-                UI.authLoggedOut.classList.add('hidden');
-                UI.authLoggedIn.classList.remove('hidden');
-                UI.userName.textContent = user.displayName;
-                UI.userPhoto.src = user.photoURL || '';
-                log(`🔐 [系統] 已登入 Google: ${user.displayName}`);
-            } else {
-                currentUser = null;
-                UI.authLoggedOut.classList.remove('hidden');
-                UI.authLoggedIn.classList.add('hidden');
-            }
-        });
+        // File Sync bindings
+        if (UI.btnExportSave) UI.btnExportSave.addEventListener('click', exportSaveFile);
+        if (UI.btnImportSaveTrigger) {
+            UI.btnImportSaveTrigger.addEventListener('click', () => {
+                if (UI.fileImportInput) UI.fileImportInput.click();
+            });
+        }
+        if (UI.fileImportInput) {
+            UI.fileImportInput.addEventListener('change', importSaveFile);
+        }
 
         // 分配初始武將 (強化錯誤處理)
         if (typeof OFFICERS_DATA === 'undefined') {
@@ -2439,34 +2416,11 @@ function loadGame() {
 }
 
 /**
- * 雲端存檔功能
+ * 實體檔案存檔/讀檔功能
  */
-async function handleGoogleLogin() {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    try {
-        await auth.signInWithPopup(provider);
-    } catch (e) {
-        console.error("Login error:", e);
-        alert("登入失敗: " + e.message);
-    }
-}
-
-async function handleGoogleLogout() {
-    try {
-        await auth.signOut();
-        log("🔓 [系統] 已登出 Google 帳號");
-    } catch (e) {
-        console.error("Logout error:", e);
-    }
-}
-
-async function saveToCloud() {
-    if (!currentUser) {
-        alert("請先登入 Google 帳號！");
-        return;
-    }
+function exportSaveFile() {
     if (GAME_STATE.isWaitingForAction || (GAME_STATE.players[GAME_STATE.currentPlayer] && GAME_STATE.players[GAME_STATE.currentPlayer].isBot)) {
-        alert("❌ 請在「輪到您的回合，且尚未擲骰子」的狀態下存檔！");
+        alert("❌ 請在「輪到您的回合，且尚未擲骰子」的狀態下匯出存檔！");
         return;
     }
 
@@ -2475,57 +2429,60 @@ async function saveToCloud() {
             GAME_STATE: GAME_STATE,
             MAP_DATA: MAP_DATA,
             OFFICERS_DATA: OFFICERS_DATA,
-            timestamp: new Date().toISOString(),
-            userId: currentUser.uid,
-            userName: currentUser.displayName
+            timestamp: new Date().toISOString()
         };
 
-        await db.collection("saves").doc(currentUser.uid).set(saveData);
-        log(`☁️ [系統] 雲端存檔成功！(${new Date().toLocaleTimeString()})`);
-        alert("雲端存檔成功！");
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(saveData));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", `Rich3_Save_${new Date().getTime()}.json`);
+        document.body.appendChild(downloadAnchorNode); // required for firefox
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+        
+        log(`💾 [系統] 存檔匯出成功！(${new Date().toLocaleTimeString()})`);
+        alert("存檔已下載到您的裝置！");
     } catch (e) {
-        console.error("Cloud save error:", e);
-        alert("雲端存檔失敗: " + e.message);
+        console.error("Export save error:", e);
+        alert("匯出失敗: " + e.message);
     }
 }
 
-async function loadFromCloud() {
-    if (!currentUser) {
-        alert("請先登入 Google 帳號！");
-        return;
-    }
+function importSaveFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
 
-    try {
-        const doc = await db.collection("saves").doc(currentUser.uid).get();
-        if (!doc.exists) {
-            alert("雲端沒有您的存檔紀錄！");
-            return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            
+            // 恢復數據
+            Object.assign(GAME_STATE, data.GAME_STATE);
+            
+            data.MAP_DATA.forEach((land, idx) => {
+                if (MAP_DATA[idx]) Object.assign(MAP_DATA[idx], land);
+            });
+            
+            data.OFFICERS_DATA.forEach((officer, idx) => {
+                if (OFFICERS_DATA[idx]) Object.assign(OFFICERS_DATA[idx], officer);
+            });
+
+            // 恢復 UI
+            restoreUI();
+            
+            if (UI.startScreen) UI.startScreen.classList.add('hidden');
+            
+            log(`📂 [系統] 存檔匯入成功！載入自 ${new Date(data.timestamp).toLocaleString()}`);
+            alert("進度載入成功！");
+        } catch (error) {
+            console.error("Import save error:", error);
+            alert("匯入失敗，存檔格式不正確: " + error.message);
         }
-
-        const data = doc.data();
-        
-        // 恢復數據
-        Object.assign(GAME_STATE, data.GAME_STATE);
-        
-        data.MAP_DATA.forEach((land, idx) => {
-            if (MAP_DATA[idx]) Object.assign(MAP_DATA[idx], land);
-        });
-        
-        data.OFFICERS_DATA.forEach((officer, idx) => {
-            if (OFFICERS_DATA[idx]) Object.assign(OFFICERS_DATA[idx], officer);
-        });
-
-        // 恢復 UI
-        restoreUI();
-        
-        if (UI.startScreen) UI.startScreen.classList.add('hidden');
-        
-        log(`☁️ [系統] 雲端讀檔成功！載入自 ${new Date(data.timestamp).toLocaleString()}`);
-        alert("雲端讀檔成功！");
-    } catch (e) {
-        console.error("Cloud load error:", e);
-        alert("雲端讀檔失敗: " + e.message);
-    }
+        // 重置 input，讓使用者可以重複選擇同一個檔案
+        event.target.value = '';
+    };
+    reader.readAsText(file);
 }
 
 function restoreUI() {
