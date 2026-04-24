@@ -7,6 +7,10 @@
     <title>三國大富翁 - 水墨風</title>
     <link rel="stylesheet" href="style.css?v=2.6.2">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- Firebase SDK (Compat Mode) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 
 <body>
@@ -44,6 +48,25 @@
         <div class="game-area">
             <!-- 左側狀態與控制區 -->
             <div class="sidebar">
+                <!-- 雲端同步面板 -->
+                <div class="cloud-sync-panel" id="cloud-sync-panel">
+                    <div class="sync-header">☁️ 雲端同步</div>
+                    <div id="auth-logged-out">
+                        <button id="btn-cloud-login" class="btn google-btn">Google 登入</button>
+                    </div>
+                    <div id="auth-logged-in" class="hidden">
+                        <div class="user-info">
+                            <img id="user-photo" src="" alt="">
+                            <span id="user-name">尚未登入</span>
+                        </div>
+                        <div class="cloud-actions">
+                            <button id="btn-cloud-save" class="btn cloud-btn">☁️ 雲端存檔</button>
+                            <button id="btn-cloud-load" class="btn cloud-btn">☁️ 雲端讀檔</button>
+                            <button id="btn-cloud-logout" class="btn-text">登出</button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="status-panel">
                     <div class="player-card p1-card active" id="p1-card">
                         <div class="avatar p1-avatar">劉</div>
@@ -464,6 +487,7 @@
     <script src="combat_engine.js"></script>
     <script src="item_system.js"></script>
     <script src="ai_model.js"></script>
+    <script src="firebase-config.js"></script>
     <script src="game.js"></script>
 </body>
 

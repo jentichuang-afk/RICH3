@@ -78,6 +78,13 @@ const MAP_DATA = [
 
 const DICE_FACES = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
 
+// Firebase 初始化 (Phase: Cloud Persistence)
+// Config 已經移至獨立的 firebase-config.js 中
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+let currentUser = null;
+
 // DOM 元件
 const UI = {
     startScreen: document.getElementById('start-screen'),
@@ -169,7 +176,18 @@ const UI = {
     // Save/Load
     btnSaveGame: document.getElementById('btn-save-game'),
     btnLoadGame: document.getElementById('btn-load-game'),
-    btnRestartGame: document.getElementById('btn-restart-game')
+    btnRestartGame: document.getElementById('btn-restart-game'),
+
+    // Cloud Sync UI
+    cloudSyncPanel: document.getElementById('cloud-sync-panel'),
+    authLoggedOut: document.getElementById('auth-logged-out'),
+    authLoggedIn: document.getElementById('auth-logged-in'),
+    btnCloudLogin: document.getElementById('btn-cloud-login'),
+    btnCloudLogout: document.getElementById('btn-cloud-logout'),
+    btnCloudSave: document.getElementById('btn-cloud-save'),
+    btnCloudLoad: document.getElementById('btn-cloud-load'),
+    userPhoto: document.getElementById('user-photo'),
+    userName: document.getElementById('user-name')
 };
 
 // Modal 回調函數
@@ -199,6 +217,28 @@ function initGame() {
         if (UI.btnRestartGame) UI.btnRestartGame.addEventListener('click', () => {
             if (confirm("確定要重新開始遊戲嗎？目前的進度將會遺失。")) {
                 location.reload();
+            }
+        });
+        
+        // Cloud Sync bindings
+        if (UI.btnCloudLogin) UI.btnCloudLogin.addEventListener('click', handleGoogleLogin);
+        if (UI.btnCloudLogout) UI.btnCloudLogout.addEventListener('click', handleGoogleLogout);
+        if (UI.btnCloudSave) UI.btnCloudSave.addEventListener('click', saveToCloud);
+        if (UI.btnCloudLoad) UI.btnCloudLoad.addEventListener('click', loadFromCloud);
+
+        // Firebase Auth State Observer
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                currentUser = user;
+                UI.authLoggedOut.classList.add('hidden');
+                UI.authLoggedIn.classList.remove('hidden');
+                UI.userName.textContent = user.displayName;
+                UI.userPhoto.src = user.photoURL || '';
+                log(`🔐 [系統] 已登入 Google: ${user.displayName}`);
+            } else {
+                currentUser = null;
+                UI.authLoggedOut.classList.remove('hidden');
+                UI.authLoggedIn.classList.add('hidden');
             }
         });
 
@@ -2395,6 +2435,96 @@ function loadGame() {
     } catch (e) {
         console.error("Load error:", e);
         alert("讀檔失敗: " + e.message);
+    }
+}
+
+/**
+ * 雲端存檔功能
+ */
+async function handleGoogleLogin() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    try {
+        await auth.signInWithPopup(provider);
+    } catch (e) {
+        console.error("Login error:", e);
+        alert("登入失敗: " + e.message);
+    }
+}
+
+async function handleGoogleLogout() {
+    try {
+        await auth.signOut();
+        log("🔓 [系統] 已登出 Google 帳號");
+    } catch (e) {
+        console.error("Logout error:", e);
+    }
+}
+
+async function saveToCloud() {
+    if (!currentUser) {
+        alert("請先登入 Google 帳號！");
+        return;
+    }
+    if (GAME_STATE.isWaitingForAction || (GAME_STATE.players[GAME_STATE.currentPlayer] && GAME_STATE.players[GAME_STATE.currentPlayer].isBot)) {
+        alert("❌ 請在「輪到您的回合，且尚未擲骰子」的狀態下存檔！");
+        return;
+    }
+
+    try {
+        const saveData = {
+            GAME_STATE: GAME_STATE,
+            MAP_DATA: MAP_DATA,
+            OFFICERS_DATA: OFFICERS_DATA,
+            timestamp: new Date().toISOString(),
+            userId: currentUser.uid,
+            userName: currentUser.displayName
+        };
+
+        await db.collection("saves").doc(currentUser.uid).set(saveData);
+        log(`☁️ [系統] 雲端存檔成功！(${new Date().toLocaleTimeString()})`);
+        alert("雲端存檔成功！");
+    } catch (e) {
+        console.error("Cloud save error:", e);
+        alert("雲端存檔失敗: " + e.message);
+    }
+}
+
+async function loadFromCloud() {
+    if (!currentUser) {
+        alert("請先登入 Google 帳號！");
+        return;
+    }
+
+    try {
+        const doc = await db.collection("saves").doc(currentUser.uid).get();
+        if (!doc.exists) {
+            alert("雲端沒有您的存檔紀錄！");
+            return;
+        }
+
+        const data = doc.data();
+        
+        // 恢復數據
+        Object.assign(GAME_STATE, data.GAME_STATE);
+        
+        data.MAP_DATA.forEach((land, idx) => {
+            if (MAP_DATA[idx]) Object.assign(MAP_DATA[idx], land);
+        });
+        
+        data.OFFICERS_DATA.forEach((officer, idx) => {
+            if (OFFICERS_DATA[idx]) Object.assign(OFFICERS_DATA[idx], officer);
+        });
+
+        // 恢復 UI
+        restoreUI();
+        
+        if (UI.startScreen) UI.startScreen.classList.add('hidden');
+        
+        log(`☁️ [系統] 雲端讀檔成功！載入自 ${new Date(data.timestamp).toLocaleString()}`);
+        alert("雲端讀檔成功！");
+    } catch (e) {
+        console.error("Cloud load error:", e);
+        alert("雲端讀檔失敗: " + e.message);
     }
 }
 

@@ -152,6 +152,89 @@ h1 {
 }
 
 /* Sidebar & Stats */
+/* Cloud Sync Panel */
+.cloud-sync-panel {
+    background: rgba(40, 40, 40, 0.8);
+    border: 1px solid var(--gold);
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.sync-header {
+    font-size: 0.8rem;
+    color: var(--gold);
+    font-weight: bold;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+#user-photo {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid var(--ink-dark);
+}
+
+#user-name {
+    font-size: 0.85rem;
+    color: var(--ink-dark);
+}
+
+.cloud-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    justify-content: center;
+}
+
+.cloud-btn {
+    font-size: 0.75rem !important;
+    padding: 5px 10px !important;
+    border-color: var(--gold) !important;
+}
+
+.btn-text {
+    background: none;
+    border: none;
+    color: var(--ink-light);
+    font-size: 0.7rem;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.google-btn {
+    background: white !important;
+    color: #444 !important;
+    border: 1px solid #ddd !important;
+    font-size: 0.85rem !important;
+    padding: 6px 12px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 0 auto;
+}
+
+.google-btn::before {
+    content: "";
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    background: url('https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg') no-repeat center;
+    background-size: contain;
+}
+
 .sidebar {
     width: 250px;
     display: flex;
