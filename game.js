@@ -2593,7 +2593,11 @@ async function saveToSlot(slot, fileName, existingFileId) {
             slotLabel: `欄位 ${slot}`
         };
         const fileContent = JSON.stringify(saveData);
-        const metadata = { name: fileName, mimeType: 'application/json', parents: ['appDataFolder'] };
+
+        // PATCH (覆蓋) 不能包含 parents，POST (新建) 才需要
+        const metadata = existingFileId
+            ? { name: fileName, mimeType: 'application/json' }
+            : { name: fileName, mimeType: 'application/json', parents: ['appDataFolder'] };
 
         const form = new FormData();
         form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
@@ -2605,7 +2609,10 @@ async function saveToSlot(slot, fileName, existingFileId) {
             : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
 
         const res = await fetch(uploadUrl, { method, body: form, headers: { Authorization: 'Bearer ' + currentAccessToken } });
-        if (!res.ok) throw new Error('上傳失敗');
+        if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(`上傳失敗 (${res.status}): ${errText}`);
+        }
 
         log(`☁️ [系統] 欄位 ${slot} 存檔成功！(${new Date().toLocaleTimeString()})`);
         alert(`欄位 ${slot} 存檔成功！`);
