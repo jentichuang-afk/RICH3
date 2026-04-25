@@ -235,6 +235,92 @@ h1 {
     background-size: contain;
 }
 
+/* 10 存檔欄位格線 */
+#save-slots-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+    margin: 8px 0 6px;
+}
+
+.save-slot-btn {
+    background: rgba(255, 210, 100, 0.08);
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    border-radius: 4px;
+    color: var(--ink-dark);
+    cursor: pointer;
+    padding: 5px 4px;
+    font-family: 'Noto Serif TC', serif;
+    font-size: 0.68rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.save-slot-btn:hover {
+    background: rgba(212, 175, 55, 0.25);
+    border-color: var(--gold);
+}
+
+.slot-num {
+    font-weight: bold;
+    color: var(--gold);
+    font-size: 0.75rem;
+}
+
+.slot-info {
+    font-size: 0.6rem;
+    color: var(--ink-light);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 90px;
+}
+
+/* 存檔選擇 Modal */
+#slot-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#slot-modal-box {
+    background: #2a2218;
+    border: 2px solid var(--gold);
+    border-radius: 8px;
+    padding: 24px 28px;
+    min-width: 260px;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.7);
+}
+
+#slot-modal-title {
+    font-size: 1rem;
+    font-weight: bold;
+    color: var(--gold);
+    margin-bottom: 10px;
+}
+
+#slot-modal-body {
+    font-size: 0.85rem;
+    color: var(--ink-dark);
+    margin-bottom: 16px;
+}
+
+#slot-modal-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+}
+
 .sidebar {
     width: 250px;
     display: flex;

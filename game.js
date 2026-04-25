@@ -177,8 +177,7 @@ const UI = {
     driveAuthLoggedIn: document.getElementById('drive-auth-logged-in'),
     btnDriveLogin: document.getElementById('btn-drive-login'),
     btnDriveLogout: document.getElementById('btn-drive-logout'),
-    btnDriveSave: document.getElementById('btn-drive-save'),
-    btnDriveLoad: document.getElementById('btn-drive-load')
+    saveSlotsGrid: document.getElementById('save-slots-grid')
 };
 
 // Modal 回調函數
@@ -214,8 +213,6 @@ function initGame() {
         // Drive Sync bindings
         if (UI.btnDriveLogin) UI.btnDriveLogin.addEventListener('click', handleDriveLogin);
         if (UI.btnDriveLogout) UI.btnDriveLogout.addEventListener('click', handleDriveLogout);
-        if (UI.btnDriveSave) UI.btnDriveSave.addEventListener('click', saveToDrive);
-        if (UI.btnDriveLoad) UI.btnDriveLoad.addEventListener('click', loadFromDrive);
 
         // Initialize Google APIs
         initGoogleAPIs();
@@ -2446,6 +2443,7 @@ async function initializeGapiClient() {
                     UI.driveAuthLoggedOut.classList.add('hidden');
                     UI.driveAuthLoggedIn.classList.remove('hidden');
                     log(`🔐 [系統] 已授權 Google Drive 存取`);
+                    renderSaveSlots();
                 },
             });
         }
@@ -2473,13 +2471,95 @@ function handleDriveLogout() {
     }
 }
 
-async function saveToDrive() {
-    if (!currentAccessToken) {
-        alert("請先授權 Google Drive！");
-        return;
+// ---- 10 存檔欄位 ----
+let driveFileIndex = {}; // { 'Rich3_Slot_1.json': fileId, ... }
+
+async function fetchDriveFileIndex() {
+    const response = await gapi.client.drive.files.list({
+        spaces: 'appDataFolder',
+        fields: 'files(id, name)',
+        pageSize: 20
+    });
+    const files = response.result.files || [];
+    driveFileIndex = {};
+    files.forEach(f => { driveFileIndex[f.name] = f.id; });
+}
+
+async function renderSaveSlots() {
+    if (!UI.saveSlotsGrid) return;
+    try {
+        await fetchDriveFileIndex();
+    } catch(e) { /* might fail if not authed yet */ }
+
+    UI.saveSlotsGrid.innerHTML = '';
+    for (let slot = 1; slot <= 10; slot++) {
+        const fileName = `Rich3_Slot_${slot}.json`;
+        const fileId = driveFileIndex[fileName];
+        const btn = document.createElement('button');
+        btn.className = 'save-slot-btn';
+        btn.id = `save-slot-btn-${slot}`;
+
+        if (fileId) {
+            btn.innerHTML = `<span class="slot-num">📁 ${slot}</span><span class="slot-info">已有存檔</span>`;
+        } else {
+            btn.innerHTML = `<span class="slot-num">🆕 ${slot}</span><span class="slot-info">空欄位</span>`;
+        }
+
+        btn.addEventListener('click', () => openSlotDialog(slot, fileName, fileId));
+        UI.saveSlotsGrid.appendChild(btn);
     }
+}
+
+function openSlotDialog(slot, fileName, fileId) {
+    const existText = fileId ? `（已有存檔）` : `（空欄位）`;
+    const msg = `欄位 ${slot} ${existText}
+請選擇操作：`;
+
+    // Use custom in-page dialog
+    showSlotModal(slot, !!fileId, async (action) => {
+        if (action === 'save') await saveToSlot(slot, fileName, fileId);
+        else if (action === 'load') await loadFromSlot(fileName, fileId, slot);
+    });
+}
+
+function showSlotModal(slot, hasData, callback) {
+    // Remove existing
+    const existing = document.getElementById('slot-modal-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'slot-modal-overlay';
+    overlay.innerHTML = `
+        <div id="slot-modal-box">
+            <div id="slot-modal-title">☁️ 存檔欄位 ${slot}</div>
+            <div id="slot-modal-body">${hasData ? '此欄位已有存檔，請選擇操作：' : '此欄位為空，是否存入新檔？'}</div>
+            <div id="slot-modal-actions">
+                <button id="slot-modal-save" class="btn cloud-btn">💾 存入此欄位</button>
+                ${hasData ? `<button id="slot-modal-load" class="btn cloud-btn">📂 讀取此欄位</button>` : ''}
+                <button id="slot-modal-cancel" class="btn-text">取消</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+
+    document.getElementById('slot-modal-save').addEventListener('click', () => {
+        overlay.remove();
+        callback('save');
+    });
+    if (hasData) {
+        document.getElementById('slot-modal-load').addEventListener('click', () => {
+            overlay.remove();
+            callback('load');
+        });
+    }
+    document.getElementById('slot-modal-cancel').addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+}
+
+async function saveToSlot(slot, fileName, existingFileId) {
+    if (!currentAccessToken) { alert('請先授權 Google Drive！'); return; }
     if (GAME_STATE.isWaitingForAction || (GAME_STATE.players[GAME_STATE.currentPlayer] && GAME_STATE.players[GAME_STATE.currentPlayer].isBot)) {
-        alert("❌ 請在「輪到您的回合，且尚未擲骰子」的狀態下存檔！");
+        alert('❌ 請在「輪到您的回合，且尚未擲骰子」的狀態下存檔！');
         return;
     }
 
@@ -2488,109 +2568,56 @@ async function saveToDrive() {
             GAME_STATE: GAME_STATE,
             MAP_DATA: MAP_DATA,
             OFFICERS_DATA: OFFICERS_DATA,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            slotLabel: `欄位 ${slot}`
         };
         const fileContent = JSON.stringify(saveData);
-        const fileName = 'Rich3_Save.json';
-
-        // Check if file exists
-        const response = await gapi.client.drive.files.list({
-            spaces: 'appDataFolder',
-            fields: 'files(id, name)',
-            pageSize: 10
-        });
-        
-        const files = response.result.files;
-        let fileId = null;
-        if (files && files.length > 0) {
-            const existingFile = files.find(f => f.name === fileName);
-            if (existingFile) fileId = existingFile.id;
-        }
-
-        const metadata = {
-            name: fileName,
-            mimeType: 'application/json',
-            parents: ['appDataFolder']
-        };
+        const metadata = { name: fileName, mimeType: 'application/json', parents: ['appDataFolder'] };
 
         const form = new FormData();
         form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
         form.append('file', new Blob([fileContent], { type: 'application/json' }));
 
-        const requestParams = {
-            method: fileId ? 'PATCH' : 'POST',
-            body: form,
-            headers: {
-                Authorization: 'Bearer ' + currentAccessToken
-            }
-        };
-
-        const uploadUrl = fileId 
-            ? `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`
+        const method = existingFileId ? 'PATCH' : 'POST';
+        const uploadUrl = existingFileId
+            ? `https://www.googleapis.com/upload/drive/v3/files/${existingFileId}?uploadType=multipart`
             : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
 
-        const res = await fetch(uploadUrl, requestParams);
+        const res = await fetch(uploadUrl, { method, body: form, headers: { Authorization: 'Bearer ' + currentAccessToken } });
         if (!res.ok) throw new Error('上傳失敗');
 
-        log(`☁️ [系統] Google Drive 存檔成功！(${new Date().toLocaleTimeString()})`);
-        alert("雲端存檔成功！");
+        log(`☁️ [系統] 欄位 ${slot} 存檔成功！(${new Date().toLocaleTimeString()})`);
+        alert(`欄位 ${slot} 存檔成功！`);
+        await renderSaveSlots(); // Refresh slot display
     } catch (e) {
-        console.error("Drive save error:", e);
-        alert("雲端存檔失敗: " + e.message);
+        console.error('Drive save error:', e);
+        alert('雲端存檔失敗: ' + e.message);
     }
 }
 
-async function loadFromDrive() {
-    if (!currentAccessToken) {
-        alert("請先授權 Google Drive！");
-        return;
-    }
+async function loadFromSlot(fileName, fileId, slot) {
+    if (!currentAccessToken) { alert('請先授權 Google Drive！'); return; }
+    if (!fileId) { alert('此欄位沒有存檔！'); return; }
 
     try {
-        const response = await gapi.client.drive.files.list({
-            spaces: 'appDataFolder',
-            fields: 'files(id, name)',
-            pageSize: 10
+        const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+            headers: { Authorization: 'Bearer ' + currentAccessToken }
         });
-        
-        const files = response.result.files;
-        const targetFile = files ? files.find(f => f.name === 'Rich3_Save.json') : null;
-
-        if (!targetFile) {
-            alert("雲端沒有您的存檔紀錄！");
-            return;
-        }
-
-        const res = await fetch(`https://www.googleapis.com/drive/v3/files/${targetFile.id}?alt=media`, {
-            headers: {
-                Authorization: 'Bearer ' + currentAccessToken
-            }
-        });
-        
         if (!res.ok) throw new Error('下載失敗');
         const data = await res.json();
-        
-        // 恢復數據
-        Object.assign(GAME_STATE, data.GAME_STATE);
-        
-        data.MAP_DATA.forEach((land, idx) => {
-            if (MAP_DATA[idx]) Object.assign(MAP_DATA[idx], land);
-        });
-        
-        data.OFFICERS_DATA.forEach((officer, idx) => {
-            if (OFFICERS_DATA[idx]) Object.assign(OFFICERS_DATA[idx], officer);
-        });
 
-        // 恢復 UI
+        Object.assign(GAME_STATE, data.GAME_STATE);
+        data.MAP_DATA.forEach((land, idx) => { if (MAP_DATA[idx]) Object.assign(MAP_DATA[idx], land); });
+        data.OFFICERS_DATA.forEach((officer, idx) => { if (OFFICERS_DATA[idx]) Object.assign(OFFICERS_DATA[idx], officer); });
+
         restoreUI();
-        
         if (UI.startScreen) UI.startScreen.classList.add('hidden');
-        
-        log(`☁️ [系統] Google Drive 讀檔成功！載入自 ${new Date(data.timestamp).toLocaleString()}`);
-        alert("雲端讀檔成功！");
+
+        log(`☁️ [系統] 欄位 ${slot} 讀檔成功！載入自 ${new Date(data.timestamp).toLocaleString()}`);
+        alert(`欄位 ${slot} 讀檔成功！`);
     } catch (e) {
-        console.error("Drive load error:", e);
-        alert("雲端讀檔失敗: " + e.message);
+        console.error('Drive load error:', e);
+        alert('雲端讀檔失敗: ' + e.message);
     }
 }
 

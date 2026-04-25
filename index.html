@@ -47,7 +47,7 @@
         <div class="game-area">
             <!-- 左側狀態與控制區 -->
             <div class="sidebar">
-                <!-- Google Drive 同步面板 -->
+                <!-- Google Drive 同步面板 (10 存檔欄位) -->
                 <div class="cloud-sync-panel" id="drive-sync-panel">
                     <div class="sync-header">☁️ 雲端硬碟同步</div>
                     <div id="drive-auth-logged-out">
@@ -57,11 +57,9 @@
                         <div class="user-info">
                             <span id="drive-user-name" style="font-weight:bold; color:var(--gold);">已授權雲端硬碟</span>
                         </div>
-                        <div class="cloud-actions">
-                            <button id="btn-drive-save" class="btn cloud-btn">☁️ 存入雲端</button>
-                            <button id="btn-drive-load" class="btn cloud-btn">☁️ 載入雲端</button>
-                            <button id="btn-drive-logout" class="btn-text">清除授權</button>
-                        </div>
+                        <!-- 10 個存檔欄位 -->
+                        <div id="save-slots-grid"></div>
+                        <button id="btn-drive-logout" class="btn-text" style="margin-top:6px;">清除授權</button>
                     </div>
                 </div>
 
