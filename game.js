@@ -755,19 +755,18 @@ function triggerLandEvent(player, landInfo) {
                     let sendCount = 3;
                     sendCount = Math.min(sendCount, player.officers.length);
                     
-                    // 優先依照故地加成 > 總戰鬥力 進行排序
-                    let sortedOfficers = [...player.officers].sort((a, b) => {
-                        let isHomeA = (typeof OFFICER_HOME_CITY !== 'undefined' && OFFICER_HOME_CITY[a] === landInfo.id) ? 1 : 0;
-                        let isHomeB = (typeof OFFICER_HOME_CITY !== 'undefined' && OFFICER_HOME_CITY[b] === landInfo.id) ? 1 : 0;
-                        if (isHomeA !== isHomeB) return isHomeB - isHomeA; // 有故地加成者優先
-                        
-                        let oa = getOfficer(a), ob = getOfficer(b);
-                        let ta = 0, tb = 0;
-                        for(let i = 1; i <= 6; i++) { ta += getEffectiveStat(oa, i); tb += getEffectiveStat(ob, i); }
-                        return tb - ta;
-                    });
+                    // 選將邏輯：優先故地加成武將，其餘隨機選取
+                    let homeOfficers = player.officers.filter(id =>
+                        (typeof OFFICER_HOME_CITY !== 'undefined' && OFFICER_HOME_CITY[id] === landInfo.id)
+                    );
+                    let otherOfficers = player.officers.filter(id =>
+                        !(typeof OFFICER_HOME_CITY !== 'undefined' && OFFICER_HOME_CITY[id] === landInfo.id)
+                    );
+                    // 其餘武將打亂順序
+                    otherOfficers.sort(() => Math.random() - 0.5);
                     
-                    let chosen = sortedOfficers.slice(0, sendCount);
+                    let poolOfficers = [...homeOfficers, ...otherOfficers];
+                    let chosen = poolOfficers.slice(0, sendCount);
                     log(`[追蹤] 2. SetTimeout 設定前`);
                     setTimeout(() => {
                         log(`[追蹤] 3. SetTimeout 已觸發，呼叫 executeBuyLand...`);
@@ -836,20 +835,15 @@ function triggerLandEvent(player, landInfo) {
                     let o = getOfficer(id);
                     return o && (o.injuryRate || 0) <= 50;
                 });
-                // 優先依照故地加成 > 總戰鬥力排序
-                healthyIdle.sort((a, b) => {
-                    let isHomeA = (typeof OFFICER_HOME_CITY !== 'undefined' && OFFICER_HOME_CITY[a] === landInfo.id) ? 1 : 0;
-                    let isHomeB = (typeof OFFICER_HOME_CITY !== 'undefined' && OFFICER_HOME_CITY[b] === landInfo.id) ? 1 : 0;
-                    if (isHomeA !== isHomeB) return isHomeB - isHomeA; // 有故地加成者優先
-
-                    let oa = getOfficer(a), ob = getOfficer(b);
-                    let ta = 0, tb = 0;
-                    for(let i=1; i<=6; i++) { 
-                        ta += getEffectiveStat(oa, i); 
-                        tb += getEffectiveStat(ob, i); 
-                    }
-                    return tb - ta;
-                });
+                // 選將邏輯：優先故地加成武將，其餘隨機
+                let homeIdle = healthyIdle.filter(id =>
+                    (typeof OFFICER_HOME_CITY !== 'undefined' && OFFICER_HOME_CITY[id] === landInfo.id)
+                );
+                let otherIdle = healthyIdle.filter(id =>
+                    !(typeof OFFICER_HOME_CITY !== 'undefined' && OFFICER_HOME_CITY[id] === landInfo.id)
+                );
+                otherIdle.sort(() => Math.random() - 0.5);
+                healthyIdle = [...homeIdle, ...otherIdle];
 
                 while (healthyDefenders.length < 3 && healthyIdle.length > 0) {
                     let bestId = healthyIdle.shift();
