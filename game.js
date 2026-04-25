@@ -171,11 +171,14 @@ const UI = {
     btnLoadGame: document.getElementById('btn-load-game'),
     btnRestartGame: document.getElementById('btn-restart-game'),
 
-    // File Sync UI
-    fileSyncPanel: document.getElementById('file-sync-panel'),
-    btnExportSave: document.getElementById('btn-export-save'),
-    btnImportSaveTrigger: document.getElementById('btn-import-save-trigger'),
-    fileImportInput: document.getElementById('file-import-input')
+    // Drive Sync UI
+    driveSyncPanel: document.getElementById('drive-sync-panel'),
+    driveAuthLoggedOut: document.getElementById('drive-auth-logged-out'),
+    driveAuthLoggedIn: document.getElementById('drive-auth-logged-in'),
+    btnDriveLogin: document.getElementById('btn-drive-login'),
+    btnDriveLogout: document.getElementById('btn-drive-logout'),
+    btnDriveSave: document.getElementById('btn-drive-save'),
+    btnDriveLoad: document.getElementById('btn-drive-load')
 };
 
 // Modal 回調函數
@@ -208,16 +211,14 @@ function initGame() {
             }
         });
         
-        // File Sync bindings
-        if (UI.btnExportSave) UI.btnExportSave.addEventListener('click', exportSaveFile);
-        if (UI.btnImportSaveTrigger) {
-            UI.btnImportSaveTrigger.addEventListener('click', () => {
-                if (UI.fileImportInput) UI.fileImportInput.click();
-            });
-        }
-        if (UI.fileImportInput) {
-            UI.fileImportInput.addEventListener('change', importSaveFile);
-        }
+        // Drive Sync bindings
+        if (UI.btnDriveLogin) UI.btnDriveLogin.addEventListener('click', handleDriveLogin);
+        if (UI.btnDriveLogout) UI.btnDriveLogout.addEventListener('click', handleDriveLogout);
+        if (UI.btnDriveSave) UI.btnDriveSave.addEventListener('click', saveToDrive);
+        if (UI.btnDriveLoad) UI.btnDriveLoad.addEventListener('click', loadFromDrive);
+
+        // Initialize Google APIs
+        initGoogleAPIs();
 
         // 分配初始武將 (強化錯誤處理)
         if (typeof OFFICERS_DATA === 'undefined') {
@@ -2416,11 +2417,75 @@ function loadGame() {
 }
 
 /**
- * 實體檔案存檔/讀檔功能
+ * Google Drive 雲端同步功能
  */
-function exportSaveFile() {
+const GOOGLE_CLIENT_ID = '674910216281-tvqq96g383mbesttgvivm42f4klfgdgl.apps.googleusercontent.com';
+const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.appdata';
+let tokenClient;
+let gapiInited = false;
+let currentAccessToken = null;
+
+function initGoogleAPIs() {
+    if (typeof gapi !== 'undefined') {
+        gapi.load('client', initializeGapiClient);
+    } else {
+        setTimeout(initGoogleAPIs, 500); // Wait for script to load
+    }
+}
+
+async function initializeGapiClient() {
+    try {
+        await gapi.client.init({
+            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+        });
+        gapiInited = true;
+        
+        if (typeof google !== 'undefined') {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: GOOGLE_SCOPES,
+                callback: (tokenResponse) => {
+                    if (tokenResponse.error !== undefined) {
+                        throw (tokenResponse);
+                    }
+                    currentAccessToken = tokenResponse.access_token;
+                    UI.driveAuthLoggedOut.classList.add('hidden');
+                    UI.driveAuthLoggedIn.classList.remove('hidden');
+                    log(`🔐 [系統] 已授權 Google Drive 存取`);
+                },
+            });
+        }
+    } catch (e) {
+        console.error('Error initializing GAPI client', e);
+    }
+}
+
+function handleDriveLogin() {
+    if (!tokenClient) {
+        alert("Google 服務載入中，請稍後再試...");
+        return;
+    }
+    tokenClient.requestAccessToken({prompt: 'consent'});
+}
+
+function handleDriveLogout() {
+    if (currentAccessToken) {
+        google.accounts.oauth2.revoke(currentAccessToken, () => {
+            log('🔓 [系統] 已解除 Google Drive 授權');
+        });
+        currentAccessToken = null;
+        UI.driveAuthLoggedOut.classList.remove('hidden');
+        UI.driveAuthLoggedIn.classList.add('hidden');
+    }
+}
+
+async function saveToDrive() {
+    if (!currentAccessToken) {
+        alert("請先授權 Google Drive！");
+        return;
+    }
     if (GAME_STATE.isWaitingForAction || (GAME_STATE.players[GAME_STATE.currentPlayer] && GAME_STATE.players[GAME_STATE.currentPlayer].isBot)) {
-        alert("❌ 請在「輪到您的回合，且尚未擲骰子」的狀態下匯出存檔！");
+        alert("❌ 請在「輪到您的回合，且尚未擲骰子」的狀態下存檔！");
         return;
     }
 
@@ -2431,58 +2496,108 @@ function exportSaveFile() {
             OFFICERS_DATA: OFFICERS_DATA,
             timestamp: new Date().toISOString()
         };
+        const fileContent = JSON.stringify(saveData);
+        const fileName = 'Rich3_Save.json';
 
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(saveData));
-        const downloadAnchorNode = document.createElement('a');
-        downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", `Rich3_Save_${new Date().getTime()}.json`);
-        document.body.appendChild(downloadAnchorNode); // required for firefox
-        downloadAnchorNode.click();
-        downloadAnchorNode.remove();
+        // Check if file exists
+        const response = await gapi.client.drive.files.list({
+            spaces: 'appDataFolder',
+            fields: 'files(id, name)',
+            pageSize: 10
+        });
         
-        log(`💾 [系統] 存檔匯出成功！(${new Date().toLocaleTimeString()})`);
-        alert("存檔已下載到您的裝置！");
+        const files = response.result.files;
+        let fileId = null;
+        if (files && files.length > 0) {
+            const existingFile = files.find(f => f.name === fileName);
+            if (existingFile) fileId = existingFile.id;
+        }
+
+        const metadata = {
+            name: fileName,
+            mimeType: 'application/json',
+            parents: ['appDataFolder']
+        };
+
+        const form = new FormData();
+        form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+        form.append('file', new Blob([fileContent], { type: 'application/json' }));
+
+        const requestParams = {
+            method: fileId ? 'PATCH' : 'POST',
+            body: form,
+            headers: {
+                Authorization: 'Bearer ' + currentAccessToken
+            }
+        };
+
+        const uploadUrl = fileId 
+            ? `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`
+            : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+
+        const res = await fetch(uploadUrl, requestParams);
+        if (!res.ok) throw new Error('上傳失敗');
+
+        log(`☁️ [系統] Google Drive 存檔成功！(${new Date().toLocaleTimeString()})`);
+        alert("雲端存檔成功！");
     } catch (e) {
-        console.error("Export save error:", e);
-        alert("匯出失敗: " + e.message);
+        console.error("Drive save error:", e);
+        alert("雲端存檔失敗: " + e.message);
     }
 }
 
-function importSaveFile(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+async function loadFromDrive() {
+    if (!currentAccessToken) {
+        alert("請先授權 Google Drive！");
+        return;
+    }
 
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const data = JSON.parse(e.target.result);
-            
-            // 恢復數據
-            Object.assign(GAME_STATE, data.GAME_STATE);
-            
-            data.MAP_DATA.forEach((land, idx) => {
-                if (MAP_DATA[idx]) Object.assign(MAP_DATA[idx], land);
-            });
-            
-            data.OFFICERS_DATA.forEach((officer, idx) => {
-                if (OFFICERS_DATA[idx]) Object.assign(OFFICERS_DATA[idx], officer);
-            });
+    try {
+        const response = await gapi.client.drive.files.list({
+            spaces: 'appDataFolder',
+            fields: 'files(id, name)',
+            pageSize: 10
+        });
+        
+        const files = response.result.files;
+        const targetFile = files ? files.find(f => f.name === 'Rich3_Save.json') : null;
 
-            // 恢復 UI
-            restoreUI();
-            
-            if (UI.startScreen) UI.startScreen.classList.add('hidden');
-            
-            log(`📂 [系統] 存檔匯入成功！載入自 ${new Date(data.timestamp).toLocaleString()}`);
-            alert("進度載入成功！");
-        } catch (error) {
-            console.error("Import save error:", error);
-            alert("匯入失敗，存檔格式不正確: " + error.message);
+        if (!targetFile) {
+            alert("雲端沒有您的存檔紀錄！");
+            return;
         }
-        // 重置 input，讓使用者可以重複選擇同一個檔案
-        event.target.value = '';
-    };
-    reader.readAsText(file);
+
+        const res = await fetch(`https://www.googleapis.com/drive/v3/files/${targetFile.id}?alt=media`, {
+            headers: {
+                Authorization: 'Bearer ' + currentAccessToken
+            }
+        });
+        
+        if (!res.ok) throw new Error('下載失敗');
+        const data = await res.json();
+        
+        // 恢復數據
+        Object.assign(GAME_STATE, data.GAME_STATE);
+        
+        data.MAP_DATA.forEach((land, idx) => {
+            if (MAP_DATA[idx]) Object.assign(MAP_DATA[idx], land);
+        });
+        
+        data.OFFICERS_DATA.forEach((officer, idx) => {
+            if (OFFICERS_DATA[idx]) Object.assign(OFFICERS_DATA[idx], officer);
+        });
+
+        // 恢復 UI
+        restoreUI();
+        
+        if (UI.startScreen) UI.startScreen.classList.add('hidden');
+        
+        log(`☁️ [系統] Google Drive 讀檔成功！載入自 ${new Date(data.timestamp).toLocaleString()}`);
+        alert("雲端讀檔成功！");
+    } catch (e) {
+        console.error("Drive load error:", e);
+        alert("雲端讀檔失敗: " + e.message);
+    }
 }
 
 function restoreUI() {

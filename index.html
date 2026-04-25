@@ -7,6 +7,9 @@
     <title>三國大富翁 - 水墨風</title>
     <link rel="stylesheet" href="style.css?v=2.6.2">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- Google Identity Services & API -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js"></script>
 </head>
 
 <body>
@@ -44,13 +47,21 @@
         <div class="game-area">
             <!-- 左側狀態與控制區 -->
             <div class="sidebar">
-                <!-- 檔案同步面板 -->
-                <div class="cloud-sync-panel" id="file-sync-panel">
-                    <div class="sync-header">💾 實體檔案存取</div>
-                    <div class="cloud-actions" style="margin-top: 5px;">
-                        <button id="btn-export-save" class="btn cloud-btn">📥 匯出存檔</button>
-                        <button id="btn-import-save-trigger" class="btn cloud-btn">📤 匯入存檔</button>
-                        <input type="file" id="file-import-input" accept=".json" style="display: none;">
+                <!-- Google Drive 同步面板 -->
+                <div class="cloud-sync-panel" id="drive-sync-panel">
+                    <div class="sync-header">☁️ 雲端硬碟同步</div>
+                    <div id="drive-auth-logged-out">
+                        <button id="btn-drive-login" class="btn google-btn">授權 Google 登入</button>
+                    </div>
+                    <div id="drive-auth-logged-in" class="hidden">
+                        <div class="user-info">
+                            <span id="drive-user-name" style="font-weight:bold; color:var(--gold);">已授權雲端硬碟</span>
+                        </div>
+                        <div class="cloud-actions">
+                            <button id="btn-drive-save" class="btn cloud-btn">☁️ 存入雲端</button>
+                            <button id="btn-drive-load" class="btn cloud-btn">☁️ 載入雲端</button>
+                            <button id="btn-drive-logout" class="btn-text">清除授權</button>
+                        </div>
                     </div>
                 </div>
 
