@@ -124,7 +124,10 @@
                 </div>
             </div>
 
-            <!-- 右側遊戲地圖區 -->
+            <!-- 右側：地圖 + 存檔面板 (垂直排列) -->
+            <div style="display: flex; flex-direction: column; flex: 1; min-width: 0;">
+
+            <!-- 遊戲地圖區 -->
             <div class="board-container">
                 <div class="board" id="board">
                     <!-- 20 格地圖 (6x6 外框) -->
@@ -236,9 +239,9 @@
                     <div id="piece-p4" class="piece piece-p4">董</div>
                     <div id="piece-p5" class="piece piece-p5">信</div>
                 </div>
-            </div>
+            </div> <!-- end board-container -->
 
-            <!-- ☁️ 雲端硬碟同步面板 (地圖右下) -->
+            <!-- ☁️ 雲端硬碟同步面板 (地圖正下方) -->
             <div class="cloud-sync-panel" id="drive-sync-panel">
                 <div class="sync-header">☁️ 雲端硬碟同步</div>
                 <div id="drive-auth-logged-out">
@@ -252,7 +255,9 @@
                     <div id="save-slots-grid"></div>
                 </div>
             </div>
-        </div>
+
+            </div> <!-- end board+panel wrapper -->
+        </div> <!-- end game-area -->
 
         <!-- 彈出視窗 (佔領/付費) -->
         <div id="modal" class="modal hidden">
