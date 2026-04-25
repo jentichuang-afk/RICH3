@@ -85,22 +85,22 @@ function handleAIItemUsage(player) {
             let shouldStay = false;
             let stayChance = 0.4;
 
-            // 新增：若在水鏡莊 / 奇珍閣，且缺少閒置武將且仍有在野武將可招
-            if (currentLand.type === 'START' || currentLand.type === 'ITEM_SHOP') {
-                const aliveIdleCount = player.officers.filter(id => {
-                    const o = getOfficer(id);
-                    return o && !o.isDead;
-                }).length;
-                if (aliveIdleCount < 10 && GAME_STATE.changanOfficers && GAME_STATE.changanOfficers.length > 0) {
-                    shouldStay = true;
-                    stayChance = 0.7; // 更高的機率留下繼續招募
-                    log(`🏕️ 【廣納賢才】${player.name} 覺得帳下兵將不足，決定在 ${currentLand.name} 使用「以逸待勞」，繼續招賢納士！`);
-                }
+            // 招募優先：只要在可招募地點且有在野武將，不論手下多少人，80% 機率留下
+            const canRecruit = GAME_STATE.changanOfficers && GAME_STATE.changanOfficers.length > 0;
+            if (canRecruit && (currentLand.type === 'START' || currentLand.type === 'ITEM_SHOP')) {
+                shouldStay = true;
+                stayChance = 0.8;
+                log(`🏕️ 【廣納賢才】${player.name} 決定在 ${currentLand.name} 使用「以逸待勞」，繼續招賢納士！`);
+            // 領地優勢：停在自己土地或勝率高的敵城
             } else if (currentLand.owner === player.id) {
                 shouldStay = true;
+                stayChance = 0.5;
             } else if (currentLand.type === 'LAND' && currentLand.owner) {
                 const res = getBestSiegeTeam(player.officers, currentLand.defenders, currentLand.id);
-                if (res.rate >= 0.8) shouldStay = true;
+                if (res.rate >= 0.8) {
+                    shouldStay = true;
+                    stayChance = 0.6;
+                }
             }
 
             if (shouldStay && Math.random() < stayChance) {
@@ -110,21 +110,19 @@ function handleAIItemUsage(player) {
         }
 
         if (item.id === 3) { // 暗度陳倉: 傳送
-            const aliveIdleCount = player.officers.filter(id => {
-                const o = getOfficer(id);
-                return o && !o.isDead;
-            }).length;
+            const canRecruit = GAME_STATE.changanOfficers && GAME_STATE.changanOfficers.length > 0;
 
-            if (aliveIdleCount < 10 && player.money >= 2000 && GAME_STATE.changanOfficers && GAME_STATE.changanOfficers.length > 0) {
+            // 補員邏輯：不論武將數目，只要錢 >= $2000 且有在野武將，就飛去招募
+            if (canRecruit && player.money >= 2000) {
                 let recruitTargets = MAP_DATA.filter(land => land.type === "START" || land.type === "ITEM_SHOP");
                 if (recruitTargets.length > 0) {
                     let targetLand = recruitTargets[Math.floor(Math.random() * recruitTargets.length)];
-                    log(`🎯 【求賢若渴】${player.name} 見帳下人才凋零，決定使用「暗度陳倉」去${targetLand.name}招募武將！`);
+                    log(`🎯 【求賢若渴】${player.name} 發現在野仍有人才，決定使用「暗度陳倉」去${targetLand.name}招募武將！`);
                     useItem(player, { ...item, index: idx }, targetLand);
                     return;
                 }
             } else if (player.money > 4000) {
-                // 只精準攻城，不走回頭路（不回自己的地）
+                // 奇襲邏輯：掃描全地圖，找勝率 > 80% 的敵方城市
                 let siegeTargets = MAP_DATA.filter(land =>
                     land.type === 'LAND' &&
                     land.owner &&
@@ -133,7 +131,6 @@ function handleAIItemUsage(player) {
                     (() => { const res = getBestSiegeTeam(player.officers, land.defenders, land.id); return res.rate > 0.8; })()
                 );
                 if (siegeTargets.length > 0 && Math.random() < 0.3) {
-                    // 優先選城池價值最高的敵方目標
                     siegeTargets.sort((a, b) => b.price - a.price);
                     let targetLand = siegeTargets[0];
                     log(`⚔️ 【精準奇襲】${player.name} 勝算極高，決定使用「暗度陳倉」奇襲 ${targetLand.name}！`);
