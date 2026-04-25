@@ -2384,13 +2384,15 @@ function loadGame() {
         // 恢復數據 (Object.assign 保持引用或直接覆蓋)
         Object.assign(GAME_STATE, data.GAME_STATE);
         
-        // MAP_DATA 和 OFFICERS_DATA 是陣列，直接覆蓋
-        data.MAP_DATA.forEach((land, idx) => {
-            if (MAP_DATA[idx]) Object.assign(MAP_DATA[idx], land);
+        // MAP_DATA 和 OFFICERS_DATA 是陣列，必須透過 ID 對應來覆寫 (避免版本更新導致 index 錯亂)
+        data.MAP_DATA.forEach((savedLand) => {
+            const target = MAP_DATA.find(l => l.id === savedLand.id);
+            if (target) Object.assign(target, savedLand);
         });
         
-        data.OFFICERS_DATA.forEach((officer, idx) => {
-            if (OFFICERS_DATA[idx]) Object.assign(OFFICERS_DATA[idx], officer);
+        data.OFFICERS_DATA.forEach((savedOfficer) => {
+            const target = OFFICERS_DATA.find(o => o.id === savedOfficer.id);
+            if (target) Object.assign(target, savedOfficer);
         });
 
         // 恢復 UI
@@ -2635,8 +2637,14 @@ async function loadFromSlot(fileName, fileId, slot) {
         const data = await res.json();
 
         Object.assign(GAME_STATE, data.GAME_STATE);
-        data.MAP_DATA.forEach((land, idx) => { if (MAP_DATA[idx]) Object.assign(MAP_DATA[idx], land); });
-        data.OFFICERS_DATA.forEach((officer, idx) => { if (OFFICERS_DATA[idx]) Object.assign(OFFICERS_DATA[idx], officer); });
+        data.MAP_DATA.forEach((savedLand) => {
+            const target = MAP_DATA.find(l => l.id === savedLand.id);
+            if (target) Object.assign(target, savedLand);
+        });
+        data.OFFICERS_DATA.forEach((savedOfficer) => {
+            const target = OFFICERS_DATA.find(o => o.id === savedOfficer.id);
+            if (target) Object.assign(target, savedOfficer);
+        });
 
         restoreUI();
         if (UI.startScreen) UI.startScreen.classList.add('hidden');
