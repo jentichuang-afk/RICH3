@@ -47,21 +47,6 @@
         <div class="game-area">
             <!-- 左側狀態與控制區 -->
             <div class="sidebar">
-                <!-- Google Drive 同步面板 (10 存檔欄位) -->
-                <div class="cloud-sync-panel" id="drive-sync-panel">
-                    <div class="sync-header">☁️ 雲端硬碟同步</div>
-                    <div id="drive-auth-logged-out">
-                        <button id="btn-drive-login" class="btn google-btn">授權 Google 登入</button>
-                    </div>
-                    <div id="drive-auth-logged-in" class="hidden">
-                        <div class="user-info">
-                            <span id="drive-user-name" style="font-weight:bold; color:var(--gold);">已授權雲端硬碟</span>
-                        </div>
-                        <!-- 10 個存檔欄位 -->
-                        <div id="save-slots-grid"></div>
-                        <button id="btn-drive-logout" class="btn-text" style="margin-top:6px;">清除授權</button>
-                    </div>
-                </div>
 
                 <div class="status-panel">
                     <div class="player-card p1-card active" id="p1-card">
@@ -127,10 +112,7 @@
                         <p>遊戲開始！由劉備先攻。</p>
                     </div>
 
-                    <div style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                        <button id="btn-save-game" class="btn primary-btn" style="font-size: 0.9rem; padding: 8px 0;">💾 存檔</button>
-                        <button id="btn-load-game" class="btn warning-btn" style="font-size: 0.9rem; padding: 8px 0;">📂 讀檔</button>
-                    </div>
+
                     <div style="margin-top: 8px; text-align: center;">
                         <button id="btn-show-encyclopedia" class="btn secondary-btn"
                             style="width: 100%;">查看武將圖鑑</button>
@@ -243,7 +225,7 @@
                             line-height: 1.5;
                             text-align: center;
                         ">
-                            更新<br>2026/04/25<br>10:06
+                            更新<br>2026/04/25<br>10:39
                         </div>
                     </div>
 
@@ -253,6 +235,21 @@
                     <div id="piece-p3" class="piece piece-p3">孫</div>
                     <div id="piece-p4" class="piece piece-p4">董</div>
                     <div id="piece-p5" class="piece piece-p5">信</div>
+                </div>
+            </div>
+
+            <!-- ☁️ 雲端硬碟同步面板 (地圖右下) -->
+            <div class="cloud-sync-panel" id="drive-sync-panel">
+                <div class="sync-header">☁️ 雲端硬碟同步</div>
+                <div id="drive-auth-logged-out">
+                    <button id="btn-drive-login" class="btn google-btn">授權 Google 登入</button>
+                </div>
+                <div id="drive-auth-logged-in" class="hidden">
+                    <div class="user-info" style="margin-bottom:6px;">
+                        <span id="drive-user-name" style="font-weight:bold; color:var(--gold);">已授權雲端硬碟</span>
+                        <button id="btn-drive-logout" class="btn-text" style="margin-left:10px;">清除授權</button>
+                    </div>
+                    <div id="save-slots-grid"></div>
                 </div>
             </div>
         </div>

@@ -152,14 +152,13 @@ h1 {
 }
 
 /* Sidebar & Stats */
-/* Cloud Sync Panel */
+/* Cloud Sync Panel - 地圖下方 */
 .cloud-sync-panel {
-    background: rgba(40, 40, 40, 0.8);
+    background: rgba(30, 25, 15, 0.9);
     border: 1px solid var(--gold);
-    border-radius: 4px;
-    padding: 10px;
-    margin-bottom: 10px;
-    text-align: center;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-top: 8px;
 }
 
 .sync-header {
@@ -235,12 +234,12 @@ h1 {
     background-size: contain;
 }
 
-/* 10 存檔欄位格線 */
+/* 10 存檔欄位格線 - 橫排 5 欄 */
 #save-slots-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 5px;
-    margin: 8px 0 6px;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    margin: 6px 0;
 }
 
 .save-slot-btn {

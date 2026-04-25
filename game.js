@@ -2492,6 +2492,23 @@ async function renderSaveSlots() {
     } catch(e) { /* might fail if not authed yet */ }
 
     UI.saveSlotsGrid.innerHTML = '';
+    const timestampCache = {};
+
+    // Fetch timestamps for all occupied slots
+    const fetchPromises = Object.entries(driveFileIndex).map(async ([name, fileId]) => {
+        if (!name.startsWith('Rich3_Slot_')) return;
+        try {
+            const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+                headers: { Authorization: 'Bearer ' + currentAccessToken }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.timestamp) timestampCache[name] = data.timestamp;
+            }
+        } catch(e) {}
+    });
+    await Promise.all(fetchPromises);
+
     for (let slot = 1; slot <= 10; slot++) {
         const fileName = `Rich3_Slot_${slot}.json`;
         const fileId = driveFileIndex[fileName];
@@ -2499,7 +2516,11 @@ async function renderSaveSlots() {
         btn.className = 'save-slot-btn';
         btn.id = `save-slot-btn-${slot}`;
 
-        if (fileId) {
+        if (fileId && timestampCache[fileName]) {
+            const ts = new Date(timestampCache[fileName]);
+            const dateStr = `${ts.getMonth()+1}/${ts.getDate()} ${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}`;
+            btn.innerHTML = `<span class="slot-num">📁 ${slot}</span><span class="slot-info">${dateStr}</span>`;
+        } else if (fileId) {
             btn.innerHTML = `<span class="slot-num">📁 ${slot}</span><span class="slot-info">已有存檔</span>`;
         } else {
             btn.innerHTML = `<span class="slot-num">🆕 ${slot}</span><span class="slot-info">空欄位</span>`;
