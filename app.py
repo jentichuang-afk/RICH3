@@ -33,6 +33,7 @@ try:
     utils_js = load_file('utils.js')
     combat_engine_js = load_file('combat_engine.js')
     item_system_js = load_file('item_system.js')
+    ollama_service_js = load_file('ollama_service.js')
     ai_model_js = load_file('ai_model.js')
     game_js = load_file('game.js')
 
@@ -42,7 +43,7 @@ try:
     html_with_css = re.sub(r'<script[^>]*src=["\'](?!http).*?\.js["\'][^>]*></script>', '', html_with_css)
     
     # 注意：officers.js 和 items.js 等必須在 game.js 之前載入
-    scripts = f'<script>{items_js}</script><script>{officers_js}</script><script>{utils_js}</script><script>{combat_engine_js}</script><script>{item_system_js}</script><script>{ai_model_js}</script><script>{game_js}</script>'
+    scripts = f'<script>{items_js}</script><script>{officers_js}</script><script>{utils_js}</script><script>{combat_engine_js}</script><script>{item_system_js}</script><script>{ollama_service_js}</script><script>{ai_model_js}</script><script>{game_js}</script>'
     final_html = html_with_css.replace('</body>', f'{scripts}</body>')
 
     # 將背景顏色鎖定，防止受到 Streamlit 佈景主題影響

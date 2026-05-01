@@ -293,10 +293,12 @@ function getBestSiegeTeam(attackerOfficerIds, defenderIds, cityId = -1, useBuff 
 // ============================================================
 // 執行攻城結算
 // ============================================================
-function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
+async function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
     const defenderId = landInfo.owner;
     const defender = GAME_STATE.players[defenderId];
     const defendingIds = landInfo.defenders;
+    
+    let aiSkillTrashTalks = [];
 
     // ==========================================================
     // Phase 41, 45, 61: 魅力防禦機制 (選擇攻城時結算)
@@ -349,9 +351,16 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
             overlay.querySelector("h1").style.transform = "scale(1)";
         });
 
-        setTimeout(() => {
+        setTimeout(async () => {
             overlay.style.opacity = "0";
             setTimeout(() => overlay.remove(), 500);
+
+            if (defender.isBot && !attacker.isBot && typeof isOllamaEnabled === 'function' && isOllamaEnabled()) {
+                try {
+                    const talk = await askOllamaSkillTrashTalk(defender, attacker, displayName, charmer.name);
+                    if (talk && talk.trash_talk) await showTrashTalk(defender.name, talk.trash_talk);
+                } catch(e) {}
+            }
 
             if (attacker.isBot) {
                 setTimeout(() => { payToll(attacker, defender, toll); }, 500);
@@ -505,12 +514,24 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
                 <div style="font-size: 14px; margin-top: 5px;">✨ <strong>${strategistName}</strong> 犧牲自我發動奇謀，成功扭轉了戰局！隊友毫髮無傷！</div>
             </div>`;
             log(`✨ 【神鬼莫測】${strategistName} 智力突破極限，犧牲自我發動奇謀扭轉戰局，且保護了其他隊友！`);
+            
+            let originalWinner = (!isAttackerWin) ? attacker : defender;
+            let originalLoser = (!isAttackerWin) ? defender : attacker;
+            if (originalLoser.isBot && !originalWinner.isBot) {
+                aiSkillTrashTalks.push({ skillName: '神鬼莫測', officerName: strategistName, owner: originalLoser, opponent: originalWinner });
+            }
         } else {
             reversalHtml = `<div style="margin-top: 15px; padding: 10px; background: rgba(156, 39, 176, 0.2); border: 1px solid #9C27B0; border-radius: 5px;">
                 <div style="color: #9C27B0; font-weight: bold; margin-bottom: 5px;">【神機妙算】絕境逆轉！</div>
                 <div style="font-size: 14px; margin-top: 5px;">✨ <strong>${strategistName}</strong> 在絕境中看破敵陣，雙方兩敗俱傷，攻城瓦解！</div>
             </div>`;
             log(`✨ 【神機妙算】${strategistName} 智力超群，在絕境中看破敵陣，雙方兩敗俱傷，攻方無功而返，守方亦未得錢糧！`);
+            
+            let originalWinner = (!isAttackerWin) ? attacker : defender;
+            let originalLoser = (!isAttackerWin) ? defender : attacker;
+            if (originalLoser.isBot && !originalWinner.isBot) {
+                aiSkillTrashTalks.push({ skillName: '神機妙算', officerName: strategistName, owner: originalLoser, opponent: originalWinner });
+            }
         }
     }
 
@@ -636,6 +657,11 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
                     if (dmg > 0 && getEffectiveStat(o, 5) >= 95 && Math.random() < 0.30) {
                         dmg = 0;
                         log(`✨ 【百折不休】發動！${o.name} 魅力驚人，麾下將士死命保護，免疫了本次戰役受傷！`);
+                        let owner = winningTeamIds.includes(id) ? (isAttackerWin ? attacker : defender) : (isAttackerWin ? defender : attacker);
+                        let opponent = (owner === attacker) ? defender : attacker;
+                        if (owner.isBot && !opponent.isBot) {
+                            aiSkillTrashTalks.push({ skillName: '百折不休', officerName: o.name, owner: owner, opponent: opponent });
+                        }
                     }
                     if (dmg > 0) {
                         applyInjury(o, dmg);
@@ -677,6 +703,11 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
                 if (dmg > 0 && getEffectiveStat(o, 5) >= 95 && Math.random() < 0.30) {
                     dmg = 0;
                     log(`✨ 【百折不休】發動！${o.name} 魅力驚人，麾下將士死命保護，免疫了本次戰敗受傷！`);
+                    let owner = losingTeamIds.includes(id) ? (!isAttackerWin ? attacker : defender) : (!isAttackerWin ? defender : attacker);
+                    let opponent = (owner === attacker) ? defender : attacker;
+                    if (owner.isBot && !opponent.isBot) {
+                        aiSkillTrashTalks.push({ skillName: '百折不休', officerName: o.name, owner: owner, opponent: opponent });
+                    }
                 }
                 if (dmg > 0) {
                     applyInjury(o, dmg);
@@ -753,6 +784,12 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
                 }
                 
                 if (healMsg) {
+                    let skillName = isSuperLucky ? '天降甘霖' : '吉星高照';
+                    let owner = (team.name === attacker.name) ? attacker : defender;
+                    let opponent = (owner === attacker) ? defender : attacker;
+                    if (owner.isBot && !opponent.isBot) {
+                        aiSkillTrashTalks.push({ skillName: skillName, officerName: healer.name, owner: owner, opponent: opponent });
+                    }
                     log(healMsg);
                     resultHtml += `<div style="margin-top: 10px; padding: 8px; background: rgba(255, 235, 59, 0.2); border: 1px solid #FBC02D; border-radius: 5px;">
                         <div style="color: #FBC02D; font-weight: bold; margin-bottom: 3px;">【幸運治療】</div>
@@ -764,6 +801,38 @@ function executeSiege(attacker, landInfo, attackingIds, consumedBuff = false) {
     });
 
     GAME_STATE.isWaitingForAction = true;
+
+    if (typeof isOllamaEnabled === 'function' && isOllamaEnabled()) {
+        // 先顯示特技垃圾話
+        for (let task of aiSkillTrashTalks) {
+            try {
+                const talk = await askOllamaSkillTrashTalk(task.owner, task.opponent, task.skillName, task.officerName);
+                if (talk && talk.trash_talk) await showTrashTalk(task.owner.name, talk.trash_talk);
+            } catch (e) {}
+        }
+        
+        let speaker = null;
+        if (attacker.isBot && !defender.isBot) {
+            speaker = attacker;
+        } else if (defender.isBot && !attacker.isBot) {
+            speaker = defender;
+        }
+        
+        if (speaker) {
+            let isSpeakerWin = (speaker === attacker) ? isAttackerWin : !isAttackerWin;
+            if (reversalProc) isSpeakerWin = false; // 如果神機妙算兩敗俱傷，雙方都不算贏
+            let opponent = (speaker === attacker) ? defender : attacker;
+            try {
+                const talkDecision = await askOllamaPostBattleTrashTalk(speaker, opponent, isSpeakerWin, landInfo.name, statName);
+                if (talkDecision && talkDecision.trash_talk) {
+                    await showTrashTalk(speaker.name, talkDecision.trash_talk);
+                }
+            } catch (e) {
+                console.error('Ollama Post-Battle Trash Talk Error:', e);
+            }
+        }
+    }
+
     showModal(
         `攻城戰報 - 比拚【${statName}】`,
         resultHtml,

@@ -59,7 +59,7 @@ function handleAIItemUsage(player) {
         }
 
         if (item.id === 4) { // 暗箭傷人
-            if (player.money > 2000 && Math.random() < 0.4) {
+            if (Math.random() < 0.65) {
                 let enemies = GAME_STATE.activePlayers.filter(pid =>
                     pid !== player.id &&
                     !GAME_STATE.players[pid].isBankrupt &&
@@ -74,7 +74,7 @@ function handleAIItemUsage(player) {
         }
 
         if (item.id === 1 || item.id === 5) { // 瞞天過海, 臨陣磨槍
-            if (Math.random() < 0.2) {
+            if (Math.random() < 0.35) {
                 useItem(player, { ...item, index: idx });
                 return;
             }
@@ -146,9 +146,9 @@ function handleAIItemUsage(player) {
                 land.owner &&
                 land.owner !== player.id &&
                 !GAME_STATE.alliance.includes(land.owner) &&
-                land.development >= 5
+                land.development >= 3
             );
-            if (enemyLands.length > 0 && Math.random() < 0.3) {
+            if (enemyLands.length > 0 && Math.random() < 0.55) {
                 enemyLands.sort((a, b) => b.development - a.development);
                 useItem(player, { ...item, index: idx }, enemyLands[0]);
                 return;
@@ -171,6 +171,107 @@ function handleAIItemUsage(player) {
 // AI 城市選單決策 (長安/江夏：招募 + 買道具)
 // ============================================================
 function handleCityMenuAI(player, offeredIds, cityName) {
+    if (typeof isOllamaEnabled === 'function' && isOllamaEnabled()) {
+        GAME_STATE.isWaitingForAction = true;
+        let offeredOfficers = offeredIds.map(id => {
+            const o = getOfficer(id);
+            let cost = 0;
+            for (let i = 1; i <= 6; i++) cost += o.stats[i];
+            if (OFFICER_SKILLS[id]) {
+                let power = getSkillPowerPercentage(OFFICER_SKILLS[id]);
+                cost = power > 9 ? cost * 2 : Math.floor(cost * 1.5);
+            }
+            return { id: o.id, name: o.name, cost: cost };
+        });
+
+        let availableItems = Object.values(ITEMS_DATA).filter(it => {
+            const alreadyOwned = player.items.some(pi => pi.id === it.id);
+            const limitReached = it.id === 9 && (player.item9UseCount || 0) >= 3;
+            return !alreadyOwned && !limitReached;
+        });
+
+        askOllamaCityMenu(player, offeredOfficers, availableItems).then(async decision => {
+            if (!decision) {
+                return executeCityMenuAIFallback(player, offeredIds, cityName);
+            }
+            let canRecruit = false;
+            let targetOfficer = null;
+            let officerCost = 0;
+
+            if (decision.recruit_officer_id != null) {
+                let cand = offeredOfficers.find(o => o.id === decision.recruit_officer_id);
+                if (cand && player.money >= cand.cost) {
+                    canRecruit = true;
+                    targetOfficer = cand;
+                    officerCost = cand.cost;
+                }
+            }
+
+            let boughtItemsList = [];
+            let tempBudget = player.money - (canRecruit ? officerCost : 0);
+            if (decision.buy_items && Array.isArray(decision.buy_items)) {
+                for (let itemId of decision.buy_items) {
+                    let it = availableItems.find(i => i.id === itemId);
+                    if (it && tempBudget >= it.price) {
+                        boughtItemsList.push(it);
+                        tempBudget -= it.price;
+                    }
+                }
+            }
+            executeCityMenuAction(player, cityName, canRecruit, targetOfficer, officerCost, boughtItemsList);
+        }).catch(e => {
+            console.error('Ollama Error:', e);
+            executeCityMenuAIFallback(player, offeredIds, cityName);
+        });
+        return;
+    }
+
+    executeCityMenuAIFallback(player, offeredIds, cityName);
+}
+
+function executeCityMenuAction(player, cityName, canRecruit, targetOfficer, officerCost, boughtItemsList) {
+    setTimeout(() => {
+        try {
+            if (canRecruit) {
+                playRecruitAnimation(targetOfficer.name, player.name);
+                setTimeout(() => {
+                    updateMoney(player.id, -officerCost);
+                    GAME_STATE.changanOfficers = GAME_STATE.changanOfficers.filter(id => id !== targetOfficer.id);
+                    player.officers.push(targetOfficer.id);
+                    updateOfficerCountUI(player.id);
+                    log(`🎉 [電腦] ${player.name} 在${cityName}花費了 $${officerCost} 招募了在野武將【${targetOfficer.name}】！`);
+
+                    if (boughtItemsList.length > 0) {
+                        boughtItemsList.forEach(item => {
+                            updateMoney(player.id, -item.price);
+                            player.items.push({ ...item });
+                            log(`🎁 奇珍異寶！[電腦] ${player.name} 順便挑選了道具【${item.name}】！`);
+                        });
+                    }
+                    GAME_STATE.isWaitingForAction = false;
+                    endTurn();
+                }, 1000);
+            } else if (boughtItemsList.length > 0) {
+                boughtItemsList.forEach(item => {
+                    updateMoney(player.id, -item.price);
+                    player.items.push({ ...item });
+                    log(`🎁 奇珍異寶！[電腦] ${player.name} 在${cityName}挑選了道具【${item.name}】！`);
+                });
+                GAME_STATE.isWaitingForAction = false;
+                endTurn();
+            } else {
+                log(`${player.name} 視察了${cityName}後，默默離開。`);
+                GAME_STATE.isWaitingForAction = false;
+                endTurn();
+            }
+        } catch (e) {
+            console.error(e);
+            endTurn();
+        }
+    }, 1500);
+}
+
+function executeCityMenuAIFallback(player, offeredIds, cityName) {
     GAME_STATE.isWaitingForAction = true;
 
     // 1. 決定招募對象
@@ -241,43 +342,5 @@ function handleCityMenuAI(player, offeredIds, cityName) {
     }
 
     // 3. 執行結果
-    setTimeout(() => {
-        try {
-            if (canRecruit) {
-                playRecruitAnimation(targetOfficer.name, player.name);
-                setTimeout(() => {
-                    updateMoney(player.id, -officerCost);
-                    GAME_STATE.changanOfficers = GAME_STATE.changanOfficers.filter(id => id !== targetOfficer.id);
-                    player.officers.push(targetOfficer.id);
-                    updateOfficerCountUI(player.id);
-                    log(`🎉 [電腦] ${player.name} 在${cityName}花費了 $${officerCost} 招募了在野武將【${targetOfficer.name}】！`);
-
-                    if (boughtItemsList.length > 0) {
-                        boughtItemsList.forEach(item => {
-                            updateMoney(player.id, -item.price);
-                            player.items.push({ ...item });
-                            log(`🎁 奇珍異寶！[電腦] ${player.name} 順便挑選了道具【${item.name}】！`);
-                        });
-                    }
-                    GAME_STATE.isWaitingForAction = false;
-                    endTurn();
-                }, 1000);
-            } else if (boughtItemsList.length > 0) {
-                boughtItemsList.forEach(item => {
-                    updateMoney(player.id, -item.price);
-                    player.items.push({ ...item });
-                    log(`🎁 奇珍異寶！[電腦] ${player.name} 在${cityName}挑選了道具【${item.name}】！`);
-                });
-                GAME_STATE.isWaitingForAction = false;
-                endTurn();
-            } else {
-                log(`${player.name} 視察了${cityName}後，默默離開。`);
-                GAME_STATE.isWaitingForAction = false;
-                endTurn();
-            }
-        } catch (e) {
-            console.error(e);
-            endTurn();
-        }
-    }, 1500);
+    executeCityMenuAction(player, cityName, canRecruit, targetOfficer, officerCost, boughtItemsList);
 }
