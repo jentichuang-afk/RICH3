@@ -248,7 +248,9 @@ async function askOllamaItemUsage(player) {
             ? (currentLand.owner === player.id
                 ? `自己的領地「${currentLand.name}」(Lv${currentLand.development || 0})`
                 : currentLand.owner
-                    ? `敵方「${GAME_STATE.players[currentLand.owner]?.name}」的領地「${currentLand.name}」，過路費 $${getCityToll(currentLand)}`
+                    ? (GAME_STATE.alliance.includes(player.id) && GAME_STATE.alliance.includes(currentLand.owner)
+                        ? `盟友「${GAME_STATE.players[currentLand.owner]?.name}」的領地「${currentLand.name}」，同盟免過路費`
+                        : `敵方「${GAME_STATE.players[currentLand.owner]?.name}」的領地「${currentLand.name}」，過路費 $${getCityToll(currentLand)}`)
                     : `無主之地「${currentLand.name}」`)
             : `特殊地點「${currentLand.name}」`)
         : '未知位置';
@@ -256,7 +258,7 @@ async function askOllamaItemUsage(player) {
     // 計算周遭威脅：下一步可能踩到的高額過路費
     const nextLandId = (player.position + 1) % 20;
     const nextLand = MAP_DATA[nextLandId];
-    const nextThreat = (nextLand && nextLand.type === 'LAND' && nextLand.owner && nextLand.owner !== player.id)
+    const nextThreat = (nextLand && nextLand.type === 'LAND' && nextLand.owner && nextLand.owner !== player.id && !(GAME_STATE.alliance.includes(player.id) && GAME_STATE.alliance.includes(nextLand.owner)))
         ? `前方「${nextLand.name}」有敵方城池，過路費 $${getCityToll(nextLand)}`
         : null;
 
@@ -264,7 +266,7 @@ async function askOllamaItemUsage(player) {
     let bestTarget = null;
     let bestRate = 0;
     MAP_DATA.forEach(land => {
-        if (land.type === 'LAND' && land.owner && land.owner !== player.id && !GAME_STATE.alliance.includes(land.owner)) {
+        if (land.type === 'LAND' && land.owner && land.owner !== player.id && !(GAME_STATE.alliance.includes(player.id) && GAME_STATE.alliance.includes(land.owner))) {
             const res = typeof getBestSiegeTeam === 'function'
                 ? getBestSiegeTeam(player.officers, land.defenders, land.id)
                 : { rate: 0 };
@@ -281,7 +283,7 @@ async function askOllamaItemUsage(player) {
 
     // 敵手排名（資金最多的敵人）
     const enemies = GAME_STATE.activePlayers
-        .filter(pid => pid !== player.id && !GAME_STATE.players[pid].isBankrupt)
+        .filter(pid => pid !== player.id && !GAME_STATE.players[pid].isBankrupt && !(GAME_STATE.alliance.includes(player.id) && GAME_STATE.alliance.includes(pid)))
         .sort((a, b) => GAME_STATE.players[b].money - GAME_STATE.players[a].money);
     const richestEnemy = enemies.length > 0 ? GAME_STATE.players[enemies[0]] : null;
 

@@ -63,7 +63,7 @@ function handleAIItemUsage(player) {
                 let enemies = GAME_STATE.activePlayers.filter(pid =>
                     pid !== player.id &&
                     !GAME_STATE.players[pid].isBankrupt &&
-                    !GAME_STATE.alliance.includes(pid)
+                    !(GAME_STATE.alliance.includes(player.id) && GAME_STATE.alliance.includes(pid))
                 );
                 if (enemies.length > 0) {
                     enemies.sort((a, b) => GAME_STATE.players[b].money - GAME_STATE.players[a].money);
@@ -95,7 +95,7 @@ function handleAIItemUsage(player) {
             } else if (currentLand.owner === player.id) {
                 shouldStay = true;
                 stayChance = 0.5;
-            } else if (currentLand.type === 'LAND' && currentLand.owner) {
+            } else if (currentLand.type === 'LAND' && currentLand.owner && currentLand.owner !== player.id && !(GAME_STATE.alliance.includes(player.id) && GAME_STATE.alliance.includes(currentLand.owner))) {
                 const res = getBestSiegeTeam(player.officers, currentLand.defenders, currentLand.id);
                 if (res.rate >= 0.8) {
                     shouldStay = true;
@@ -127,7 +127,7 @@ function handleAIItemUsage(player) {
                     land.type === 'LAND' &&
                     land.owner &&
                     land.owner !== player.id &&
-                    !GAME_STATE.alliance.includes(land.owner) &&
+                    !(GAME_STATE.alliance.includes(player.id) && GAME_STATE.alliance.includes(land.owner)) &&
                     (() => { const res = getBestSiegeTeam(player.officers, land.defenders, land.id); return res.rate > 0.8; })()
                 );
                 if (siegeTargets.length > 0 && Math.random() < 0.3) {
@@ -145,7 +145,7 @@ function handleAIItemUsage(player) {
                 land.type === 'LAND' &&
                 land.owner &&
                 land.owner !== player.id &&
-                !GAME_STATE.alliance.includes(land.owner) &&
+                !(GAME_STATE.alliance.includes(player.id) && GAME_STATE.alliance.includes(land.owner)) &&
                 land.development >= 3
             );
             if (enemyLands.length > 0 && Math.random() < 0.55) {
