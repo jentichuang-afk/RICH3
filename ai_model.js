@@ -164,6 +164,18 @@ function handleAIItemUsage(player) {
                 return;
             }
         }
+
+        if (item.id === 11) { // 離間之計
+            // 當自己金錢超過其他所有人的總和時使用
+            const othersMoney = GAME_STATE.activePlayers
+                .filter(pid => pid !== player.id && !GAME_STATE.players[pid].isBankrupt)
+                .reduce((sum, pid) => sum + (GAME_STATE.players[pid].money || 0), 0);
+            
+            if (player.money > othersMoney) {
+                useItem(player, { ...item, index: idx });
+                return;
+            }
+        }
     }
 }
 
@@ -321,6 +333,9 @@ function executeCityMenuAIFallback(player, offeredIds, cityName) {
             if (hasDeadPur && b.id === 10) scoreB = 1000;
             if (hasInjuredPur && a.id === 7) scoreA = 500;
             if (hasInjuredPur && b.id === 7) scoreB = 500;
+            // 離間之計購買邏輯：金額超過 10000 才會考慮
+            if (player.money > 10000 && a.id === 11) scoreA = 300;
+            if (player.money > 10000 && b.id === 11) scoreB = 300;
             return scoreB - scoreA || 0.5 - Math.random();
         });
 

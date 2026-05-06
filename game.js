@@ -14,7 +14,8 @@ if (typeof window.ITEMS_DATA === 'undefined') {
         4: { id: 4, name: "暗箭傷人", price: 1000, desc: "選定一名主公，使其有效能力最高的前三名武將受到 99% 重傷", type: "active_target_player" },
         5: { id: 5, name: "臨陣磨槍", price: 1000, desc: "攻城戰時可選用，我方全能力增加 10%", type: "active_buff" },
         6: { id: 6, name: "無懈可擊", price: 500, desc: "被動防禦，抵銷敵方對自己使用的負面計謀", type: "passive" },
-        7: { id: 7, name: "迴光返照", price: 300, desc: "治療己方任意武將 (傷勢歸零)", type: "active_target_officer" }
+        7: { id: 7, name: "迴光返照", price: 300, desc: "治療己方任意武將 (傷勢歸零)", type: "active_target_officer" },
+        11: { id: 11, name: "離間之計", price: 2000, desc: "使用後立即解除現有同盟，且全場 15 回合內無法組成任何同盟", type: "active" }
     };
     console.warn('[Fallback] ITEMS_DATA was not loaded from items.js, using built-in fallback.');
 }
@@ -29,13 +30,14 @@ const GAME_STATE = {
     changanOfficers: [], // 流亡長安的在野武將 (Phase 15)
     logs: [], // 記錄最近的日誌語記 (存檔用)
     alliance: [], // Phase 110: 同盟玩家 ID 陣列
+    alienationTurns: 0, // 離間之計剩餘回合數
     // Phase 65: 擴充 items 陣列與相關 flag (actTwice, stayInPlace, siegeBuff, blockScheme)
     players: {
-        1: { id: 1, name: "劉備", money: 15000, position: 0, colorClass: 'p1', nameClass: 'p1-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false, ownTurnCount: 0, itemCooldowns: {} },
-        2: { id: 2, name: "曹操", money: 15000, position: 0, colorClass: 'p2', nameClass: 'p2-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false, ownTurnCount: 0, itemCooldowns: {} },
-        3: { id: 3, name: "孫權", money: 15000, position: 0, colorClass: 'p3', nameClass: 'p3-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false, ownTurnCount: 0, itemCooldowns: {} },
-        4: { id: 4, name: "董卓", money: 15000, position: 0, colorClass: 'p4', nameClass: 'p4-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false, ownTurnCount: 0, itemCooldowns: {} },
-        5: { id: 5, name: "信長", money: 15000, position: 0, colorClass: 'p5', nameClass: 'p5-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false, ownTurnCount: 0, itemCooldowns: {} }
+        1: { id: 1, name: "劉備", money: 15000, position: 0, colorClass: 'p1', nameClass: 'p1-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false, ownTurnCount: 0, itemCooldowns: {}, history: { sieges: [], item_hits: {}, land_attacks: {} } },
+        2: { id: 2, name: "曹操", money: 15000, position: 0, colorClass: 'p2', nameClass: 'p2-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false, ownTurnCount: 0, itemCooldowns: {}, history: { sieges: [], item_hits: {}, land_attacks: {} } },
+        3: { id: 3, name: "孫權", money: 15000, position: 0, colorClass: 'p3', nameClass: 'p3-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false, ownTurnCount: 0, itemCooldowns: {}, history: { sieges: [], item_hits: {}, land_attacks: {} } },
+        4: { id: 4, name: "董卓", money: 15000, position: 0, colorClass: 'p4', nameClass: 'p4-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false, ownTurnCount: 0, itemCooldowns: {}, history: { sieges: [], item_hits: {}, land_attacks: {} } },
+        5: { id: 5, name: "信長", money: 15000, position: 0, colorClass: 'p5', nameClass: 'p5-text', isBot: false, isBankrupt: false, officers: [], items: [], actTwice: false, stayInPlace: false, siegeBuff: false, blockScheme: false, ownTurnCount: 0, itemCooldowns: {}, history: { sieges: [], item_hits: {}, land_attacks: {} } }
     }
 };
 
@@ -342,9 +344,13 @@ function initGame() {
         // 為所有地圖格子加上點擊事件 (查看情報)
         document.querySelectorAll('.cell').forEach(cell => {
             cell.addEventListener('click', () => {
+                // 如果正在進行地圖選城模式 (殺人放火)，不觸發情報視窗
+                if (document.getElementById('arson-map-banner')) return;
+
                 const index = parseInt(cell.getAttribute('data-index'), 10);
                 const landInfo = MAP_DATA[index];
                 if (!landInfo) return;
+
 
                 let info = `<div style="border-bottom: 2px solid #8e735b; padding-bottom: 10px; margin-bottom: 10px;">`;
                 if (landInfo.type === 'START' || landInfo.type === 'ITEM_SHOP') {
@@ -523,8 +529,10 @@ function startGame() {
         // Phase 75: 天下為公單局使用次數初始化
         GAME_STATE.players[i].item9UseCount = 0;
 
-        // 如果電腦玩家（非人類），顯示其 UI 為電腦標記
+        // 如果電腦玩家（非人類），顯示其 UI 為電腦標記，並設定初始金額為 20000
         if (GAME_STATE.players[i].isBot) {
+            GAME_STATE.players[i].money = 20000;
+            updateMoney(i, 0); // 刷新 UI 顯示
             const card = UI[`p${i}Card`];
             const strongElement = card.querySelector('.info h2'); // 原為 strong, 檢查 index.html 發現是 h2
             if (strongElement && !strongElement.textContent.includes('(電腦)')) {
@@ -574,6 +582,10 @@ function checkTurn() {
     // Phase 65: 控制使用道具按鈕 (戰鬥中或動畫中不可用)
     if (UI.btnUseItem) {
         UI.btnUseItem.disabled = currentPlayer.isBot || GAME_STATE.isWaitingForAction;
+    }
+
+    if (!currentPlayer.isBot) {
+        checkPassiveHeal(currentPlayer);
     }
 
     if (currentPlayer.isBot) {
@@ -907,43 +919,30 @@ function triggerLandEvent(player, landInfo) {
 
             log(`${player.name} 回到自己的領地 ${landInfo.name}，軍心大振。`);
             
-            // AI 傷員替換邏輯：若守將有重傷 (>50%)，且閒置清單有武將，則進行輪替
-            let hasInjured = false;
-            let healthyDefenders = [];
-            landInfo.defenders.forEach(id => {
-                let o = getOfficer(id);
-                if (o && o.injuryRate > 50) {
-                    hasInjured = true;
-                    player.officers.push(id); // 退回閒置區
-                } else {
-                    healthyDefenders.push(id);
-                }
-            });
-
-            if (hasInjured) {
-                // 從閒置區挑選健康的填補空缺 (補滿最多 3 人)
-                let healthyIdle = player.officers.filter(id => {
-                    let o = getOfficer(id);
-                    return o && (o.injuryRate || 0) <= 50;
-                });
-                // 選將邏輯：優先故地加成武將，其餘隨機
-                let homeIdle = healthyIdle.filter(id =>
+            // AI 每次走到自己的城池時，都會重新調配武將，邏輯與佔領空城相同
+            // 先將所有守將退回閒置清單
+            player.officers.push(...landInfo.defenders);
+            landInfo.defenders = [];
+            
+            let sendCount = Math.min(3, player.officers.length);
+            if (sendCount > 0) {
+                // 選將邏輯：優先故地加成武將，其餘隨機選取
+                let homeOfficers = player.officers.filter(id =>
                     (typeof OFFICER_HOME_CITY !== 'undefined' && OFFICER_HOME_CITY[id] === landInfo.id)
                 );
-                let otherIdle = healthyIdle.filter(id =>
+                let otherOfficers = player.officers.filter(id =>
                     !(typeof OFFICER_HOME_CITY !== 'undefined' && OFFICER_HOME_CITY[id] === landInfo.id)
                 );
-                otherIdle.sort(() => Math.random() - 0.5);
-                healthyIdle = [...homeIdle, ...otherIdle];
-
-                while (healthyDefenders.length < 3 && healthyIdle.length > 0) {
-                    let bestId = healthyIdle.shift();
-                    healthyDefenders.push(bestId);
-                    player.officers = player.officers.filter(id => id !== bestId);
-                }
-                landInfo.defenders = healthyDefenders;
+                // 其餘武將打亂順序
+                otherOfficers.sort(() => Math.random() - 0.5);
+                
+                let poolOfficers = [...homeOfficers, ...otherOfficers];
+                let chosen = poolOfficers.slice(0, sendCount);
+                
+                landInfo.defenders = chosen;
+                player.officers = player.officers.filter(id => !chosen.includes(id));
                 updateOfficerCountUI(player.id);
-                log(`🔄 【調兵遣將】[電腦] ${player.name} 發現 ${landInfo.name} 有守將重傷，已重新部署武將駐守！`);
+                log(`🔄 【調兵遣將】[電腦] ${player.name} 視察了 ${landInfo.name}，並重新部署了 ${chosen.length} 名武將駐守！`);
             }
 
             // AI 建設邏輯：若手頭現金充足 (目前資金大於 建設費 + $1000)，則自動進行建設
@@ -1559,6 +1558,7 @@ function updateAllianceStatus() {
     }
 
     // --- 無同盟：檢查是否應成立 ---
+    if (GAME_STATE.alienationTurns > 0) return; // 離間之計效力中
     let newAlliance = [];
     if (activePids.length >= 4) {
         const cands3 = sorted.slice(0, 3);
@@ -1582,6 +1582,14 @@ function updateAllianceStatus() {
 
 function endTurn() {
     if (GAME_STATE.gameOver) return;
+
+    // 檢查被動迴光返照 (針對所有存活人類玩家)
+    GAME_STATE.activePlayers.forEach(pid => {
+        const p = GAME_STATE.players[pid];
+        if (!p.isBot && !p.isBankrupt && typeof checkPassiveHeal === 'function') {
+            checkPassiveHeal(p);
+        }
+    });
 
     // Phase 48: 統一結算破產 (處理買地、招募、事件卡扣錢導致的破產)
     const currentPlayer = GAME_STATE.players[GAME_STATE.currentPlayer];
@@ -1650,6 +1658,12 @@ function endTurn() {
             processCityTaxesAndInflation(nextPlayer);
 
             // Phase 110: 每回合更新同盟狀態
+            if (GAME_STATE.alienationTurns > 0) {
+                GAME_STATE.alienationTurns--;
+                if (GAME_STATE.alienationTurns === 0) {
+                    log(`📜 「離間之計」效力已過，天下英雄可重新商議合縱連橫之事。`);
+                }
+            }
             updateAllianceStatus();
 
             checkTurn();

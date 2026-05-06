@@ -861,12 +861,28 @@ async function executeSiege(attacker, landInfo, attackingIds, consumedBuff = fal
                 if (attacker.id === 3) ownerMarker.classList.add('owner-p3');
                 if (attacker.id === 4) ownerMarker.classList.add('owner-p4');
                 if (attacker.id === 5) ownerMarker.classList.add('owner-p5');
+                // 紀錄攻城歷史 (全記錄)
+                attacker.history = attacker.history || { sieges: [], item_hits: {}, land_attacks: {} };
+                attacker.history.sieges.push({ landId: landInfo.id, landName: landInfo.name, result: 'win', time: new Date().getTime() });
+                
+                // 紀錄被攻打歷史
+                defender.history = defender.history || { sieges: [], item_hits: {}, land_attacks: {} };
+                defender.history.land_attacks[attacker.id] = (defender.history.land_attacks[attacker.id] || 0) + 1;
+
                 endTurn();
             } else {
                 const penalty = getCityToll(landInfo) * 2;
                 log(`❌ 攻城失敗！${attacker.name} 損失慘重，支付雙倍過路費 $${penalty}！`);
                 attacker.officers.push(...attackingIds);
                 updateOfficerCountUI(attacker.id);
+                // 紀錄攻城歷史 (全記錄)
+                attacker.history = attacker.history || { sieges: [], item_hits: {}, land_attacks: {} };
+                attacker.history.sieges.push({ landId: landInfo.id, landName: landInfo.name, result: 'loss', time: new Date().getTime() });
+
+                // 紀錄被攻打歷史 (即使失敗也算是一次冒犯)
+                defender.history = defender.history || { sieges: [], item_hits: {}, land_attacks: {} };
+                defender.history.land_attacks[attacker.id] = (defender.history.land_attacks[attacker.id] || 0) + 1;
+
                 payToll(attacker, defender, penalty);
             }
         },

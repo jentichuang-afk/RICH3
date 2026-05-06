@@ -704,6 +704,136 @@ h1 {
     background-color: var(--p5-color);
 }
 
+/* =============================================
+   殺人放火 - 地圖城池選取模式
+   ============================================= */
+
+/* 地圖進入選城模式時，全局遮罩提示 */
+#arson-map-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 9500;
+    background: linear-gradient(135deg, rgba(180, 30, 10, 0.95), rgba(100, 15, 0, 0.95));
+    color: #fff;
+    text-align: center;
+    padding: 14px 20px;
+    font-family: 'Noto Serif TC', serif;
+    font-size: 1.15rem;
+    letter-spacing: 0.1em;
+    box-shadow: 0 4px 20px rgba(200, 50, 0, 0.6);
+    animation: bannerSlideDown 0.3s ease-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+}
+
+@keyframes bannerSlideDown {
+    from { transform: translateY(-100%); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+}
+
+#arson-map-banner .banner-hint {
+    color: #ffd700;
+    font-weight: bold;
+}
+
+#arson-cancel-btn {
+    padding: 6px 18px;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.5);
+    border-radius: 20px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: background 0.2s;
+}
+
+#arson-cancel-btn:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+/* 可選目標城池 - 高亮閃爍 */
+.cell.arson-targetable {
+    cursor: crosshair !important;
+    outline: 2px dashed #ff4500;
+    outline-offset: -2px;
+    animation: arsonPulse 1.2s ease-in-out infinite alternate;
+    background: rgba(150, 30, 0, 0.35) !important;
+}
+
+@keyframes arsonPulse {
+    from { box-shadow: 0 0 6px 2px rgba(255, 69, 0, 0.5); }
+    to   { box-shadow: 0 0 18px 6px rgba(255, 100, 0, 0.85); }
+}
+
+/* 懸停在可選城池上 */
+.cell.arson-targetable:hover {
+    background: rgba(200, 50, 0, 0.55) !important;
+    outline-style: solid;
+    transform: scale(1.03);
+    z-index: 5;
+    transition: transform 0.1s;
+}
+
+/* 已選取的城池 */
+.cell.arson-selected {
+    outline: 3px solid #ff6b35 !important;
+    background: rgba(255, 80, 0, 0.5) !important;
+    box-shadow: 0 0 20px 8px rgba(255, 80, 0, 0.7) !important;
+    animation: none !important;
+}
+
+/* 選城模式下非可選格子變暗 */
+.cell.arson-dimmed {
+    opacity: 0.35;
+    filter: grayscale(60%);
+    pointer-events: none;
+}
+
+/* 確認按鈕浮動 */
+#arson-confirm-btn {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9600;
+    padding: 14px 40px;
+    background: linear-gradient(135deg, #c0392b, #e74c3c);
+    color: #fff;
+    font-size: 1.2rem;
+    font-family: 'Noto Serif TC', serif;
+    font-weight: bold;
+    letter-spacing: 0.15em;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    box-shadow: 0 6px 25px rgba(192, 57, 43, 0.7);
+    transition: transform 0.15s, box-shadow 0.15s;
+    animation: confirmPulse 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes confirmPulse {
+    from { box-shadow: 0 6px 25px rgba(192, 57, 43, 0.7); }
+    to   { box-shadow: 0 8px 35px rgba(231, 76, 60, 0.95); }
+}
+
+#arson-confirm-btn:hover {
+    transform: translateX(-50%) scale(1.05);
+}
+
+#arson-confirm-btn:disabled {
+    background: #555;
+    box-shadow: none;
+    animation: none;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+
+
 .board-center {
     background: rgba(20, 20, 20, 0.8);
     border-radius: 8px;

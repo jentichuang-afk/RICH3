@@ -118,6 +118,11 @@ function useItem(player, itemInfo, aiTarget = null) {
                 } else {
                     log(`${targetPlayer.name} 帳下無將，逃過一劫。`);
                 }
+                
+                // 紀錄恩怨：誰對我放冷箭
+                targetPlayer.history = targetPlayer.history || { sieges: [], item_hits: {}, land_attacks: {} };
+                targetPlayer.history.item_hits[player.id] = (targetPlayer.history.item_hits[player.id] || 0) + 1;
+
                 consumeItem(player, itemInfo.index);
                 GAME_STATE.isWaitingForAction = false;
             };
@@ -193,11 +198,15 @@ function useItem(player, itemInfo, aiTarget = null) {
                         }
                     });
                 }
+                // 紀錄恩怨：誰燒了我的城
+                targetPlayer.history = targetPlayer.history || { sieges: [], item_hits: {}, land_attacks: {} };
+                targetPlayer.history.item_hits[player.id] = (targetPlayer.history.item_hits[player.id] || 0) + 1;
+
                 consumeItem(player, itemInfo.index);
                 GAME_STATE.isWaitingForAction = false;
             };
             if (isBot && aiTarget) executeArson(aiTarget);
-            else openTargetSelect('land', executeArson);
+            else openMapCitySelect(executeArson, player);
             break;
         }
 
@@ -251,11 +260,179 @@ function useItem(player, itemInfo, aiTarget = null) {
             else openTargetSelect('dead_officer', executeResurrect, player);
             break;
         }
+
+        case 11: { // 離間之計
+            log(`📜 【離間之計】！${player.name} 散布謠言，挑撥各方關係！`);
+            if (GAME_STATE.alliance.length > 0) {
+                const names = GAME_STATE.alliance.map(id => GAME_STATE.players[id].name).join('、');
+                log(`💔 「同盟瓦解」 —— 受流言蜚語影響，${names} 的同盟關係徹底破裂！`);
+                GAME_STATE.alliance = [];
+                updateAllianceUI();
+            }
+            GAME_STATE.alienationTurns = 15;
+            log(`📵 天下猜疑四起，未來 15 回合內各方將無法達成任何同盟！`);
+            consumeItem(player, itemInfo.index);
+            GAME_STATE.isWaitingForAction = false;
+            break;
+        }
     }
 }
 
 // ============================================================
-// 目標選擇介面
+// 被動迴光返照 - 自動觸發邏輯
+// ============================================================
+/**
+ * 檢查玩家是否需要被動使用「迴光返照」。
+ * 條件：玩家持有 ID=7 的道具 + 有武將受傷超過 90%。
+ * 優先對能力總和最高的重傷武將施放。
+ * @param {Object} player - 要檢查的玩家物件
+ * @returns {boolean} 是否觸發了被動治療
+ */
+function checkPassiveHeal(player) {
+    if (!player || player.isBot) return false; // 僅對人類玩家被動觸發
+
+    const itemIdx = player.items ? player.items.findIndex(it => it.id === 7) : -1;
+    if (itemIdx === -1) return false; // 沒有迴光返照
+
+    // 收集所有受傷超過 90% 且未陣亡的武將
+    const criticalOfficers = [];
+    const checkOfficer = (id) => {
+        const o = getOfficer(id);
+        if (o && !o.isDead && (o.injuryRate || 0) > 90) {
+            let total = 0;
+            for (let i = 1; i <= 6; i++) total += (o.stats[i] || 0);
+            criticalOfficers.push({ id: o.id, name: o.name, total });
+        }
+    };
+
+    player.officers.forEach(checkOfficer);
+    MAP_DATA.forEach(land => {
+        if (land.owner === player.id) land.defenders.forEach(checkOfficer);
+    });
+
+    if (criticalOfficers.length === 0) return false;
+
+    // 對能力總和最高的武將使用
+    criticalOfficers.sort((a, b) => b.total - a.total);
+    const target = criticalOfficers[0];
+    const o = getOfficer(target.id);
+
+    log(`💊 【迴光返照 · 被動】${player.name} 的 ${o.name} 傷勢危急 (${o.injuryRate}%)，自動施放神醫妙術！`);
+    o.injuryRate = 0;
+    o.cumulativeInjury = Math.max(0, (o.cumulativeInjury || 0) - 100);
+    log(`✨ ${o.name} 傷勢康復，重煥鬥志！`);
+
+    player.items.splice(itemIdx, 1);
+    updateOfficerCountUI(player.id);
+    return true;
+}
+
+// ============================================================
+// 地圖城池選取模式 (殺人放火專用)
+// ============================================================
+/**
+ * 進入「地圖選城」模式：高亮顯示可攻擊的城池，讓玩家直接在地圖上點選。
+ * @param {Function} callback - 選定城池後的回呼，傳入 landInfo 物件
+ * @param {Object}   player   - 使用道具的玩家物件
+ */
+function openMapCitySelect(callback, player) {
+    // 找出所有「可攻擊」的城池（敵方城池，且不是盟友）
+    const validLands = MAP_DATA.filter(land =>
+        land.type === 'LAND' &&
+        land.owner &&
+        land.owner !== player.id &&
+        !(GAME_STATE.alliance.includes(player.id) && GAME_STATE.alliance.includes(land.owner))
+    );
+
+    if (validLands.length === 0) {
+        log(`[提示] 目前沒有可以放火的敵方城池。`);
+        GAME_STATE.isWaitingForAction = false;
+        return;
+    }
+
+    const validIds = new Set(validLands.map(l => l.id));
+    let selectedLand = null;
+
+    // ── 建立頂部提示橫幅 ──
+    const banner = document.createElement('div');
+    banner.id = 'arson-map-banner';
+    banner.innerHTML = `
+        <span>🔥 <span class="banner-hint">【殺人放火】</span> 請在地圖上點選目標城池</span>
+        <button id="arson-cancel-btn">✕ 取消</button>
+    `;
+    document.body.appendChild(banner);
+
+    // ── 建立底部確認按鈕 ──
+    const confirmBtn = document.createElement('button');
+    confirmBtn.id = 'arson-confirm-btn';
+    confirmBtn.textContent = '🔥 確認放火！';
+    confirmBtn.disabled = true;
+    document.body.appendChild(confirmBtn);
+
+    // ── 為地圖格子套用樣式 ──
+    document.querySelectorAll('.cell').forEach(cellEl => {
+        const idx = parseInt(cellEl.getAttribute('data-index'), 10);
+        if (validIds.has(idx)) {
+            cellEl.classList.add('arson-targetable');
+        } else {
+            cellEl.classList.add('arson-dimmed');
+        }
+    });
+
+    // ── 點選城池邏輯 ──
+    const handleCellClick = (e) => {
+        const cellEl = e.currentTarget;
+        const idx = parseInt(cellEl.getAttribute('data-index'), 10);
+        const land = MAP_DATA[idx];
+        if (!land || !validIds.has(idx)) return;
+
+        // 清除上一個選取
+        document.querySelectorAll('.cell.arson-selected').forEach(el => {
+            el.classList.remove('arson-selected');
+            el.classList.add('arson-targetable');
+        });
+
+        cellEl.classList.remove('arson-targetable');
+        cellEl.classList.add('arson-selected');
+        selectedLand = land;
+        confirmBtn.disabled = false;
+
+        const owner = GAME_STATE.players[land.owner];
+        confirmBtn.textContent = `🔥 放火於 ${land.name}（${owner.name}）！`;
+    };
+
+    // 綁定點擊事件到所有可選格子
+    document.querySelectorAll('.cell.arson-targetable').forEach(cellEl => {
+        cellEl.addEventListener('click', handleCellClick);
+    });
+
+    // ── 清理函式 ──
+    const cleanup = () => {
+        document.querySelectorAll('.cell').forEach(el => {
+            el.classList.remove('arson-targetable', 'arson-selected', 'arson-dimmed');
+            el.removeEventListener('click', handleCellClick);
+        });
+        if (banner.parentNode) banner.remove();
+        if (confirmBtn.parentNode) confirmBtn.remove();
+    };
+
+    // ── 確認按鈕 ──
+    confirmBtn.onclick = () => {
+        if (!selectedLand) return;
+        cleanup();
+        callback(selectedLand);
+    };
+
+    // ── 取消按鈕 ──
+    document.getElementById('arson-cancel-btn').onclick = () => {
+        cleanup();
+        log(`${player.name} 收回了「殺人放火」之計。`);
+        GAME_STATE.isWaitingForAction = false;
+    };
+}
+
+// ============================================================
+// 目標選擇介面 (清單 Modal 版 — 暗度陳倉、迴光返照等使用)
 // ============================================================
 function openTargetSelect(type, callback, extra) {
     if (!UI.targetSelectList) return;

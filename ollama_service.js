@@ -104,6 +104,45 @@ async function askOllama(prompt) {
 // ----------------------------------------------------
 
 /**
+ * 生成 AI 記憶與恩怨背景文字
+ */
+function generateMemoryContext(player) {
+    if (!player.history) return "";
+    let context = "\n【你的全局記憶帳本】\n";
+    
+    // 攻城經驗
+    if (player.history.sieges && player.history.sieges.length > 0) {
+        context += "- 攻城紀錄：\n";
+        const siegeSummary = {};
+        player.history.sieges.forEach(s => {
+            siegeSummary[s.landName] = siegeSummary[s.landName] || { win: 0, loss: 0 };
+            siegeSummary[s.landName][s.result]++;
+        });
+        Object.entries(siegeSummary).forEach(([name, res]) => {
+            context += `  * 在「${name}」攻打過 ${res.win + res.loss} 次，勝 ${res.win} 敗 ${res.loss}。\n`;
+        });
+    }
+
+    // 恩怨情仇 (計謀攻擊)
+    if (player.history.item_hits && Object.keys(player.history.item_hits).length > 0) {
+        context += "- 恩怨債務：\n";
+        Object.entries(player.history.item_hits).forEach(([pid, count]) => {
+            context += `  * 「${GAME_STATE.players[pid]?.name}」曾對你使用過 ${count} 次負面計謀，讓你懷恨在心。\n`;
+        });
+    }
+
+    // 恩怨情仇 (領地攻擊)
+    if (player.history.land_attacks && Object.keys(player.history.land_attacks).length > 0) {
+        context += "- 領地衝突：\n";
+        Object.entries(player.history.land_attacks).forEach(([pid, count]) => {
+            context += `  * 「${GAME_STATE.players[pid]?.name}」曾攻打過你的領地 ${count} 次，這是對你權威的挑戰。\n`;
+        });
+    }
+    
+    return context;
+}
+
+/**
  * 將武將陣列轉為文字敘述
  */
 function formatOfficersList(officerIds) {
@@ -126,6 +165,7 @@ async function askOllamaSiegeDecision(player, landInfo) {
     let prompt = `你是三國大富翁遊戲中的主公「${player.name}」。你現在踩到了敵方「${GAME_STATE.players[landInfo.owner].name}」的領地「${landInfo.name}」。
 你的資金: $${player.money}。
 該城池過路費: $${toll}。若攻城失敗需支付雙倍過路費 ($${toll * 2})。
+${generateMemoryContext(player)}
 你的閒置武將陣容：
 ${formatOfficersList(player.officers)}
 
@@ -135,6 +175,7 @@ ${formatOfficersList(landInfo.defenders)}
 你擁有臨陣磨槍道具(可增加攻城全能力10%): ${hasBuffItem ? '是' : '否'}。
 
 請決策你要付過路費，還是發起攻城。若要攻城，請挑選 1 到 3 名武將 ID。
+請參考記憶帳本：若某地失敗多次，請謹慎決定；若對方是你的仇敵，請更傾向進攻。
 另外，請根據局勢與你的決定，用三國時代主公的語氣說一句「垃圾話」(可以嘲笑對手、展現霸氣或自嘲，限 15~30 字)。
 請務必回傳以下 JSON 格式：
 {
@@ -331,18 +372,22 @@ ${enemies.map(pid => {
 【背包計謀】
 ${itemsInfo || '無'}
 
+${generateMemoryContext(player)}
+
 ${urgencyHints.length > 0 ? '【關鍵提示 - 強烈建議考慮以下計謀！】\n' + urgencyHints.join('\n') : ''}
 
 請根據以上情況判斷是否使用計謀，以及使用哪一個。
 注意事項：
+- 請參考【全局記憶帳本】：若某位主公頻繁攻擊你或對你放冷箭，現在是你反擊的最佳時機。
 - 若有【關鍵提示】中的緊急情況，**強烈建議 use_item: true**。
 - 若背包有計謀但局勢平穩，仍有機會使用（30%~50% 機率）以保持壓力。
 - 若使用，請提供背包索引(item_index)，以及視計謀類型填入目標：
-  - 暗箭傷人(ID:4)：target_player_id 填入最富有的敵方玩家ID
+  - 暗箭傷人(ID:4)：target_player_id 填入你最痛恨的或最富有的敵方玩家ID
   - 暗度陳倉(ID:3)：target_land_id 填入目標城池ID (0~19)
-  - 殺人放火(ID:8)：target_land_id 填入目標城池ID (0~19)
+  - 殺人放火(ID:8)：target_land_id 填入你最痛恨的人的城池ID (0~19)
   - 迴光返照(ID:7)：target_officer_id 填入受傷武將ID
   - 起死回生(ID:10)：target_officer_id 填入陣亡武將ID
+  - 離間之計(ID:11)：這是強力策略，使用後解除現有同盟且15回合內無法結盟。適合在你資金優勢時使用。
   - 其他計謀：target 相關欄位填 null
 
 請務必回傳以下 JSON 格式：
