@@ -592,37 +592,8 @@ function checkTurn() {
         log(`[電腦] 輪到 ${currentPlayer.name} 回合...`);
         const botPlayerId = currentPlayer.id;
 
-        if (typeof isOllamaEnabled === 'function' && isOllamaEnabled() && currentPlayer.items.length > 0) {
-            GAME_STATE.isWaitingForAction = true;
-            askOllamaItemUsage(currentPlayer).then(async decision => {
-                GAME_STATE.isWaitingForAction = false;
-                let usedItem = false;
-                if (decision && decision.use_item && decision.item_index != null && decision.item_index < currentPlayer.items.length) {
-                    const idx = decision.item_index;
-                    const item = currentPlayer.items[idx];
-                    let target = null;
-                    if (decision.target_land_id != null) target = MAP_DATA[decision.target_land_id];
-                    else if (decision.target_player_id != null) target = GAME_STATE.players[decision.target_player_id];
-                    else if (decision.target_officer_id != null) target = decision.target_officer_id;
-                    if (decision.trash_talk) await showTrashTalk(currentPlayer.name, decision.trash_talk);
-                    useItem(currentPlayer, { ...item, index: idx }, target);
-                    usedItem = true;
-                }
-                // Ollama 決定不用計謀 → 讓傳統邏輯再補一次 (確保急迫道具不被浪費)
-                if (!usedItem) {
-                    handleAIItemUsage(currentPlayer);
-                }
-                setTimeout(() => checkTurnRollDice(botPlayerId), 1500);
-            }).catch(e => {
-                console.error("Ollama item use error:", e);
-                GAME_STATE.isWaitingForAction = false;
-                handleAIItemUsage(currentPlayer);
-                setTimeout(() => checkTurnRollDice(botPlayerId), 3000);
-            });
-        } else {
-            handleAIItemUsage(currentPlayer);
-            setTimeout(() => checkTurnRollDice(botPlayerId), 3000); // 增加一點延遲讓玩家看清楚 AI 動作
-        }
+        handleAIItemUsage(currentPlayer);
+        setTimeout(() => checkTurnRollDice(botPlayerId), 3000); // 增加一點延遲讓玩家看清楚 AI 動作
     }
 }
 
@@ -782,38 +753,7 @@ function triggerLandEvent(player, landInfo) {
         } else if (player.officers && player.officers.length === 0) {
             log(`${player.name} 停在 ${landInfo.name}，但無可用武將可派駐，放棄佔領。`);
             endTurn();
-        } else if (player.money >= currentPrice && player.officers.length > 0) {
             if (player.isBot) {
-                if (typeof isOllamaEnabled === 'function' && isOllamaEnabled()) {
-                    GAME_STATE.isWaitingForAction = true;
-                    askOllamaBuyLandDecision(player, landInfo).then(async decision => {
-                        GAME_STATE.isWaitingForAction = false;
-                        if (decision && decision.trash_talk) {
-                            await showTrashTalk(player.name, decision.trash_talk);
-                        }
-                        if (decision && decision.action === 'buy' && decision.defenders && decision.defenders.length > 0) {
-                            // 過濾掉不屬於閒置清單的無效武將
-                            let validDefenders = decision.defenders.filter(id => player.officers.includes(id));
-                            if (validDefenders.length > 3) validDefenders = validDefenders.slice(0, 3);
-                            if (validDefenders.length === 0) {
-                                log(`[電腦] ${player.name} 決定放棄佔領 ${landInfo.name}。`);
-                                endTurn();
-                            } else {
-                                executeBuyLand(player, landInfo, validDefenders);
-                            }
-                        } else {
-                            log(`[電腦] ${player.name} 決定放棄佔領 ${landInfo.name}。`);
-                            endTurn();
-                        }
-                    }).catch(e => {
-                        console.error('Ollama Error:', e);
-                        log(`[電腦] ${player.name} 思緒混亂，放棄佔領 ${landInfo.name}。`);
-                        GAME_STATE.isWaitingForAction = false;
-                        endTurn();
-                    });
-                    return;
-                }
-                
                 try {
                     // AI 自動購買邏輯
                     log(`[追蹤] 1. 準備佔領`);
@@ -881,42 +821,6 @@ function triggerLandEvent(player, landInfo) {
     } else if (landInfo.owner === player.id) {
         // 自己的土地
         if (player.isBot) {
-            if (typeof isOllamaEnabled === 'function' && isOllamaEnabled()) {
-                GAME_STATE.isWaitingForAction = true;
-                askOllamaUpgradeDecision(player, landInfo).then(async decision => {
-                    GAME_STATE.isWaitingForAction = false;
-                    if (decision) {
-                        if (decision.defenders && Array.isArray(decision.defenders)) {
-                            // 把原本的守將都放回閒置區
-                            player.officers.push(...landInfo.defenders);
-                            landInfo.defenders = [];
-                            let validDefenders = decision.defenders.filter(id => player.officers.includes(id));
-                            if (validDefenders.length > 3) validDefenders = validDefenders.slice(0, 3);
-                            landInfo.defenders = validDefenders;
-                            player.officers = player.officers.filter(id => !validDefenders.includes(id));
-                            updateOfficerCountUI(player.id);
-                            log(`🔄 【調兵遣將】[電腦] ${player.name} 重新部署了 ${landInfo.name} 的守將！`);
-                        }
-                        const buildCost = ((landInfo.development || 0) + 1) * 100;
-                        if (decision.upgrade && player.money >= buildCost) {
-                            updateMoney(player.id, -buildCost);
-                            landInfo.development = (landInfo.development || 0) + 1;
-                            updateBoardUI();
-                            log(`🏗️ 【城池建設】[電腦] ${player.name} 斥資 $${buildCost} 建設 ${landInfo.name}，等級提升至 Lv ${landInfo.development}！`);
-                        }
-                    } else {
-                        log(`[電腦] ${player.name} 視察 ${landInfo.name} 後離開。`);
-                    }
-                    endTurn();
-                }).catch(e => {
-                    console.error('Ollama Error:', e);
-                    log(`[電腦] ${player.name} 視察 ${landInfo.name} 後離開。`);
-                    GAME_STATE.isWaitingForAction = false;
-                    endTurn();
-                });
-                return;
-            }
-
             log(`${player.name} 回到自己的領地 ${landInfo.name}，軍心大振。`);
             
             // AI 每次走到自己的城池時，都會重新調配武將，邏輯與佔領空城相同
@@ -1062,45 +966,6 @@ function triggerLandEvent(player, landInfo) {
             if (GAME_STATE.alliance.includes(player.id) && GAME_STATE.alliance.includes(landInfo.owner)) {
                 log(`🤝 【同盟通行】[電腦] ${player.name} 路過盟友 ${owner.name} 的 ${landInfo.name}，義不容辭，繼續前行。`);
                 setTimeout(() => { endTurn(); }, 800);
-                return;
-            }
-
-            if (typeof isOllamaEnabled === 'function' && isOllamaEnabled()) {
-                GAME_STATE.isWaitingForAction = true;
-                askOllamaSiegeDecision(player, landInfo).then(async decision => {
-                    GAME_STATE.isWaitingForAction = false;
-                    if (decision) {
-                        if (decision.trash_talk && !owner.isBot) {
-                            await showTrashTalk(player.name, decision.trash_talk);
-                        }
-                        if (decision.action === 'attack' && decision.officers && decision.officers.length > 0) {
-                        let validAttackers = decision.officers.filter(id => player.officers.includes(id));
-                        if (validAttackers.length > 3) validAttackers = validAttackers.slice(0, 3);
-                        if (validAttackers.length > 0) {
-                            log(`[電腦] ${player.name} 評估後決定發起攻城！`);
-                            let useBuff = false;
-                            if (decision.use_buff) {
-                                const itemIdx = player.items.findIndex(it => it.id === 5);
-                                if (itemIdx !== -1) {
-                                    consumeItem(player, itemIdx);
-                                    playItemAnimation("臨陣磨槍", player.name);
-                                    log(`🔥 士氣大振！[電腦] ${player.name} 使用了「臨陣磨槍」，全軍能力提升 10%！`);
-                                    useBuff = true;
-                                }
-                            }
-                            executeSiege(player, landInfo, validAttackers, useBuff);
-                            return;
-                        }
-                        }
-                    }
-                    log(`[電腦] ${player.name} 決定繳交過路費。`);
-                    payToll(player, owner, toll);
-                }).catch(e => {
-                    console.error('Ollama Error:', e);
-                    log(`[電腦] ${player.name} 放棄攻城，繳交過路費。`);
-                    GAME_STATE.isWaitingForAction = false;
-                    payToll(player, owner, toll);
-                });
                 return;
             }
 

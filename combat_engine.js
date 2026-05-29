@@ -355,12 +355,7 @@ async function executeSiege(attacker, landInfo, attackingIds, consumedBuff = fal
             overlay.style.opacity = "0";
             setTimeout(() => overlay.remove(), 500);
 
-            if (defender.isBot && !attacker.isBot && typeof isOllamaEnabled === 'function' && isOllamaEnabled()) {
-                try {
-                    const talk = await askOllamaSkillTrashTalk(defender, attacker, displayName, charmer.name);
-                    if (talk && talk.trash_talk) await showTrashTalk(defender.name, talk.trash_talk);
-                } catch(e) {}
-            }
+            // Ollama trash talk removed
 
             if (attacker.isBot) {
                 setTimeout(() => { payToll(attacker, defender, toll); }, 500);
@@ -802,36 +797,7 @@ async function executeSiege(attacker, landInfo, attackingIds, consumedBuff = fal
 
     GAME_STATE.isWaitingForAction = true;
 
-    if (typeof isOllamaEnabled === 'function' && isOllamaEnabled()) {
-        // 先顯示特技垃圾話
-        for (let task of aiSkillTrashTalks) {
-            try {
-                const talk = await askOllamaSkillTrashTalk(task.owner, task.opponent, task.skillName, task.officerName);
-                if (talk && talk.trash_talk) await showTrashTalk(task.owner.name, talk.trash_talk);
-            } catch (e) {}
-        }
-        
-        let speaker = null;
-        if (attacker.isBot && !defender.isBot) {
-            speaker = attacker;
-        } else if (defender.isBot && !attacker.isBot) {
-            speaker = defender;
-        }
-        
-        if (speaker) {
-            let isSpeakerWin = (speaker === attacker) ? isAttackerWin : !isAttackerWin;
-            if (reversalProc) isSpeakerWin = false; // 如果神機妙算兩敗俱傷，雙方都不算贏
-            let opponent = (speaker === attacker) ? defender : attacker;
-            try {
-                const talkDecision = await askOllamaPostBattleTrashTalk(speaker, opponent, isSpeakerWin, landInfo.name, statName);
-                if (talkDecision && talkDecision.trash_talk) {
-                    await showTrashTalk(speaker.name, talkDecision.trash_talk);
-                }
-            } catch (e) {
-                console.error('Ollama Post-Battle Trash Talk Error:', e);
-            }
-        }
-    }
+    // Ollama trash talk removed
 
     showModal(
         `攻城戰報 - 比拚【${statName}】`,

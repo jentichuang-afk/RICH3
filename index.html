@@ -112,21 +112,7 @@
                         <p>遊戲開始！由劉備先攻。</p>
                     </div>
 
-                    <!-- Ollama AI 設定區 -->
-                    <div class="ai-settings" style="margin-top: 15px; padding: 10px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 5px; text-align: left;">
-                        <label style="color: #e0e0e0; font-size: 0.85rem; display: flex; align-items: center; margin-bottom: 8px; cursor: pointer;">
-                            <input type="checkbox" id="ai-ollama-toggle" style="margin-right: 5px;"> 
-                            <span style="font-weight: bold; color: #f1c40f;">啟用 Ollama AI 決策</span>
-                        </label>
-                        <select id="ai-ollama-model" style="width: 100%; padding: 5px; font-size: 0.8rem; background: rgba(0,0,0,0.5); color: white; border: 1px solid #7f8c8d; border-radius: 3px;" disabled>
-                            <option value="qwen2.5">載入可用模型中...</option>
-                        </select>
-                        <script>
-                            document.getElementById('ai-ollama-toggle').addEventListener('change', function(e) {
-                                document.getElementById('ai-ollama-model').disabled = !e.target.checked;
-                            });
-                        </script>
-                    </div>
+
 
                     <div style="margin-top: 8px; text-align: center;">
                         <button id="btn-show-encyclopedia" class="btn secondary-btn"
@@ -517,7 +503,6 @@
     <script src="utils.js"></script>
     <script src="combat_engine.js"></script>
     <script src="item_system.js"></script>
-    <script src="ollama_service.js"></script>
     <script src="ai_model.js"></script>
     <script src="game.js"></script>
 </body>

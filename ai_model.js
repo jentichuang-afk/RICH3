@@ -183,61 +183,6 @@ function handleAIItemUsage(player) {
 // AI 城市選單決策 (長安/江夏：招募 + 買道具)
 // ============================================================
 function handleCityMenuAI(player, offeredIds, cityName) {
-    if (typeof isOllamaEnabled === 'function' && isOllamaEnabled()) {
-        GAME_STATE.isWaitingForAction = true;
-        let offeredOfficers = offeredIds.map(id => {
-            const o = getOfficer(id);
-            let cost = 0;
-            for (let i = 1; i <= 6; i++) cost += o.stats[i];
-            if (OFFICER_SKILLS[id]) {
-                let power = getSkillPowerPercentage(OFFICER_SKILLS[id]);
-                cost = power > 9 ? cost * 2 : Math.floor(cost * 1.5);
-            }
-            return { id: o.id, name: o.name, cost: cost };
-        });
-
-        let availableItems = Object.values(ITEMS_DATA).filter(it => {
-            const alreadyOwned = player.items.some(pi => pi.id === it.id);
-            const limitReached = it.id === 9 && (player.item9UseCount || 0) >= 3;
-            return !alreadyOwned && !limitReached;
-        });
-
-        askOllamaCityMenu(player, offeredOfficers, availableItems).then(async decision => {
-            if (!decision) {
-                return executeCityMenuAIFallback(player, offeredIds, cityName);
-            }
-            let canRecruit = false;
-            let targetOfficer = null;
-            let officerCost = 0;
-
-            if (decision.recruit_officer_id != null) {
-                let cand = offeredOfficers.find(o => o.id === decision.recruit_officer_id);
-                if (cand && player.money >= cand.cost) {
-                    canRecruit = true;
-                    targetOfficer = cand;
-                    officerCost = cand.cost;
-                }
-            }
-
-            let boughtItemsList = [];
-            let tempBudget = player.money - (canRecruit ? officerCost : 0);
-            if (decision.buy_items && Array.isArray(decision.buy_items)) {
-                for (let itemId of decision.buy_items) {
-                    let it = availableItems.find(i => i.id === itemId);
-                    if (it && tempBudget >= it.price) {
-                        boughtItemsList.push(it);
-                        tempBudget -= it.price;
-                    }
-                }
-            }
-            executeCityMenuAction(player, cityName, canRecruit, targetOfficer, officerCost, boughtItemsList);
-        }).catch(e => {
-            console.error('Ollama Error:', e);
-            executeCityMenuAIFallback(player, offeredIds, cityName);
-        });
-        return;
-    }
-
     executeCityMenuAIFallback(player, offeredIds, cityName);
 }
 
