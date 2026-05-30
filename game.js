@@ -753,6 +753,7 @@ function triggerLandEvent(player, landInfo) {
         } else if (player.officers && player.officers.length === 0) {
             log(`${player.name} 停在 ${landInfo.name}，但無可用武將可派駐，放棄佔領。`);
             endTurn();
+        } else if (player.money >= currentPrice && player.officers.length > 0) {
             if (player.isBot) {
                 try {
                     // AI 自動購買邏輯

@@ -14,3 +14,5 @@ const ITEMS_DATA = {
     10: { id: 10, name: "起死回生", price: 1000, desc: "復活一名己方陣亡的武將，並清除所有傷勢", type: "active_target_officer" },
     11: { id: 11, name: "離間之計", price: 2000, desc: "使用後立即解除現有同盟，且全場 15 回合內無法組成任何同盟", type: "active" }
 };
+
+window.ITEMS_DATA = ITEMS_DATA;
