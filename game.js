@@ -2800,3 +2800,13 @@ function restoreUI() {
         playAllianceAnimation = (...args) => enqueueAnimation(2000, () => origAlliance(...args));
     }
 })();
+
+// 監聽視窗大小改變 (RWD)，即時重新定位所有棋子，防設備旋轉或視窗縮放時跑位
+window.addEventListener('resize', () => {
+    if (typeof updatePiecesPosition === 'function') {
+        updatePiecesPosition();
+        // 延遲 150ms 再次微調，確保設備旋轉或版面伸縮動畫完成後 coordinates 100% 精準
+        setTimeout(updatePiecesPosition, 150);
+    }
+});
+

@@ -64,8 +64,8 @@ body {
 }
 
 .container {
-    width: 900px;
-    max-width: 98vw;
+    width: 100%;
+    max-width: 1100px;
     background: rgba(0, 0, 0, 0.4);
     border: 2px solid var(--ink-dark);
     box-shadow: 10px 10px 20px rgba(0, 0, 0, 0.1),
@@ -629,6 +629,13 @@ h1 {
     height: 100%;
 }
 
+.board-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
 .board {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
@@ -637,10 +644,9 @@ h1 {
     background: #444;
     padding: 6px;
     border: 3px solid #666;
-    height: 600px;
-    width: 600px;
-    max-width: 100%;
-    max-height: 100%;
+    max-width: 600px;
+    width: 100%;
+    height: auto;
     aspect-ratio: 1 / 1;
     position: relative;
     box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.1);
@@ -1409,3 +1415,150 @@ h1 {
     50% { opacity: 1; }
     100% { opacity: 0.5; }
 }
+
+/* ============================================================
+   響應式設計 (RWD) Media Queries
+   ============================================================ */
+
+/* 1. 平板直立 (Portrait) 與窄螢幕 (<= 992px) */
+@media (max-width: 992px) {
+    .container {
+        padding: 10px;
+        max-height: none;
+        overflow-y: auto;
+    }
+    
+    .game-area {
+        flex-direction: column; /* 側邊欄與地圖改為垂直排列 */
+        align-items: center;
+        overflow: visible;
+        gap: 20px;
+    }
+    
+    .sidebar {
+        width: 100%; /* 寬度撐滿 */
+        max-height: none;
+        padding-right: 0;
+    }
+    
+    /* 讓玩家卡片橫向網格排列，節省直立空間 */
+    .status-panel {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 8px;
+        width: 100%;
+    }
+    
+    .player-card {
+        opacity: 0.8;
+        margin-bottom: 0;
+    }
+    
+    .control-panel {
+        display: grid;
+        grid-template-columns: 1fr 1.2fr; /* 讓骰子控制與日誌左右排列 */
+        gap: 12px;
+        text-align: left;
+        align-items: center;
+    }
+    
+    .dice-container {
+        flex-direction: row;
+        justify-content: space-around;
+        gap: 15px;
+    }
+    
+    .log-panel {
+        height: 120px;
+        border-top: none;
+        border-left: 1px dashed var(--border-color);
+        padding-top: 0;
+        padding-left: 12px;
+    }
+    
+    .board-container {
+        width: 100%;
+        max-width: 550px;
+    }
+}
+
+/* 2. 手機與極窄螢幕 (<= 576px) */
+@media (max-width: 576px) {
+    h1 {
+        font-size: 1.5rem;
+        letter-spacing: 2px;
+    }
+    
+    .subtitle {
+        font-size: 0.9rem;
+    }
+    
+    /* 玩家卡片排成更緊湊的網格 */
+    .status-panel {
+        grid-template-columns: repeat(2, 1fr); /* 2x2 網格 */
+    }
+    
+    .player-card {
+        padding: 6px;
+    }
+    
+    .avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 0.9rem;
+        margin-right: 6px;
+    }
+    
+    .info h2 {
+        font-size: 0.8rem;
+    }
+    
+    .money {
+        font-size: 0.9rem;
+    }
+    
+    .officer-count {
+        font-size: 0.75rem;
+    }
+    
+    .control-panel {
+        grid-template-columns: 1fr; /* 手機端恢復成上下排列 */
+    }
+    
+    .log-panel {
+        border-left: none;
+        border-top: 1px dashed var(--border-color);
+        padding-left: 0;
+        padding-top: 8px;
+        height: 80px;
+    }
+    
+    .board {
+        gap: 2px;
+        padding: 3px;
+        border-width: 2px;
+    }
+    
+    .cell {
+        padding: 4px;
+    }
+    
+    .city-name {
+        font-size: 0.75rem;
+    }
+    
+    .city-name small {
+        font-size: 0.6rem;
+    }
+    
+    .piece {
+        width: 25px;
+        height: 25px;
+        font-size: 0.85rem;
+    }
+    
+    /* 雲端存檔欄位排版優化 */
+    #save-slots-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
