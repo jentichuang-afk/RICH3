@@ -242,18 +242,33 @@
                 </div>
             </div> <!-- end board-container -->
 
-            <!-- ☁️ 雲端硬碟同步面板 (地圖正下方) -->
-            <div class="cloud-sync-panel" id="drive-sync-panel">
-                <div class="sync-header">☁️ 雲端硬碟同步</div>
-                <div id="drive-auth-logged-out">
-                    <button id="btn-drive-login" class="btn google-btn">授權 Google 登入</button>
-                </div>
-                <div id="drive-auth-logged-in" class="hidden">
-                    <div class="user-info" style="margin-bottom:6px;">
-                        <span id="drive-user-name" style="font-weight:bold; color:var(--gold);">已授權雲端硬碟</span>
-                        <button id="btn-drive-logout" class="btn-text" style="margin-left:10px;">清除授權</button>
+            <!-- 💾 遊戲存檔與雲端同步面板 (地圖正下方) -->
+            <div class="cloud-sync-panel" id="drive-sync-panel" style="display: flex; gap: 20px; flex-wrap: wrap; text-align: left;">
+                <!-- 左側：本機快速存讀檔與檔案匯出匯入 -->
+                <div style="flex: 1; min-width: 250px; border-right: 1px solid rgba(184, 152, 73, 0.25); padding-right: 15px;">
+                    <div class="sync-header" style="display: flex; align-items: center; gap: 5px;">💾 本機快速存讀與檔案移轉</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <button id="btn-save-game" class="btn secondary-btn" style="padding: 6px; font-size: 0.85rem; border-color: #27ae60; color: #2ecc71; border-radius: 4px;">💾 快速存檔</button>
+                        <button id="btn-load-game" class="btn secondary-btn" style="padding: 6px; font-size: 0.85rem; border-color: #2980b9; color: #3498db; border-radius: 4px;">📂 快速讀檔</button>
+                        <button id="btn-export-game" class="btn secondary-btn" style="padding: 6px; font-size: 0.8rem; border-color: var(--gold); color: var(--gold); border-radius: 4px;">📤 匯出存檔檔</button>
+                        <button id="btn-import-game" class="btn secondary-btn" style="padding: 6px; font-size: 0.8rem; border-color: var(--gold); color: var(--gold); border-radius: 4px;">📥 匯入存檔檔</button>
                     </div>
-                    <div id="save-slots-grid"></div>
+                    <input type="file" id="input-import-game" accept=".json" style="display:none;">
+                </div>
+
+                <!-- 右側：雲端硬碟同步 (僅限 HTTP localhost 或 HTTPS 網域環境) -->
+                <div style="flex: 1.2; min-width: 280px;">
+                    <div class="sync-header" style="display: flex; align-items: center; gap: 5px;">☁️ 雲端硬碟同步 (限本機/HTTPS)</div>
+                    <div id="drive-auth-logged-out">
+                        <button id="btn-drive-login" class="btn google-btn" style="width: 100%; border-radius: 4px; padding: 7px;">授權 Google 登入</button>
+                    </div>
+                    <div id="drive-auth-logged-in" class="hidden">
+                        <div class="user-info" style="margin-bottom:6px; justify-content: flex-start;">
+                            <span id="drive-user-name" style="font-weight:bold; color:var(--gold); font-size: 0.85rem;">已授權雲端硬碟</span>
+                            <button id="btn-drive-logout" class="btn-text" style="margin-left:10px; font-size: 0.8rem;">清除授權</button>
+                        </div>
+                        <div id="save-slots-grid"></div>
+                    </div>
                 </div>
             </div>
 

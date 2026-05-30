@@ -171,6 +171,9 @@ const UI = {
     // Save/Load
     btnSaveGame: document.getElementById('btn-save-game'),
     btnLoadGame: document.getElementById('btn-load-game'),
+    btnExportGame: document.getElementById('btn-export-game'),
+    btnImportGame: document.getElementById('btn-import-game'),
+    inputImportGame: document.getElementById('input-import-game'),
     btnRestartGame: document.getElementById('btn-restart-game'),
 
     // Drive Sync UI
@@ -206,6 +209,11 @@ function initGame() {
         // Save/Load bindings
         if (UI.btnSaveGame) UI.btnSaveGame.addEventListener('click', saveGame);
         if (UI.btnLoadGame) UI.btnLoadGame.addEventListener('click', loadGame);
+        if (UI.btnExportGame) UI.btnExportGame.addEventListener('click', exportGame);
+        if (UI.btnImportGame) UI.btnImportGame.addEventListener('click', () => {
+            if (UI.inputImportGame) UI.inputImportGame.click();
+        });
+        if (UI.inputImportGame) UI.inputImportGame.addEventListener('change', importGame);
         if (UI.btnRestartGame) UI.btnRestartGame.addEventListener('click', () => {
             if (confirm("確定要重新開始遊戲嗎？目前的進度將會遺失。")) {
                 location.reload();
@@ -2431,6 +2439,76 @@ function loadGame() {
         console.error("Load error:", e);
         alert("讀檔失敗: " + e.message);
     }
+}
+
+function exportGame() {
+    if (GAME_STATE.isWaitingForAction) {
+        alert("❌ 請在「輪到您的回合，且尚未擲骰子」的狀態下存檔，以免造成遊戲進度卡死！");
+        return;
+    }
+    try {
+        const saveData = {
+            GAME_STATE: GAME_STATE,
+            MAP_DATA: MAP_DATA,
+            OFFICERS_DATA: OFFICERS_DATA,
+            timestamp: new Date().toISOString()
+        };
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(saveData));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        const date = new Date();
+        const dateStr = `${date.getFullYear()}${String(date.getMonth()+1).padStart(2,'0')}${String(date.getDate()).padStart(2,'0')}_${String(date.getHours()).padStart(2,'0')}${String(date.getMinutes()).padStart(2,'0')}`;
+        downloadAnchor.setAttribute("download", `Rich3_Save_${dateStr}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+        log(`📤 [系統] 匯出存檔成功！`);
+    } catch (e) {
+        console.error("Export error:", e);
+        alert("匯出失敗: " + e.message);
+    }
+}
+
+function importGame(fileEvent) {
+    const file = fileEvent.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            if (!data.GAME_STATE || !data.MAP_DATA || !data.OFFICERS_DATA) {
+                alert("❌ 無效的存檔檔案格式！");
+                return;
+            }
+            
+            // 恢復數據 (Object.assign 保持引用或直接覆蓋)
+            Object.assign(GAME_STATE, data.GAME_STATE);
+            
+            // MAP_DATA 和 OFFICERS_DATA 是陣列，必須透過 ID 對應來覆寫 (避免版本更新導致 index 錯亂)
+            data.MAP_DATA.forEach((savedLand) => {
+                const target = MAP_DATA.find(l => l.id === savedLand.id);
+                if (target) Object.assign(target, savedLand);
+            });
+            
+            data.OFFICERS_DATA.forEach((savedOfficer) => {
+                const target = OFFICERS_DATA.find(o => o.id === savedOfficer.id);
+                if (target) Object.assign(target, savedOfficer);
+            });
+            
+            // 恢復 UI
+            restoreUI();
+            
+            // 隱藏開始畫面 (如果還在的話)
+            UI.startScreen.classList.add('hidden');
+            
+            log(`📥 [系統] 匯入存檔成功！載入自 ${new Date(data.timestamp).toLocaleString()}`);
+            alert("匯入存檔成功！");
+        } catch (err) {
+            console.error("Import load error:", err);
+            alert("匯入失敗: " + err.message);
+        }
+    };
+    reader.readAsText(file);
 }
 
 /**
